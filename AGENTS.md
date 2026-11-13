@@ -1,0 +1,12 @@
+# Agent notes
+
+This repo ships the `create-fun-lessons` skill in `skills/create-fun-lessons/` for anyone to install.
+
+- Keep the skill's wording portable: name generic tools and steps (`node`, "a browser", "the user's or project's output folder", "a URL the phone can reach"), not one person's setup, wrapper commands, or apps.
+- Describe the learning experience itself (lesson map, quick cards, instant feedback, retries, XP, streak) instead of naming other learning products.
+- Every code sample, command, and code answer field is syntax highlighted (highlight.js, loaded in `template.html`). A new card type or field that shows code renders it through `highlight()` or the `field()` editor and takes a `lang`; `check.mjs` rejects languages the page does not load.
+- Every quiz card offers a Hint button. A new quiz card type defines its automatic hints in `hintSteps()`, or `check.mjs` requires an authored `hint` for it.
+- Every quiz card shows its acceptance criteria before the learner answers: the question or options make it plain, a `type` card states its expected form and matching rule, a `write` card lists its rubric.
+- A course covers its whole subject, proven by `syllabus.md`: every part of the subject maps to lessons or a stated skip reason, and `check.mjs` enforces it.
+- A change to the card schema touches `template.html` (engine and sample lesson), `scripts/check.mjs`, and the schema in `SKILL.md` together. Verify with `node skills/create-fun-lessons/scripts/check.mjs <page>` on a copy of the template with its own `storageKey` and a `syllabus.md` beside it that maps lesson `u1l1`.
+- The page looks like shadcn/ui, built on Basecoat CSS (`basecoat-css` from jsDelivr, pinned) with Inter from its official CDN (`rsms.me/inter/inter.css`, `InterVariable` with static `Inter` as fallback) for text and Geist Mono from Google Fonts for code. Reuse Basecoat's components (`.btn` with `data-variant`/`data-size`, `.badge`, `.progress`, `.kbd`) and its tokens (`--background`, `--card`, `--border`, `--muted-foreground`, `--primary`, `--destructive`, `--radius`) before writing new CSS; add a course-specific rule only for parts Basecoat lacks. Dark mode is Basecoat's `.dark` class on `<html>`, which the engine sets from the system theme. Basecoat already owns `.card`, so the lesson body is `.panel`. The lesson-complete screen has one button: "Next lesson", or "Back to map" after the last lesson.

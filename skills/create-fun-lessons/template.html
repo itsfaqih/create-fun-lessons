@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Course</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- UI components: Basecoat (shadcn/ui look in plain CSS). Dark theme = .dark on <html>, set by the engine. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@1.1.0/dist/basecoat.cdn.min.css">
+<!-- Syntax highlighting. More languages: add highlight.js/11.11.1/languages/<name>.min.js after this tag. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js" integrity="sha384-RH2xi4eIQ/gjtbs9fUXM68sLSi99C7ZWBRX1vDrVv6GQXRibxXLbwO2NGZB74MbU" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<style>
+/* Basecoat supplies the tokens (--background, --foreground, --card, --muted,
+   --muted-foreground, --border, --primary, --destructive, --radius) and the
+   .btn, .badge, .progress and .kbd components. This sheet adds the course parts. */
+:root{ --ok:oklch(.6 .15 155); --ok-soft:oklch(.6 .15 155 / 12%); --bad:var(--destructive); --bad-soft:oklch(.577 .245 27.325 / 10%);
+  --warn:oklch(.75 .16 75); --warn-soft:oklch(.75 .16 75 / 14%); --code-bg:#0a0a0b; --code-text:#e6e9f2; --code-line:oklch(1 0 0 / 10%); }
+.dark{ --ok:oklch(.72 .16 155); --ok-soft:oklch(.72 .16 155 / 14%); --bad-soft:oklch(.704 .191 22.216 / 14%); --code-bg:#0a0a0b; }
+html,body{margin:0}
+body{background:var(--background);color:var(--foreground);font-family:Inter,var(--font-sans),system-ui,sans-serif;font-feature-settings:"liga" 1,"calt" 1;font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;font-optical-sizing:auto}
+@supports (font-variation-settings:normal){body{font-family:InterVariable,var(--font-sans),system-ui,sans-serif}}
+code,pre,.mono{font-family:"Geist Mono",var(--font-mono),ui-monospace,monospace}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.wrap{max-width:672px;margin:0 auto;padding:0 16px}
+.muted{color:var(--muted-foreground)}
+.progress{height:8px;border-radius:99px;background:var(--muted)}
+.progress>span{background:var(--uc,var(--primary));border-radius:99px}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:5;background:color-mix(in oklab,var(--background) 85%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.topbar .wrap{display:flex;align-items:center;gap:8px;height:56px}
+.logo{font-weight:600;font-size:15px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logo span{color:var(--muted-foreground)}
+.topbar .badge{gap:4px;font-variant-numeric:tabular-nums}
+.topbar .badge svg{width:14px;height:14px}
+
+/* home */
+.hero{padding:32px 0 8px}
+.hero h1{font-size:28px;line-height:1.15;margin:0 0 8px;font-weight:700;letter-spacing:-.02em}
+.hero p{margin:0;color:var(--muted-foreground)}
+.overall{display:flex;align-items:center;gap:12px;margin:20px 0 4px}
+.overall .progress{flex:1}
+.overall span{font-size:13px;color:var(--muted-foreground);font-variant-numeric:tabular-nums;white-space:nowrap}
+.saved{margin-top:12px;font-size:13px;color:var(--muted-foreground)}
+.saved.warn{color:var(--foreground);background:var(--bad-soft);border:1px solid color-mix(in oklab,var(--bad) 30%,transparent);padding:10px 12px;border-radius:var(--radius)}
+.saved.warn a{color:inherit;font-weight:600}
+.resume{margin-top:16px;width:100%;display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer;background:var(--card);border:1px solid var(--border);border-radius:calc(var(--radius) + 2px);padding:14px 16px;box-shadow:0 1px 2px oklch(0 0 0 / 5%)}
+.resume:hover{background:var(--accent)}
+.resume small{display:block;font-size:12px;color:var(--muted-foreground)}
+.resume b{display:block;font-weight:600}
+.resume>span:first-child{flex:1}
+.resume .hint{margin:0}
+.unit{margin:24px 0 0;background:var(--card);border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);overflow:hidden;box-shadow:0 1px 2px oklch(0 0 0 / 5%)}
+.unit-head{padding:16px 16px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:start}
+.unit-head small{font-size:12px;color:var(--muted-foreground);display:flex;align-items:center;gap:6px}
+.unit-head small i{width:8px;height:8px;border-radius:50%;background:var(--uc)}
+.unit-head h2{grid-column:1;margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em}
+.unit-head p{grid-column:1;margin:0;font-size:14px;color:var(--muted-foreground)}
+.unit-head .badge{grid-column:2;grid-row:1/span 2;font-variant-numeric:tabular-nums}
+.path{border-top:1px solid var(--border)}
+.node{width:100%;display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:56px;background:none;border:0;border-top:1px solid var(--border);text-align:left;cursor:pointer;color:var(--foreground)}
+.node:first-child{border-top:0}
+.node:hover{background:var(--accent)}
+.node .dot{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;border:1px solid var(--border);color:var(--muted-foreground);font-variant-numeric:tabular-nums}
+.node .dot svg{width:14px;height:14px}
+.node.is-done .dot{background:var(--uc);border-color:var(--uc);color:#fff}
+.node.next .dot{border-color:var(--uc);color:var(--uc);box-shadow:0 0 0 3px color-mix(in oklab,var(--uc) 20%,transparent)}
+.node .t{flex:1;min-width:0;font-weight:500}
+.node.todo .t{color:var(--muted-foreground)}
+.node .badge{flex:none}
+.node.next .badge{background:var(--uc);border-color:var(--ud);color:#fff}
+.node.is-done .dot{border-color:var(--ud)}
+.sheet{margin:24px 0 0;background:var(--card);border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);padding:0 16px}
+.sheet summary{cursor:pointer;font-weight:600;padding:14px 0;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:48px}
+.sheet summary::-webkit-details-marker{display:none}
+.sheet summary::after{content:"";width:8px;height:8px;border-right:1.5px solid var(--muted-foreground);border-bottom:1.5px solid var(--muted-foreground);transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+.sheet[open] summary::after{transform:rotate(-135deg)}
+.sheet dl{margin:0 0 16px}
+.sheet dt{font-weight:600;margin-top:12px;font-size:15px}
+.sheet dd{margin:2px 0 0;color:var(--muted-foreground);font-size:14px}
+.hint{font-size:14px;color:var(--muted-foreground);margin:0 0 10px}
+.codebox{width:100%;font:13px/1.4 "Geist Mono",ui-monospace,monospace;background:var(--muted);color:var(--foreground);border:1px solid var(--border);border-radius:var(--radius);padding:10px;resize:vertical;word-break:break-all}
+.row{display:flex;align-items:center;gap:12px;margin:8px 0 16px}
+.row .hint{margin:0}
+.reset{display:block;margin:24px auto 64px}
+
+/* lesson */
+.lesson{min-height:100dvh;display:flex;flex-direction:column}
+.lesson-top{display:flex;align-items:center;gap:12px;height:60px}
+.lesson-top .progress{flex:1}
+.lesson-top .progress>span{transition:width .3s ease-out}
+.panel{flex:1;padding:8px 0 24px;animation:in .2s ease-out}
+@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.kicker{font-size:13px;font-weight:500;color:var(--muted-foreground);margin:4px 0 8px;display:flex;align-items:center;gap:6px}
+.kicker::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--uc,var(--primary))}
+.panel h3{font-size:22px;line-height:1.25;margin:0 0 14px;font-weight:600;letter-spacing:-.015em}
+.panel p{margin:0 0 12px}
+.panel ul{margin:0 0 12px;padding-left:22px;list-style:disc}
+.panel ol{margin:0 0 12px;padding-left:22px;list-style:decimal}
+.panel li{margin:4px 0}
+.panel b,.panel strong{font-weight:600}
+.panel :not(pre)>code,.fb code,.sheet code{font-size:.86em;background:var(--muted);border:1px solid var(--border);padding:1px 5px;border-radius:5px;word-break:break-word}
+pre{background:var(--code-bg);color:var(--code-text);padding:14px 16px;border-radius:var(--radius);border:1px solid var(--code-line);overflow-x:auto;font-size:13.5px;line-height:1.6;margin:0 0 14px}
+pre code{background:none !important;padding:0 !important;border:0 !important;font-size:inherit !important;color:inherit;word-break:normal}
+pre .hl{background:rgba(250,204,21,.18);border-radius:3px;padding:0 2px;box-shadow:inset 2px 0 0 rgba(250,204,21,.7)}
+pre .hljs-keyword,pre .hljs-selector-tag,pre .hljs-meta .hljs-keyword{color:#c792ea}
+pre .hljs-string,pre .hljs-regexp,pre .hljs-addition,pre .hljs-meta .hljs-string{color:#c3e88d}
+pre .hljs-comment,pre .hljs-quote{color:#7f8aa3;font-style:italic}
+pre .hljs-number,pre .hljs-literal,pre .hljs-symbol,pre .hljs-bullet{color:#f78c6c}
+pre .hljs-title,pre .hljs-built_in,pre .hljs-section{color:#82aaff}
+pre .hljs-title.class_,pre .hljs-type,pre .hljs-template-tag{color:#ffcb6b}
+pre .hljs-attr,pre .hljs-attribute,pre .hljs-property,pre .hljs-meta,pre .hljs-operator{color:#89ddff}
+pre .hljs-tag,pre .hljs-name,pre .hljs-selector-class,pre .hljs-selector-id,pre .hljs-variable,pre .hljs-template-variable,pre .hljs-deletion{color:#f07178}
+pre .hljs-emphasis{font-style:italic}
+pre .hljs-strong{font-weight:600}
+pre .blank{display:inline-block;min-width:70px;border-bottom:2px dashed #facc15;color:#facc15;text-align:center}
+.where{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted-foreground);border:1px solid var(--border);border-radius:var(--radius);padding:4px 10px;margin:0 0 14px;max-width:100%}
+.where code{background:none !important;border:0 !important;padding:0 !important;word-break:break-all}
+.flow{display:flex;flex-direction:column;margin:4px 0 16px}
+.flow .step{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;font-weight:500;font-size:15px}
+.flow .step small{display:block;color:var(--muted-foreground);font-weight:400;font-size:13px}
+.flow .arrow{text-align:center;color:var(--muted-foreground);font-size:13px;line-height:1.8;font-family:"Geist Mono",monospace}
+.tbl{width:100%;border-collapse:separate;border-spacing:0;margin:0 0 14px;font-size:14px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.tbl td,.tbl th{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl th{background:var(--muted);font-size:13px;font-weight:500;color:var(--muted-foreground)}
+.tip{background:var(--muted);border-radius:var(--radius);padding:10px 14px;font-size:15px;margin:0 0 12px}
+
+.options{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.opt{text-align:left;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;min-height:48px;cursor:pointer;font-size:15px;font-weight:500;display:flex;gap:12px;align-items:flex-start;color:var(--foreground);box-shadow:0 1px 2px oklch(0 0 0 / 4%);transition:background .1s,border-color .1s,box-shadow .1s}
+.opt:hover{background:var(--accent)}
+.opt .k{flex:none;min-width:22px;height:22px;border-radius:5px;border:1px solid var(--border);background:var(--muted);display:grid;place-items:center;font:500 12px "Geist Mono",monospace;color:var(--muted-foreground)}
+.opt.sel{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.opt.sel .k{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}
+.opt.right{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok);background:var(--ok-soft)}
+.opt.right .k{background:var(--ok);border-color:var(--ok);color:#fff}
+.opt.wrong{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad);background:var(--bad-soft)}
+.opt.wrong .k{background:var(--bad);border-color:var(--bad);color:#fff}
+.opt[disabled]{cursor:default}
+.opt.gone{opacity:.45;text-decoration:line-through}
+
+.slots{min-height:64px;border:1px dashed var(--border);border-radius:var(--radius);padding:8px;display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.slots.is-empty::before{content:"Tap the items below in the right order";color:var(--muted-foreground);font-size:14px;padding:10px 6px}
+.bank{display:flex;flex-direction:column;gap:8px}
+.chip{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;min-height:44px;font:500 14px "Geist Mono",monospace;cursor:pointer;text-align:left;display:flex;gap:10px;align-items:center;color:var(--foreground);box-shadow:0 1px 2px oklch(0 0 0 / 4%)}
+.chip:hover{background:var(--accent)}
+.chip .n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--primary);color:var(--primary-foreground);display:grid;place-items:center;font-size:11px;font-weight:600}
+.chip.used{visibility:hidden}
+.slots.right{border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
+.slots.wrong{border-style:solid;border-color:var(--bad);background:var(--bad-soft)}
+
+/* Answer fields. A code field stacks a transparent textarea/input over a
+   highlighted <pre> mirror; both share font, padding and wrapping. */
+.entry,.wbox{background:var(--card);border:1px solid var(--input);border-radius:var(--radius);margin-top:6px;box-shadow:0 1px 2px oklch(0 0 0 / 4%)}
+.entry{display:flex;align-items:center;gap:8px;padding:0 12px}
+.entry:focus-within,.wbox:focus-within{border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 35%,transparent)}
+.entry .prompt{font-family:"Geist Mono",ui-monospace,monospace;color:var(--muted-foreground)}
+.ed{flex:1;min-width:0;display:grid}
+.ed>*,.wbox>*{grid-area:1/1;min-width:0}
+.entry input{border:0;background:none;color:var(--foreground);font:inherit;font-size:16px;padding:10px 0;outline:0;width:100%}
+.wbox{display:grid;overflow:hidden}
+.wbox textarea{border:0;background:none;color:var(--foreground);font:inherit;font-size:16px;line-height:1.5;padding:12px 14px;resize:vertical;outline:0;width:100%;min-height:8.5em}
+.code.entry,.code.wbox{background:var(--code-bg);border-color:var(--code-line)}
+.code .prompt{color:#7f8aa3}
+.code input,.code textarea,.code pre{font:16px/1.5 "Geist Mono",ui-monospace,monospace;letter-spacing:0;tab-size:2;white-space:pre}
+.code input,.code textarea{color:transparent;-webkit-text-fill-color:transparent;caret-color:var(--code-text)}
+.code input::selection,.code textarea::selection{background:rgba(130,170,255,.35)}
+.code pre{margin:0;border-radius:0;border:0;background:none;overflow:hidden;pointer-events:none}
+.code.entry pre{padding:10px 0}
+.code.wbox pre{padding:12px 14px}
+.entry.right,.wbox.right{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok)}
+.entry.wrong,.wbox.wrong{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
+.entry.right:not(.code),.wbox.right:not(.code){background:var(--ok-soft)}
+.entry.wrong:not(.code),.wbox.wrong:not(.code){background:var(--bad-soft)}
+.hintbtn{margin-top:14px;gap:6px}
+.hintbtn svg{width:16px;height:16px;color:var(--warn)}
+.hintbtn small{background:var(--muted);color:var(--muted-foreground);border-radius:99px;min-width:20px;height:20px;display:grid;place-items:center;font-size:11px;font-weight:600;padding:0 6px}
+.hintbtn[disabled] svg{color:var(--muted-foreground)}
+.hints{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.hints:empty{display:none}
+.hint-item{background:var(--warn-soft);border:1px solid color-mix(in oklab,var(--warn) 35%,transparent);border-radius:var(--radius);padding:8px 12px;font-size:15px}
+.criteria{border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin:0 0 4px;font-size:15px}
+.criteria .kicker{margin:0 0 4px}
+.criteria ul{margin:0;padding-left:20px;list-style:disc}
+.criteria li{margin:3px 0}
+.expect{font-size:14px;color:var(--muted-foreground);margin:0 0 4px}
+.model{margin-top:16px}
+.model p{background:var(--muted);border-radius:var(--radius);padding:10px 14px;font-size:15px}
+.rubric{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.chk{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:15px;cursor:pointer;min-height:48px}
+.chk input{flex:none;width:18px;height:18px;margin:2px 0 0;accent-color:var(--ok)}
+.chk:has(input:checked){border-color:var(--ok);background:var(--ok-soft)}
+
+.footer{position:sticky;bottom:0;border-top:1px solid var(--border);background:var(--background);padding:14px 0 calc(14px + env(safe-area-inset-bottom))}
+.footer.ok{background:color-mix(in oklab,var(--ok) 10%,var(--background));border-color:color-mix(in oklab,var(--ok) 35%,transparent)}
+.footer.no{background:color-mix(in oklab,var(--bad) 9%,var(--background));border-color:color-mix(in oklab,var(--bad) 35%,transparent)}
+.fb{display:none;margin-bottom:12px}
+.footer.ok .fb,.footer.no .fb{display:block}
+.fb strong{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px}
+.footer.ok .fb strong{color:var(--ok)}
+.footer.no .fb strong{color:var(--bad)}
+.fb p{margin:4px 0 0;font-size:15px}
+.cta{width:100%;height:44px;font-size:15px}
+.footer.ok .cta{background:var(--ok);color:#fff}
+.footer.no .cta{background:var(--bad);color:#fff}
+
+.done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 0;animation:in .25s ease-out}
+.trophy{width:64px;height:64px;border-radius:50%;background:var(--muted);border:1px solid var(--border);display:grid;place-items:center;margin-bottom:16px}
+.trophy svg{width:30px;height:30px;color:var(--warn)}
+.done h2{font-size:24px;font-weight:600;letter-spacing:-.015em;margin:0 0 4px}
+.done p{color:var(--muted-foreground);margin:0 0 20px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:400px;margin-bottom:12px}
+.tile{border:1px solid var(--border);border-radius:var(--radius);padding:10px 8px;background:var(--card)}
+.tile small{display:block;font-size:12px;color:var(--muted-foreground)}
+.tile b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.recap{max-width:440px;text-align:left;border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin:4px 0 0;font-size:15px;background:var(--card)}
+.recap b{display:block;margin-bottom:4px;font-weight:600}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ===== COURSE CONTENT: replace everything from here to END COURSE CONTENT ===== */
+const COURSE = {
+  title: 'Sample Course',                       // <title>, two to four words
+  logoHtml: 'Sample <span>Course</span>',       // top bar; <span> gets the brand color
+  heading: 'Learn the sample topic, one bite at a time',
+  subtitle: 'about 2 minutes each. No prior knowledge needed.',
+  storageKey: 'create-fun-lessons-sample-v1',        // unique per course; changing it resets progress
+  homeUrl: '',                                  // optional: served URL, linked when a viewer blocks storage
+  lang: 'javascript',                           // highlight.js language for code without its own
+};
+
+const UNITS = [
+{
+  id:'u1', title:'Using this template', blurb:'Every card type, once.',
+  color:'#1f9d6b', dark:'#157a52',
+  lessons:[
+  { id:'u1l1', title:'Card types', recap:'learn teaches; mcq, fill and order check.', cards:[
+    {t:'learn', h:'A learn card', body:`<p>Body is HTML. Use <code>code</code>, lists, and the helpers below.</p>
+      <div class="flow"><div class="step">Step one<small>detail</small></div><div class="arrow">↓</div><div class="step">Step two</div></div>
+      <div class="where">📄 <code>path/to/file.ts</code></div><div class="tip">A highlighted tip.</div>
+      <pre><code>const x = <span class="hl">highlighted</span>('text', 42) // comment</code></pre>
+      <pre><code class="language-shell">git commit -m "first" &amp;&amp; <span class="hl">git push --force-with-lease</span>  # shell</code></pre>`},
+    {t:'mcq', q:'Which card asks a multiple-choice question?', o:['<code>learn</code>','<code>mcq</code>','<code>order</code>'], a:1, why:'<code>mcq</code> shows options; <code>a</code> is the index of the right one.'},
+    {t:'fill', q:'Fill the blank.', code:`const answer = ____`, o:['42','"forty-two"'], a:0, hint:'The answer is a number, not a string.', why:'The blank is four underscores in <code>code</code>.'},
+    {t:'order', q:'Put these in order.', items:['First','Second','Third'], why:'Write <code>items</code> in the correct order; the page shuffles them.'},
+    {t:'type', q:'List every file, hidden ones included, in long format.', lang:'shell', accept:['ls -la','ls -al','/^ls -l -a$|^ls -a -l$/'], expect:'One command, flags in any order.', hint:['The command that lists files is <code>ls</code>.','Combine two flags: one for long format, one for all files.'], why:'<code>-l</code> is long format and <code>-a</code> includes dotfiles; flags combine in any order.'},
+    {t:'write', q:'Write <code>double(n)</code>, which returns twice its argument.', lang:'code', starter:'function double(n) {\n  \n}', model:'function double(n) {\n  return n * 2\n}', rubric:['Returns a value with <code>return</code>','Multiplies <code>n</code> by 2 (or adds it to itself)'], hint:['A function hands back its result with one keyword.','<code>return n * 2</code> is one way; there are others.'], why:'A function hands its result back with <code>return</code>; without it the call yields <code>undefined</code>.'},
+  ]},
+  ]
+},
+];
+
+const GLOSSARY = [
+  ['Card','One screen of a lesson: learn, mcq, fill, order, type or write.'],
+  ['Hint','Help on a quiz card. A right answer after a hint does not count as first try.'],
+];
+/* ===== END COURSE CONTENT ===== */
+
+/* ---------- State ---------- */
+/* Progress lives in localStorage. Some viewers (sandboxed previews, private
+   windows) block it, so the state is also mirrored into the URL hash, which
+   survives reloads of the same tab, and can be exported as a progress code. */
+/* Basecoat's dark theme is the .dark class; follow the system unless the
+   page sets data-theme="light" or "dark" on <html>. */
+(()=>{ const r=document.documentElement, m=matchMedia('(prefers-color-scheme: dark)');
+  const f=()=>r.classList.toggle('dark', r.dataset.theme ? r.dataset.theme==='dark' : m.matches); f(); m.addEventListener('change',f); })();
+const KEY=COURSE.storageKey;
+document.title=COURSE.title;
+const fresh=()=>({done:{},xp:0,streak:0,last:null,cur:null});
+let S=fresh();
+const CAN_STORE=(()=>{try{localStorage.setItem(KEY+'-probe','1');localStorage.removeItem(KEY+'-probe');return true;}catch(e){return false;}})();
+const encode=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const decode=s=>JSON.parse(decodeURIComponent(escape(atob(s.trim()))));
+function load(){
+  let raw=null;
+  if(CAN_STORE){ try{raw=localStorage.getItem(KEY);}catch(e){} }
+  if(raw){ try{return Object.assign(fresh(),JSON.parse(raw));}catch(e){} }
+  const m=location.hash.match(/[#&]p=([^&]+)/);
+  if(m){ try{return Object.assign(fresh(),decode(decodeURIComponent(m[1])));}catch(e){} }
+  return fresh();
+}
+S=load();
+function save(){
+  if(CAN_STORE){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
+  try{history.replaceState(null,'','#p='+encodeURIComponent(encode(S)));}catch(e){}
+}
+function restoreFrom(code){
+  const o=decode(code);
+  if(!o||typeof o.done!=='object') throw new Error('bad code');
+  S=Object.assign(fresh(),o); save();
+}
+function today(){return new Date().toISOString().slice(0,10)}
+function bumpStreak(){
+  const t=today(); if(S.last===t) return;
+  const y=new Date(Date.now()-864e5).toISOString().slice(0,10);
+  S.streak = S.last===y ? S.streak+1 : 1; S.last=t;
+}
+const ALL = UNITS.flatMap(u=>u.lessons.map(l=>({...l,unit:u})));
+const nextLesson = ()=> ALL.find(l=>!S.done[l.id]);
+
+/* ---------- Icons ---------- */
+const I={
+  bolt:'<svg viewBox="0 0 24 24" fill="#eab308"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+  fire:'<svg viewBox="0 0 24 24" fill="#f97316"><path d="M12 2s5 4.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 1-3.5S9 11 10.5 11C10.5 7 12 2 12 2z"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>',
+  bulb:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2zM9 20h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  trophy:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3zm0 4H6v1a2 2 0 0 0 1 1.7zm10 0v2.7A2 2 0 0 0 18 8V7z"/></svg>',
+  ok:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" opacity=".18"/><path d="M7 12.5 10.5 16 17 9"/></svg>',
+  no:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" opacity=".18"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></svg>',
+};
+const norm=(s,lang)=>{ s=s.trim().replace(/\s+/g,' '); return lang==='shell'?s.replace(/^\$\s*/,''):s; };
+/* A type answer passes when it equals any literal in `accept` after whitespace
+   is collapsed, or matches any `/regex/flags` entry. */
+const accepts=(c,v)=>{ const n=norm(v,c.lang); return c.accept.some(a=>{ const m=a.match(/^\/(.*)\/([a-z]*)$/s); return m?new RegExp(m[1],m[2]).test(n):norm(a,c.lang)===n; }); };
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const app=document.getElementById('app');
+
+/* Syntax colouring with highlight.js. A language is `text` (none), `shell`
+   (bash), `code` (COURSE.lang), or any highlight.js name. <pre><code> takes
+   it from class="language-x", else COURSE.lang. Text nodes are coloured one
+   by one, so authored markup such as <span class="hl"> survives; .blank
+   (fill-in slots) is left as is. Without highlight.js, code stays plain. */
+const langOf=l=>{ l=l||'code'; const n= l==='text'?null : l==='code'?(COURSE.lang||null) : l==='shell'?'bash' : l; return n&&window.hljs&&hljs.getLanguage(n)?n:null; };
+const hlHTML=(text,lang)=> lang ? hljs.highlight(text,{language:lang,ignoreIllegals:true}).value : esc(text);
+/* bash grammar marks keywords and built-ins only; also colour each command
+   name and its -flags so typed commands read like a terminal. */
+try{
+  const b=hljs.getLanguage('bash');
+  b.contains.unshift(
+    {scope:'title.function',match:/(?<=^[ \t]*|[|;&(]\s*|\$\(\s*|\b(?:sudo|then|do|else|xargs|exec|time)\s+)(?!(?:if|then|else|elif|fi|for|while|until|in|do|done|case|esac|function|select)\b)[A-Za-z_.\/~][\w.\/~+-]*(?=\s|$|;|\|)/},
+    {scope:'attr',match:/(?<=\s)--?[A-Za-z0-9][\w-]*/});
+}catch(e){}
+function highlight(root){
+  root.querySelectorAll('pre code:not([data-hl])').forEach(code=>{
+    code.dataset.hl='';
+    const lang=langOf((code.className.match(/language-([\w+#.-]+)/)||[])[1]);
+    if(!lang) return;
+    const walker=document.createTreeWalker(code,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.blank')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+    const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node=>{ const t=document.createElement('template'); t.innerHTML=hlHTML(node.nodeValue,lang); node.replaceWith(t.content); });
+  });
+}
+/* Answer field markup: a plain field for text, a highlighted editor for code. */
+function field(c){
+  const lang=langOf(c.lang), multi=c.t==='write', cls=lang?'code':'';
+  const attrs=`id="entry" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="${!lang&&multi}" aria-label="Your answer"`;
+  const mirror=lang?'<pre aria-hidden="true"><code></code></pre>':'';
+  if(multi) return `<div class="wbox ${cls}" id="entrybox">${mirror}<textarea ${attrs} rows="${lang?8:6}" ${lang?'wrap="off"':''}>${esc(c.starter||'')}</textarea></div>`;
+  return `<label class="entry ${cls}" id="entrybox">${c.lang==='shell'?'<span class="prompt">$</span>':''}<span class="ed">${mirror}<input ${attrs}></span></label>`;
+}
+function wireField(c){
+  const en=document.getElementById('entry'), lang=langOf(c.lang), mirror=document.querySelector('#entrybox pre code');
+  if(!mirror) return en;
+  const pre=mirror.parentElement;
+  const sync=()=>{ mirror.innerHTML=hlHTML(en.value,lang)+'\n'; pre.scrollTop=en.scrollTop; pre.scrollLeft=en.scrollLeft; };
+  const later=()=>requestAnimationFrame(sync);
+  ['input','scroll','keyup','click','focus','select'].forEach(ev=>en.addEventListener(ev,later));
+  sync();
+  return en;
+}
+
+/* ---------- Home ---------- */
+function renderHome(){
+  const doneCount=ALL.filter(l=>S.done[l.id]).length;
+  const nx=nextLesson();
+  let h=`<header class="topbar"><div class="wrap"><div class="logo">${COURSE.logoHtml}</div>
+    <span class="badge" data-variant="outline" title="Day streak">${I.fire}${S.streak}</span><span class="badge" data-variant="outline" title="XP">${I.bolt}${S.xp} XP</span></div></header>
+  <main class="wrap"><section class="hero"><h1>${COURSE.heading}</h1>
+    <p>${UNITS.length} unit${UNITS.length===1?'':'s'} · ${ALL.length} lesson${ALL.length===1?'':'s'} · ${COURSE.subtitle}</p>
+    <div class="overall"><div class="progress" role="progressbar" aria-label="Course progress" aria-valuemin="0" aria-valuemax="${ALL.length}" aria-valuenow="${doneCount}"><span style="width:${doneCount/ALL.length*100}%"></span></div><span>${doneCount} / ${ALL.length} lessons</span></div>
+    <div class="saved ${CAN_STORE?'':'warn'}">${CAN_STORE?'Progress saves automatically on this device, even mid-lesson.':`This viewer blocks saving, so progress lasts only until you close it. ${COURSE.homeUrl?`<a href="${COURSE.homeUrl}" target="_blank" rel="noopener">Open the course in your browser</a> to save automatically, or copy`:'Open the page in a normal browser tab to save automatically, or copy'} your progress code below.`}</div>
+    ${resumeCard()}</section>`;
+  UNITS.forEach((u,ui)=>{
+    const ud=u.lessons.filter(l=>S.done[l.id]).length;
+    h+=`<section class="unit" style="--uc:${u.color};--ud:${u.dark}"><div class="unit-head"><small><i></i>Unit ${ui+1}</small><span class="badge" data-variant="secondary">${ud}/${u.lessons.length}</span><h2>${u.title}</h2><p>${u.blurb}</p></div><div class="path">`;
+    u.lessons.forEach((l,li)=>{
+      const done=!!S.done[l.id], isNext=nx&&nx.id===l.id, inProg=S.cur&&S.cur.id===l.id;
+      const tag= inProg?'Resume' : isNext?'Start' : '';
+      h+=`<button class="node ${done?'is-done':'todo'} ${isNext?'next':''}" data-lesson="${l.id}" aria-label="${l.title}${done?' (done)':''}"><span class="dot">${done?I.check:li+1}</span><span class="t">${l.title}</span>${tag?`<span class="badge" data-variant="outline">${tag}</span>`:''}</button>`;
+    });
+    h+=`</div></section>`;
+  });
+  h+=`<details class="sheet"><summary>Cheat sheet</summary><dl>${GLOSSARY.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></details>
+    <details class="sheet" id="backup" ${CAN_STORE?'':'open'}><summary>Progress code</summary>
+      <p class="hint">Copy this code to keep your progress, or to move it to another browser or device. Paste a code below to restore it.</p>
+      <textarea id="code" class="codebox" readonly rows="3" aria-label="Your progress code">${encode(S)}</textarea>
+      <div class="row"><button class="btn" data-variant="outline" data-size="sm" id="copy">Copy code</button></div>
+      <textarea id="paste" class="codebox" rows="3" placeholder="Paste a progress code" aria-label="Paste a progress code"></textarea>
+      <div class="row"><button class="btn" data-variant="outline" data-size="sm" id="restore">Restore</button><span id="msg" class="hint" aria-live="polite"></span></div>
+    </details>
+    ${doneCount||S.cur?'<button class="btn reset" data-variant="ghost" data-size="sm" id="reset">Reset progress</button>':''}</main>`;
+  app.innerHTML=h;
+  app.querySelectorAll('[data-lesson]').forEach(b=>b.onclick=()=>startLesson(b.dataset.lesson));
+  const rs=document.getElementById('resume'); if(rs) rs.onclick=()=>startLesson(S.cur.id);
+  const msg=document.getElementById('msg');
+  document.getElementById('copy').onclick=async()=>{
+    const ta=document.getElementById('code');
+    try{ await navigator.clipboard.writeText(ta.value); msg.textContent='Copied.'; }
+    catch(e){ ta.select(); try{document.execCommand('copy'); msg.textContent='Copied.';}catch(_){ msg.textContent='Select the code and copy it.'; } }
+  };
+  document.getElementById('restore').onclick=()=>{
+    try{ restoreFrom(document.getElementById('paste').value); renderHome(); window.scrollTo(0,0); }
+    catch(e){ msg.textContent='That code is not valid.'; }
+  };
+  const r=document.getElementById('reset'); if(r) r.onclick=()=>{ if(confirm('Reset all progress?')){S=fresh();save();renderHome();} };
+  if(nx && !S.cur){ const el=app.querySelector(`[data-lesson="${nx.id}"]`); if(el && doneCount) el.scrollIntoView({block:'center'}); }
+}
+function resumeCard(){
+  const l=S.cur&&ALL.find(x=>x.id===S.cur.id);
+  if(!l) return '';
+  return `<button class="resume" id="resume"><span><small>Continue where you left off</small><b>${l.title}</b><span class="hint">Card ${Math.min(S.cur.pos+1,S.cur.q.length)} of ${S.cur.q.length}</span></span><span class="go"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></button>`;
+}
+
+/* ---------- Lesson player ---------- */
+let L=null;
+function startLesson(id){
+  const lesson=ALL.find(l=>l.id===id);
+  const cur=S.cur&&S.cur.id===id?S.cur:null;
+  const queue = cur ? cur.q.map(([i,retry])=>({...lesson.cards[i],_i:i,_retry:!!retry})) : lesson.cards.map((c,i)=>({...c,_i:i}));
+  L={lesson,queue,pos:cur?cur.pos:0,total:lesson.cards.length,firstTry:new Set(cur?cur.ft:[]),missed:new Set(cur?cur.ms:[]),phase:'answer',sel:null,order:[]};
+  saveLesson();
+  window.scrollTo(0,0); renderCard();
+}
+/* Mid-lesson snapshot. `pos` is the card to show on resume. */
+function saveLesson(pos=L.pos){
+  S.cur={id:L.lesson.id,pos,q:L.queue.map(c=>[c._i,c._retry?1:0]),ft:[...L.firstTry],ms:[...L.missed]};
+  save();
+}
+function progressPct(){ return Math.min(100,(L.pos/L.queue.length)*100); }
+function renderCard(){
+  const c=L.queue[L.pos];
+  if(!c){ return finish(); }
+  saveLesson();
+  L.phase='answer'; L.sel=null; L.order=[]; L.redraw=null;
+  L.steps= c.t==='learn' ? [] : hintSteps(c); L.hinted=0;
+  const u=L.lesson.unit;
+  let body='';
+  if(c.t==='learn'){
+    body=`<div class="kicker">New concept</div><h3>${c.h}</h3>${c.body}`;
+  } else if(c.t==='mcq'||c.t==='fill'){
+    const head = c.t==='fill' ? `<div class="kicker">Fill the blank</div><h3>${c.q}</h3><pre><code id="fillcode" class="language-${c.lang||'code'}">${fillCode(c,null)}</code></pre>` : `<div class="kicker">${c._retry?'Try again':'Quick check'}</div><h3>${c.q}</h3>`;
+    body=`${head}<div class="options" role="radiogroup">${c.o.map((o,i)=>`<button class="opt" role="radio" aria-checked="false" data-i="${i}"><span class="k">${i+1}</span><span>${c.t==='fill'?`<code>${esc(o)}</code>`:o}</span></button>`).join('')}</div>`;
+  } else if(c.t==='order'){
+    c._shuffled = c._shuffled || shuffle(c.items.map((x,i)=>i));
+    body=`<div class="kicker">Put in order</div><h3>${c.q}</h3><div class="slots is-empty" id="slots" aria-live="polite"></div><div class="bank" id="bank">${c._shuffled.map(i=>`<button class="chip" data-i="${i}">${esc(c.items[i])}</button>`).join('')}</div>`;
+  } else if(c.t==='type'){
+    body=`<div class="kicker">${c._retry?'Try again':'Type the answer'}</div><h3>${c.q}</h3>${c.code?`<pre><code class="language-${c.lang||'code'}">${esc(c.code)}</code></pre>`:''}<p class="expect" id="expect">${expectText(c)}</p>${field(c)}`;
+  } else if(c.t==='write'){
+    body=`<div class="kicker">${c._retry?'Try again':'Your turn'}</div><h3>${c.q}</h3><div class="criteria" id="criteria"><div class="kicker">Your answer should</div><ul>${c.rubric.map(r=>`<li>${r}</li>`).join('')}</ul></div>${field(c)}<div id="review"></div>`;
+  }
+  if(L.steps.length) body+=`<div class="hints" id="hints" aria-live="polite"></div><button class="btn hintbtn" data-variant="outline" data-size="sm" id="hintbtn">${I.bulb}<span>Hint</span><small id="hintleft">${L.steps.length}</small></button>`;
+  const btn = c.t==='learn' ? `<button class="btn cta" data-size="lg" id="cta">Continue</button>` : `<button class="btn cta" data-size="lg" id="cta" disabled>Check</button>`;
+  app.innerHTML=`<div class="lesson wrap" style="--uc:${u.color}">
+    <div class="lesson-top"><button class="btn" data-variant="ghost" data-size="icon" id="quit" aria-label="Quit lesson">${I.x}</button><div class="progress" role="progressbar" aria-label="Lesson progress" aria-valuenow="${Math.round(progressPct())}" aria-valuemin="0" aria-valuemax="100"><span style="width:${progressPct()}%"></span></div></div>
+    <div class="panel">${body}</div>
+    <div class="footer" id="footer"><div class="fb" id="fb" aria-live="assertive"></div>${btn}</div></div>`;
+  highlight(app);
+  document.getElementById('quit').onclick=()=>{ renderHome(); window.scrollTo(0,0); };
+  const cta=document.getElementById('cta');
+  if(c.t==='learn'){ cta.onclick=()=>{L.pos++; renderCard();}; cta.focus({preventScroll:true}); return; }
+  if(c.t==='mcq'||c.t==='fill'){
+    app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{ if(L.phase!=='answer')return;
+      app.querySelectorAll('.opt').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-checked','false')});
+      b.classList.add('sel'); b.setAttribute('aria-checked','true'); L.sel=+b.dataset.i; cta.disabled=false;
+      if(c.t==='fill'){ const fc=document.getElementById('fillcode'); fc.innerHTML=fillCode(c,L.sel); delete fc.dataset.hl; highlight(fc.parentElement); }
+    });
+  }
+  if(c.t==='order'){
+    const slots=document.getElementById('slots'), bank=document.getElementById('bank');
+    const redraw=()=>{
+      slots.classList.toggle('is-empty',L.order.length===0);
+      slots.innerHTML=L.order.map((i,k)=>`<button class="chip" data-i="${i}"><span class="n">${k+1}</span>${esc(c.items[i])}</button>`).join('');
+      bank.querySelectorAll('.chip').forEach(b=>b.classList.toggle('used',L.order.includes(+b.dataset.i)));
+      cta.disabled=L.order.length!==c.items.length;
+      slots.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ if(L.phase!=='answer')return; L.order=L.order.filter(x=>x!==+b.dataset.i); redraw(); });
+    };
+    bank.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ if(L.phase!=='answer')return; const i=+b.dataset.i; if(!L.order.includes(i)){L.order.push(i); redraw();} });
+    L.redraw=redraw; redraw();
+  }
+  const hb=document.getElementById('hintbtn');
+  if(hb) hb.onclick=()=>{ if(L.phase!=='answer'||L.hinted>=L.steps.length) return; useHint(c,L.steps[L.hinted++]);
+    const left=L.steps.length-L.hinted; document.getElementById('hintleft').textContent=left;
+    if(!left){ hb.disabled=true; hb.querySelector('span').textContent='No more hints'; hb.querySelector('small').hidden=true; } };
+  if(c.t==='type'||c.t==='write'){
+    const en=wireField(c), start=c.starter||'';
+    en.oninput=()=>{ cta.disabled=!en.value.trim()||en.value===start; };
+    if(c.t==='write') en.onkeydown=e=>{ if(e.key==='Tab'&&!e.shiftKey&&langOf(c.lang)&&!en.readOnly){ e.preventDefault(); en.setRangeText('  ',en.selectionStart,en.selectionEnd,'end'); en.dispatchEvent(new Event('input')); } };
+  }
+  cta.onclick=()=> L.phase==='answer' ? check(c) : L.phase==='review' ? grade(c,[...app.querySelectorAll('.rubric input')].every(x=>x.checked)) : next(c);
+}
+/* Hints: the card's own `hint` text first, then automatic help where the card
+   type allows it: strike out wrong options (keeping one), place the next item
+   in order, or reveal how a typed answer starts. */
+/* What a type answer must look like, shown before the learner answers. */
+function expectText(c){
+  const what=c.expect||{shell:'One command.',code:'One line of code.'}[c.lang]||'A short answer.';
+  return `${what} Spacing${c.lang==='shell'?' and a leading <code>$</code> are':' is'} ignored; capitals count.`;
+}
+function hintSteps(c){
+  const steps=[].concat(c.hint||[]).map(text=>({text}));
+  if(c.t==='mcq'||c.t==='fill') shuffle(c.o.map((_,i)=>i).filter(i=>i!==c.a)).slice(1).forEach(i=>steps.push({drop:i}));
+  if(c.t==='order') c.items.slice(0,-1).forEach((_,k)=>steps.push({place:k}));
+  if(c.t==='type'){ const a=c.accept[0], w=a.split(/\s+/); steps.push({text:`It starts with <code>${esc(w.length>1?w[0]:a.slice(0,Math.ceil(a.length/3)))}</code>…`}); }
+  return steps;
+}
+function useHint(c,h){
+  if(h.text){ const d=document.createElement('div'); d.className='hint-item'; d.innerHTML=h.text; document.getElementById('hints').append(d); }
+  if(h.drop!==undefined){
+    const b=app.querySelector(`.opt[data-i="${h.drop}"]`); b.disabled=true; b.classList.add('gone'); b.setAttribute('aria-label','Ruled out by a hint');
+    if(L.sel===h.drop){ L.sel=null; b.classList.remove('sel'); b.setAttribute('aria-checked','false'); document.getElementById('cta').disabled=true;
+      if(c.t==='fill'){ const fc=document.getElementById('fillcode'); fc.innerHTML=fillCode(c,null); delete fc.dataset.hl; highlight(fc.parentElement); } }
+  }
+  if(h.place!==undefined){ L.order=c.items.map((_,i)=>i).slice(0,h.place+1); L.redraw(); }
+  highlight(document.getElementById('hints')||app);
+}
+function fillCode(c,sel){
+  const parts=esc(c.code).split('____');
+  const filler= sel===null ? '<span class="blank">&nbsp;</span>' : `<span class="blank">${esc(c.o[sel])}</span>`;
+  return parts.join(filler);
+}
+function check(c){
+  if(c.t==='write') return review(c);
+  let ok;
+  if(c.t==='order') ok=L.order.every((v,k)=>v===k);
+  else if(c.t==='type') ok=accepts(c,document.getElementById('entry').value);
+  else ok=L.sel===c.a;
+  grade(c,ok);
+}
+/* A write card is self-graded: show the sample answer and the rubric, and the
+   learner ticks each point their answer covers. All ticked counts as right. */
+function review(c){
+  L.phase='review'; document.getElementById('hintbtn')?.remove(); document.getElementById('criteria').remove();
+  document.getElementById('entry').readOnly=true;
+  const box=document.getElementById('review'), text=(c.lang||'text')==='text';
+  box.innerHTML=`<div class="model"><div class="kicker">Sample answer</div>${text?`<p>${esc(c.model).replace(/\n/g,'<br>')}</p>`:`<pre><code class="language-${c.lang}">${esc(c.model)}</code></pre>`}</div>
+    <div class="kicker">Tick each point your answer meets</div><div class="rubric">${c.rubric.map(r=>`<label class="chk"><input type="checkbox"><span>${r}</span></label>`).join('')}</div>`;
+  highlight(box);
+  const cta=document.getElementById('cta'); cta.textContent='Done';
+  box.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function grade(c,ok){
+  L.phase='feedback'; document.getElementById('hintbtn')?.remove();
+  const key=c._i;
+  if(ok){ if(!L.missed.has(key)&&!L.hinted) L.firstTry.add(key); }
+  else { L.missed.add(key); L.queue.push({...c,_retry:true,_shuffled:null}); }
+  if(c.t==='order'){ document.getElementById('slots').classList.add(ok?'right':'wrong'); }
+  else if(c.t==='type'||c.t==='write'){
+    const en=document.getElementById('entry'); en.readOnly=true;
+    document.getElementById('entrybox').classList.add(ok?'right':'wrong');
+    app.querySelectorAll('.rubric input').forEach(x=>x.disabled=true);
+  }
+  else {
+    app.querySelectorAll('.opt').forEach(b=>{ b.disabled=true; const i=+b.dataset.i; if(i===c.a && ok) b.classList.add('right'); if(i===L.sel && !ok) b.classList.add('wrong'); });
+  }
+  const footer=document.getElementById('footer'); footer.classList.add(ok?'ok':'no');
+  const answer = ok ? '' : c.t==='write' ? '<p>Compare your answer with the sample above.</p>' : c.t==='type' ? `<p><b>Answer:</b> <code>${esc(c.accept[0])}</code></p>` : (c.t==='order' ? `<p><b>Correct order:</b> ${c.items.map((x,i)=>`${i+1}. ${esc(x)}`).join(' → ')}</p>` : `<p><b>Answer:</b> ${c.t==='fill'?`<code>${esc(c.o[c.a])}</code>`:c.o[c.a]}</p>`);
+  document.getElementById('fb').innerHTML=`<strong>${ok?I.ok+(L.hinted?' Right, with a hint':' Nice!'):I.no+' Not quite'}</strong>${answer}<p>${c.why}</p>${ok?'':'<p><i>You will see this one again at the end.</i></p>'}`;
+  const cta=document.getElementById('cta'); cta.textContent=ok?'Continue':'Got it'; cta.focus({preventScroll:true});
+  saveLesson(L.pos+1);
+}
+function next(){ L.pos++; renderCard(); }
+function finish(){
+  const quizCount=L.lesson.cards.filter(c=>c.t!=='learn').length;
+  const acc= quizCount ? Math.round(L.firstTry.size/quizCount*100) : 100;
+  const first=!S.done[L.lesson.id];
+  const xp = 10 + L.firstTry.size*2 + (first?0:-5);
+  S.done[L.lesson.id]=true; S.cur=null; S.xp+=Math.max(xp,3); bumpStreak(); save();
+  const u=L.lesson.unit;
+  app.innerHTML=`<div class="lesson wrap"><div class="done"><div class="trophy">${I.trophy}</div><h2>Lesson complete</h2><p>${L.lesson.title}</p>
+    <div class="tiles"><div class="tile"><small>XP</small><b>+${Math.max(xp,3)}</b></div><div class="tile"><small>First try</small><b>${acc}%</b></div><div class="tile"><small>Day streak</small><b>${S.streak}</b></div></div>
+    <div class="recap"><b>Remember</b>${L.lesson.recap}</div></div>
+    <div class="footer"><button class="btn cta" data-size="lg" id="cta">${nextLesson()?'Next lesson':'Back to map'}</button></div></div>`;
+  const n=nextLesson();
+  document.getElementById('cta').onclick=()=> n?startLesson(n.id):(renderHome(),window.scrollTo(0,0));
+}
+function shuffle(a){ let b=a.slice(); do{ for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} }while(b.length>1 && b.every((v,k)=>v===k)); return b; }
+
+document.addEventListener('keydown',e=>{
+  if(!L || !document.getElementById('cta')) return;
+  if(e.target.matches('textarea')) return;
+  if(e.target.matches('input')){ if(e.key==='Enter'){ const c=document.getElementById('cta'); if(c&&!c.disabled){ e.preventDefault(); c.click(); } } return; }
+  if(e.key>='1'&&e.key<='9'){ const b=app.querySelector(`.opt[data-i="${+e.key-1}"]`); if(b&&!b.disabled) b.click(); }
+  if(e.key==='Enter' && document.activeElement?.id!=='cta'){ const c=document.getElementById('cta'); if(c&&!c.disabled){ e.preventDefault(); c.click(); } }
+});
+renderHome();
+</script>
+</body>
+</html>
