@@ -1,0 +1,85 @@
+---
+// The lesson map, as the course opens after a few lessons: the sticky top
+// bar with streak and XP, the map scrolled to the next lesson. A still.
+// Real strings: course name, streak, XP, unit 2's title and lessons, Start.
+import BrowserWindow from './BrowserWindow.astro'
+import P from './ProductIcon.astro'
+---
+<div class="well map-well">
+  <div class="ss-stage cfl map-stage" role="img" aria-label="The course home: a top bar with a 4-day streak and 104 XP, unit 1 finished, and unit 2 with two lessons done and “The orders handler” marked Start.">
+    <BrowserWindow url="orders-api/index.html" class="map-win">
+      <div class="topbar">
+        <div class="logo">Orders API <span>course</span></div>
+        <span class="badge" data-variant="outline"><P name="fire" />4</span>
+        <span class="badge" data-variant="outline"><P name="bolt" />104 XP</span>
+      </div>
+      <div class="scroll">
+        <div class="unit">
+          <div class="unit-head">
+            <small><i></i>Unit 2</small>
+            <span class="badge" data-variant="secondary">2/4</span>
+            <div class="h">Following one request</div>
+            <p>One <code>POST /orders</code>, from router to database.</p>
+          </div>
+          <div class="path">
+            <div class="node is-done"><span class="dot"><P name="check" /></span><span class="t">From URL to router</span></div>
+            <div class="node is-done"><span class="dot"><P name="check" /></span><span class="t">Middleware in order</span></div>
+            <div class="node next"><span class="dot">3</span><span class="t">The orders handler</span><span class="badge start">Start</span></div>
+            <div class="node todo"><span class="dot">4</span><span class="t">Talking to Postgres</span></div>
+          </div>
+        </div>
+        <div class="unit" style="--uc:#d9622b;--ud:#b04c1d">
+          <div class="unit-head">
+            <small><i></i>Unit 3</small>
+            <span class="badge" data-variant="secondary">0/5</span>
+            <div class="h">Data and migrations</div>
+          </div>
+        </div>
+      </div>
+    </BrowserWindow>
+  </div>
+</div>
+
+<style is:global>
+  .map-well { height: 540px; }
+  .map-stage { position: absolute; inset: 0; overflow: hidden; }
+  .map-stage .map-win { position: absolute; left: 48px; right: 48px; top: 48px; height: 640px; }
+
+  .map-stage .topbar {
+    position: absolute; z-index: 2; left: 0; right: 0; top: 0; height: 52px; display: flex; align-items: center; gap: 8px; padding: 0 20px;
+    background: color-mix(in oklab, var(--background) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border);
+  }
+  .map-stage .logo { flex: 1; min-width: 0; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .map-stage .logo span { color: var(--muted-foreground); }
+  .map-stage .scroll { position: absolute; left: 20px; right: 20px; top: 52px; }
+
+  .map-stage .unit { margin-top: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgb(0 0 0 / 5%); }
+  .map-stage .unit-cut { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; border-top: 0; }
+  .map-stage .unit-head { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: start; padding: 14px 16px 12px; }
+  .map-stage .unit-head small { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted-foreground); }
+  .map-stage .unit-head small i { width: 8px; height: 8px; border-radius: 50%; background: var(--uc); }
+  .map-stage .unit-head .h { grid-column: 1; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .map-stage .unit-head p { grid-column: 1; margin: 0; font-size: 14px; color: var(--muted-foreground); }
+  .map-stage .unit-head p code { font-size: 12px; }
+  .map-stage .unit-head .badge { grid-column: 2; grid-row: 1 / span 2; }
+  .map-stage .path { border-top: 1px solid var(--border); }
+  .map-stage .unit-cut .path { border-top: 0; }
+  .map-stage .node { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 16px; border-top: 1px solid var(--border); }
+  .map-stage .node:first-child { border-top: 0; }
+  .map-stage .dot {
+    flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+  }
+  .map-stage .is-done .dot { background: var(--uc); border-color: var(--ud); color: #fff; }
+  .map-stage .next .dot { border-color: var(--uc); color: var(--uc); box-shadow: 0 0 0 3px color-mix(in oklab, var(--uc) 20%, transparent); }
+  .map-stage .t { flex: 1; min-width: 0; font-weight: 500; }
+  .map-stage .todo .t { color: var(--muted-foreground); }
+  .map-stage .badge.start { background: var(--uc); border-color: var(--ud); color: #fff; }
+
+  @media (max-width: 560px) {
+    .map-well { height: 500px; border-radius: 20px; }
+    .map-stage .map-win { left: 20px; right: 20px; top: 24px; }
+    .map-stage .topbar { padding: 0 14px; }
+    .map-stage .scroll { left: 14px; right: 14px; }
+  }
+</style>

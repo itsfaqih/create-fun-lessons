@@ -1,0 +1,30 @@
+---
+import HeroDemo from './HeroDemo.astro'
+import Install from './Install.astro'
+---
+<section class="hero wrap" id="top">
+  <div class="copy">
+    <p class="eyebrow">A skill for coding agents</p>
+    <h1>Turn a codebase into a course you'll finish.</h1>
+    <p class="lede">
+      Point your agent at a repo, a library or a topic. It writes one HTML page: a map of short lessons,
+      quick cards with instant feedback, and a syllabus that proves nothing was skipped.
+    </p>
+    <div class="get">
+      <Install />
+      <p class="then">Then ask your agent: <q>Make me a course on this repo, from zero to contributor.</q></p>
+    </div>
+  </div>
+  <div class="demo"><HeroDemo /></div>
+</section>
+
+<style>
+  .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 600px); gap: clamp(40px, 6vw, 88px); align-items: center; padding-top: clamp(24px, 4vw, 56px); }
+  h1 { font-size: clamp(42px, 5.6vw, 72px); line-height: 1.02; letter-spacing: -0.035em; margin-bottom: 24px; }
+  .get { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 36px; max-width: 520px; }
+  .then { font-size: 15px; color: var(--ink-2); }
+  .then q { color: var(--ink); quotes: '“' '”'; }
+  @media (max-width: 960px) {
+    .hero { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>

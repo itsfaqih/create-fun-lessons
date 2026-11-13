@@ -1,0 +1,50 @@
+---
+import Icon from './Icon.astro'
+interface Props { command?: string; label?: string }
+const { command = 'npx skills add itsfaqih/create-fun-lessons', label = 'Install command' } = Astro.props
+const cut = command.lastIndexOf(' ') + 1
+---
+<div class="install" data-install>
+  <code aria-label={label}><span class="prompt" aria-hidden="true">$</span>{command.slice(0, cut)}<span class="nw">{command.slice(cut)}</span></code>
+  <button type="button" class="copy" data-copy={command} aria-label="Copy install command">
+    <span class="ico ico-copy"><Icon name="copy" size={16} /></span>
+    <span class="ico ico-done"><Icon name="check" size={16} /></span>
+  </button>
+</div>
+
+<style>
+  .install {
+    display: flex; align-items: center; gap: 8px; max-width: 100%;
+    background: var(--code-bg); color: var(--code-ink);
+    border-radius: 14px; padding: 6px 6px 6px 18px;
+    box-shadow: 0 1px 0 rgb(255 255 255 / 6%) inset, 0 10px 24px -14px rgb(0 0 0 / 45%);
+  }
+  code { flex: 1; min-width: 0; background: none; border: 0; border-radius: 0; font-size: 15px; line-height: 1.4; white-space: nowrap; overflow-x: auto; scrollbar-width: none; padding: 10px 0; }
+  code::-webkit-scrollbar { display: none; }
+  .nw { white-space: nowrap; }
+  .prompt { color: rgb(255 255 255 / 45%); margin-right: 10px; user-select: none; }
+  .copy {
+    flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 9px;
+    border: 0; cursor: pointer; color: var(--code-ink); background: rgb(255 255 255 / 9%);
+    transition: background-color 0.15s;
+  }
+  .copy:hover { background: rgb(255 255 255 / 16%); }
+  .copy > .ico { grid-area: 1 / 1; transition: opacity 0.15s, transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); }
+  .ico-done { opacity: 0; transform: scale(0.6); color: #5eead4; }
+  .copy[data-done] .ico-copy { opacity: 0; transform: scale(0.6); }
+  .copy[data-done] .ico-done { opacity: 1; transform: none; }
+  @media (max-width: 420px) { .install { padding-left: 14px; } code { font-size: 13.5px; white-space: normal; } .prompt { display: none; } }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((btn) => {
+    let t: ReturnType<typeof setTimeout> | undefined
+    btn.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(btn.dataset.copy ?? '') } catch { return }
+      btn.dataset.done = ''
+      btn.setAttribute('aria-label', 'Copied')
+      clearTimeout(t)
+      t = setTimeout(() => { delete btn.dataset.done; btn.setAttribute('aria-label', 'Copy install command') }, 1600)
+    })
+  })
+</script>

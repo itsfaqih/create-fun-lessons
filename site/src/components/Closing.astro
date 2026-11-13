@@ -1,0 +1,31 @@
+---
+import Install from './Install.astro'
+import Icon from './Icon.astro'
+const repo = 'https://github.com/itsfaqih/create-fun-lessons'
+---
+<section class="wrap cta">
+  <div class="cta-box">
+    <h2>Learn the codebase you just joined.</h2>
+    <p class="lede">Install the skill, open your agent in the repo, and ask for a course.</p>
+    <Install />
+    <p class="ask">“Make me a course on this repo, from zero to contributor.”</p>
+  </div>
+</section>
+<footer class="wrap foot">
+  <span class="mark">create-fun-lessons</span>
+  <span class="muted">A skill for coding agents</span>
+  <a href={repo}><Icon name="github" size={16} />itsfaqih/create-fun-lessons</a>
+</footer>
+
+<style>
+  .cta-box { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 18px; text-align: center; padding: clamp(48px, 7vw, 88px) clamp(20px, 5vw, 64px); background: var(--well); border-radius: 28px; box-shadow: inset 0 0 0 1px var(--well-edge); }
+  .cta-box .lede { max-width: 30em; }
+  .cta-box :global(.install) { width: min(520px, 100%); text-align: left; }
+  .ask { color: var(--ink-2); font-size: 16px; }
+  .foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-top: 48px; padding-bottom: 48px; font-size: 15px; }
+  .mark { font-family: var(--display); font-weight: 650; letter-spacing: -0.02em; }
+  .muted { color: var(--ink-3); }
+  .foot a { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); text-decoration: none; }
+  .foot a:hover { color: var(--ink); }
+  @media (max-width: 560px) { .foot a { margin-left: 0; width: 100%; } }
+</style>

@@ -1,0 +1,19 @@
+{
+  "name": "create-fun-lessons-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^7.4.12"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@phosphor-icons/core": "^2.1.1",
+    "simple-icons": "^16.37.0",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,235 @@
+---
+// The six card types, each as a still of the course's own card, cropped to
+// the part that tells it apart. The lead tile is a multiple-choice card
+// answered wrong, with the footer that explains and queues the retry.
+import P from './ProductIcon.astro'
+---
+<section id="cards" class="wrap">
+  <div class="section-head">
+    <p class="eyebrow">Card types</p>
+    <h2>Short cards, and every answer gets a reply.</h2>
+    <p class="lede">A lesson is three to six cards. Each quiz card says up front what a right answer looks like, offers a hint, and explains itself the moment you check.</p>
+  </div>
+
+  <div class="grid">
+    <article class="tile lead">
+      <div class="art">
+        <div class="cfl mini m-mcq">
+          <div class="kicker">Quick check</div>
+          <div class="q">A request to <code>GET /orders/42</code> returns 404 before any query runs. Where do you look first?</div>
+          <div class="options">
+            <div class="opt is-right"><span class="key">1</span><span class="label">The routes mounted in <code>app.ts</code></span></div>
+            <div class="opt is-wrong"><span class="key">2</span><span class="label">The <code>orders</code> table</span></div>
+          </div>
+          <div class="footer is-no">
+            <div class="fb">
+              <strong><P name="no" size={22} /> Not quite</strong>
+              <p>No query ran, so the route never matched.</p>
+              <p><i>You will see this one again at the end.</i></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="copy">
+        <h3>Multiple choice</h3>
+        <p>Pick one. A miss explains why, and the card comes back at the end of the lesson.</p>
+      </div>
+    </article>
+
+    <article class="tile">
+      <div class="art">
+        <div class="cfl mini m-learn">
+          <div class="kicker">New concept</div>
+          <div class="q">Every route starts in <code>app.ts</code></div>
+          <p class="body">Each <code>use</code> adds a step, in order. The orders routes come last.</p>
+          <pre><code><span class="k">const</span> app = <span class="f">express</span>()
+app.<span class="f">use</span>(<span class="f">auth</span>)
+<span class="hl">app.<span class="f">use</span>(<span class="s">'/orders'</span>, ordersRouter)</span></code></pre>
+        </div>
+      </div>
+      <div class="copy">
+        <h3>Learn</h3>
+        <p>One idea, a few sentences and the real code, before the questions about it.</p>
+      </div>
+    </article>
+
+    <article class="tile">
+      <div class="art">
+        <div class="cfl mini m-fill">
+          <div class="kicker">Fill the blank</div>
+          <div class="q">Read the order id from the URL.</div>
+          <pre><code><span class="k">const</span> id = req.<span class="blank is-done">params</span>.id</code></pre>
+          <div class="chips">
+            <span class="opt is-right"><code>params</code></span>
+            <span class="opt"><code>query</code></span>
+            <span class="opt"><code>body</code></span>
+          </div>
+        </div>
+      </div>
+      <div class="copy">
+        <h3>Fill the blank</h3>
+        <p>The missing piece of a real line, chosen from a few that look right.</p>
+      </div>
+    </article>
+
+    <article class="tile">
+      <div class="art">
+        <div class="cfl mini m-order">
+          <div class="kicker">Put in order</div>
+          <ol class="slots">
+            <li><span class="n">1</span>Router matches <code>/orders</code></li>
+            <li><span class="n">2</span><code>auth</code> checks the token</li>
+            <li class="empty"><span class="n">3</span></li>
+          </ol>
+          <div class="bank">
+            <span class="chip">INSERT runs</span>
+            <span class="chip">Body is validated</span>
+          </div>
+        </div>
+      </div>
+      <div class="copy">
+        <h3>Order</h3>
+        <p>Tap the steps of a flow into sequence: a request, a deploy, a migration.</p>
+      </div>
+    </article>
+
+    <article class="tile">
+      <div class="art">
+        <div class="cfl mini m-type">
+          <div class="kicker">Type the answer</div>
+          <div class="q">Run only the orders tests.</div>
+          <p class="crit">One command. Spacing and a leading <code>$</code> are ignored; capitals count.</p>
+          <div class="field"><span class="dollar">$</span>pnpm test orders<span class="caret"></span></div>
+        </div>
+      </div>
+      <div class="copy">
+        <h3>Typed answer</h3>
+        <p>A command or a one-liner, checked against every form that works.</p>
+      </div>
+    </article>
+
+    <article class="tile wide">
+      <div class="art">
+        <div class="cfl mini m-write">
+          <div class="kicker">Your turn</div>
+          <div class="q">Add <code>GET /orders/:id</code> to the router.</div>
+          <div class="cols">
+            <pre><code>router.<span class="f">get</span>(<span class="s">'/:id'</span>, <span class="k">async</span> (req, res) =&gt; &#123;
+  <span class="k">const</span> order = <span class="k">await</span> <span class="f">findOrder</span>(req.params.id)
+  <span class="k">if</span> (!order) <span class="k">return</span> res.<span class="f">sendStatus</span>(<span class="n">404</span>)
+  res.<span class="f">json</span>(order)
+&#125;)</code></pre>
+            <div class="rubric">
+              <small>Your answer should</small>
+              <label class="is-on"><span class="box"><P name="check" size={12} /></span>Read the id from <code>req.params</code></label>
+              <label class="is-on"><span class="box"><P name="check" size={12} /></span>Await the lookup</label>
+              <label><span class="box"></span>Answer 404 when no order exists</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="copy">
+        <h3>Written answer</h3>
+        <p>Code, a script or a short essay. You compare it with a model answer and tick the rubric you were shown before you wrote.</p>
+      </div>
+    </article>
+
+    <article class="tile note">
+      <div class="note-body">
+        <div class="cfl note-hint">
+          <span class="btn hintbtn" data-variant="outline" data-size="sm"><P name="bulb" size={16} /> Hint <span class="left">2</span></span>
+        </div>
+        <h3>On every quiz card</h3>
+        <ul>
+          <li>What counts as right, shown before you answer</li>
+          <li>A Hint button: a nudge first, then it rules out an option or places a step</li>
+          <li>An explanation, right or wrong</li>
+          <li>Misses come back until you get them</li>
+        </ul>
+      </div>
+    </article>
+  </div>
+</section>
+
+<style is:global>
+  #cards .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+  #cards .tile { display: flex; flex-direction: column; background: var(--surface); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-ground); }
+  #cards .tile.lead, #cards .tile.wide { grid-column: span 2; }
+  #cards .art { position: relative; height: 250px; overflow: hidden; background: var(--well); box-shadow: inset 0 -1px 0 var(--well-edge); }
+  #cards .lead .art { height: 350px; }
+  #cards .copy { padding: 20px 24px 24px; }
+  #cards .copy p { color: var(--ink-2); font-size: 15.5px; margin-top: 6px; }
+
+  /* A card from the course, cropped at the tile's foot unless it ends inside */
+  #cards .mini {
+    position: absolute; left: 24px; right: 24px; top: 24px; bottom: -16px; padding: 18px 18px 0;
+    background: var(--background); border-radius: 14px; box-shadow: var(--shadow-satellite); overflow: hidden;
+  }
+  #cards .mini .q { font-size: 17px; }
+  #cards .mini pre { font-size: 12.5px; }
+
+  #cards .m-mcq { left: 32px; right: 32px; max-width: 560px; margin: 0 auto; bottom: -16px; border-radius: 14px 14px 0 0; padding-bottom: 0; }
+  #cards .m-mcq .options { margin-bottom: 14px; }
+  #cards .m-mcq .footer { margin: 0 -18px; padding: 14px 18px 34px; }
+
+  #cards .m-learn pre { margin-bottom: 18px; }
+  #cards .mini .body { margin: -6px 0 12px; font-size: 14px; color: var(--muted-foreground); }
+
+  #cards .m-fill pre { font-size: 14px; }
+  #cards .m-fill .blank.is-done { color: var(--ok); border-bottom: 2px solid var(--ok); min-width: 0; padding: 0 4px; }
+  #cards .chips { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 18px; }
+  #cards .chips .opt { min-height: 36px; padding: 6px 12px; }
+
+  #cards .slots { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+  #cards .slots li {
+    display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border-radius: 8px;
+    background: var(--muted); font-size: 14px; font-weight: 500; white-space: nowrap;
+  }
+  #cards .slots li.empty { background: none; border: 1px dashed var(--input); }
+  #cards .slots .n { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 5px; background: var(--background); border: 1px solid var(--border); font: 500 11px 'Geist Mono', monospace; color: var(--muted-foreground); }
+  #cards .bank { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 18px; }
+  #cards .chip { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); box-shadow: 0 1px 2px rgb(0 0 0 / 5%); font-size: 14px; font-weight: 500; white-space: nowrap; }
+
+  #cards .crit { margin: -6px 0 12px; font-size: 13px; color: var(--muted-foreground); }
+  #cards .field {
+    display: flex; align-items: center; height: 42px; padding: 0 12px; margin-bottom: 18px; border-radius: 8px;
+    border: 1px solid var(--primary); box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 12%, transparent);
+    font: 14px 'Geist Mono', monospace; background: var(--background);
+  }
+  #cards .dollar { color: var(--muted-foreground); margin-right: 10px; }
+  #cards .caret { width: 1.5px; height: 18px; margin-left: 2px; background: var(--foreground); }
+
+  #cards .m-write .cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+  #cards .m-write pre { margin: 0; }
+  #cards .rubric { display: grid; gap: 8px; align-content: start; font-size: 14px; }
+  #cards .rubric small { font-size: 12.5px; font-weight: 500; color: var(--muted-foreground); }
+  #cards .rubric label { display: flex; align-items: flex-start; gap: 8px; line-height: 1.4; }
+  #cards .rubric .box { flex: none; display: grid; place-items: center; width: 18px; height: 18px; margin-top: 1px; border-radius: 5px; border: 1px solid var(--input); color: #fff; }
+  #cards .rubric .is-on .box { background: var(--ok); border-color: var(--ok); }
+
+  #cards .note { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
+  #cards .note-body { padding: 28px; display: grid; gap: 16px; align-content: start; height: 100%; }
+  #cards .note h3 { font-size: 24px; }
+  #cards .note ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; font-size: 15.5px; }
+  #cards .note li { display: flex; gap: 10px; }
+  #cards .note li::before { content: ''; flex: none; width: 6px; height: 6px; margin-top: 0.62em; border-radius: 50%; background: currentColor; opacity: 0.6; }
+  #cards .note-hint .btn { box-shadow: 0 6px 16px -6px rgb(0 0 0 / 30%); border-color: transparent; }
+
+  @media (max-width: 1080px) {
+    #cards .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #cards .tile.wide { grid-column: span 2; }
+  }
+  @media (max-width: 720px) {
+    #cards .grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    #cards .tile.lead, #cards .tile.wide { grid-column: auto; }
+    #cards .lead .art { height: 380px; }
+    #cards .mini, #cards .m-mcq { left: 16px; right: 16px; top: 16px; padding: 16px 16px 0; }
+    #cards .m-mcq .footer { margin: 0 -16px; padding: 14px 16px 32px; }
+    #cards .art { height: 230px; }
+    #cards .wide .art { height: 250px; }
+    /* Compact: the rubric is the point; the code waits for a wider screen */
+    #cards .m-write .cols { grid-template-columns: minmax(0, 1fr); }
+    #cards .m-write pre { display: none; }
+    #cards .copy { padding: 18px 20px 22px; }
+  }
+</style>
