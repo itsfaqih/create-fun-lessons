@@ -7,12 +7,12 @@ import CoverageDemo from './CoverageDemo.astro'
     <div class="side">
       <div class="section-head">
         <p class="eyebrow">Full coverage</p>
-        <h2>The whole subject, or the check fails.</h2>
+        <h2>The check fails until the whole subject is covered.</h2>
         <p class="lede">Before it writes a lesson, the agent lists every part of the subject in <code>syllabus.md</code>. The checker fails until each row names the lessons that teach it or says why it is skipped. Point it at the repo and it also fails on any top-level directory the syllabus leaves out.</p>
       </div>
       <ul class="facts">
         <li><b>Every row is taught</b><span>Each Lessons cell lists real lesson ids, or reads <code>skip:</code> with a reason.</span></li>
-        <li><b>Every card is complete</b><span>Answers, explanations and hints are checked, and every unit ends with a written answer.</span></li>
+        <li><b>Every card is complete</b><span>The checker confirms each card has its answer, explanation and hint, and each unit ends with a written answer.</span></li>
         <li><b>The page runs</b><span>The course script has to parse and load before anyone opens it.</span></li>
       </ul>
     </div>

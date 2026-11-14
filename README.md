@@ -9,12 +9,12 @@ An agent skill that turns a codebase, library or topic into a course on one HTML
 Ask your agent for a course and it writes a single self-contained HTML file. Open it in any browser, on a laptop or a phone.
 
 - **A lesson map.** Units run from the basics to a capstone that plans a real change. Each lesson holds three to six cards.
-- **Quick cards.** Six types, described below.
-- **Instant feedback.** Every quiz card states what counts as a right answer before you answer. It explains itself as soon as you check, whether you were right or wrong.
+- **Quick cards.** Six card types, described in the table below.
+- **Instant feedback.** Every quiz card states what counts as a right answer before you answer. As soon as you check, it shows an explanation, whether you were right or wrong.
 - **Hints.** Every quiz card has a Hint button. The first press gives a nudge. Later presses rule out a wrong option, place a step, or show how the answer starts.
 - **Retries.** A card you miss comes back at the end of the lesson, so each lesson ends with every card answered right.
 - **XP and a day streak.** A finished lesson earns XP, plus a bonus for each card right on the first try. Finishing a lesson on consecutive days grows the streak.
-- **Saved progress.** Progress is saved on the device after every card, even mid-lesson. A progress code moves it to another browser or device.
+- **Saved progress.** The page saves progress on the device after every card, even mid-lesson. A progress code moves it to another browser or device.
 - **Syntax highlighting** for every code sample, command and code answer.
 
 ### Card types
@@ -63,7 +63,7 @@ The agent then:
 
 When the learner will use a phone, the agent can also serve the course folder on a URL the phone can reach, so progress saves there too.
 
-## Full coverage: `syllabus.md` and `check.mjs`
+## Full coverage with `syllabus.md` and `check.mjs`
 
 `syllabus.md` sits beside the course page and maps every part of the subject to the lessons that teach it:
 
@@ -110,7 +110,7 @@ AGENTS.md            notes for agents working on this repo
 
 ## Landing page
 
-The landing page lives in `site/`. It is built with Astro: plain `.astro` components, CSS, and a small vanilla TypeScript player for the demos. It uses pnpm.
+The landing page lives in `site/`. It uses Astro with plain `.astro` components, CSS, and a small vanilla TypeScript player for the demos. Install its packages with pnpm.
 
 ```sh
 cd site
