@@ -51,8 +51,8 @@
 }
 
 .cfl code, .cfl pre, .cfl .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
-/* Headings in the course use Manrope, as the template does */
-.cfl .q, .cfl .h, .cfl h3 { font-family: Manrope, InterVariable, Inter, system-ui, sans-serif; font-weight: 700; }
+/* Headings in the course use Geist, as the template does */
+.cfl .q, .cfl .h, .cfl h3 { font-family: Geist, InterVariable, Inter, system-ui, sans-serif; font-weight: 700; }
 .cfl svg { flex: none; }
 
 /* Buttons and badges, after the course's component set */
