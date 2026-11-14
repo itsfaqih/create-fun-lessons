@@ -18,13 +18,18 @@
    --muted-foreground, --border, --primary, --destructive, --radius) and the
    .btn, .badge, .progress and .kbd components. This sheet adds the course parts. */
 :root{ --ok:oklch(.6 .15 155); --ok-soft:oklch(.6 .15 155 / 12%); --bad:var(--destructive); --bad-soft:oklch(.577 .245 27.325 / 10%);
-  --warn:oklch(.75 .16 75); --warn-soft:oklch(.75 .16 75 / 14%); --code-bg:#0a0a0b; --code-text:#e6e9f2; --code-line:oklch(1 0 0 / 10%); }
-.dark{ --ok:oklch(.72 .16 155); --ok-soft:oklch(.72 .16 155 / 14%); --bad-soft:oklch(.704 .191 22.216 / 14%); --code-bg:#0a0a0b; }
+  --warn:oklch(.75 .16 75); --warn-soft:oklch(.75 .16 75 / 14%); --code-bg:#0a0a0b; --code-text:#e6e9f2; --code-line:oklch(1 0 0 / 10%);
+  --ok-text:oklch(.48 .13 155); --bad-text:oklch(.5 .2 27); --ok-fill:oklch(.52 .13 155); --bad-fill:oklch(.55 .22 27); --on-fill:#fff;
+  --travel:cubic-bezier(.45,0,.1,1); --arrive:cubic-bezier(.25,.8,.25,1); interpolate-size:allow-keywords; }
+.dark{ --ok:oklch(.72 .16 155); --ok-soft:oklch(.72 .16 155 / 14%); --bad-soft:oklch(.704 .191 22.216 / 14%); --code-bg:#0a0a0b;
+  --ok-text:oklch(.8 .15 155); --bad-text:oklch(.75 .16 22); --ok-fill:oklch(.78 .15 155); --bad-fill:oklch(.72 .17 22); --on-fill:oklch(.18 .02 155); }
 html,body{margin:0}
+body{overflow-x:clip}
 body{background:var(--background);color:var(--foreground);font-family:Inter,var(--font-sans),system-ui,sans-serif;font-feature-settings:"liga" 1,"calt" 1;font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;font-optical-sizing:auto}
 @supports (font-variation-settings:normal){body{font-family:InterVariable,var(--font-sans),system-ui,sans-serif}}
 code,pre,.mono{font-family:"Geist Mono",var(--font-mono),ui-monospace,monospace}
 :focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.cta:focus-visible{outline-color:color-mix(in oklab,var(--foreground) 28%,transparent);outline-offset:3px}
 .wrap{max-width:672px;margin:0 auto;padding:0 16px}
 .muted{color:var(--muted-foreground)}
 .progress{height:8px;border-radius:99px;background:var(--muted)}
@@ -77,8 +82,10 @@ code,pre,.mono{font-family:"Geist Mono",var(--font-mono),ui-monospace,monospace}
 .sheet{margin:24px 0 0;background:var(--card);border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);padding:0 16px}
 .sheet summary{cursor:pointer;font-weight:600;padding:14px 0;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:48px}
 .sheet summary::-webkit-details-marker{display:none}
-.sheet summary::after{content:"";width:8px;height:8px;border-right:1.5px solid var(--muted-foreground);border-bottom:1.5px solid var(--muted-foreground);transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+.sheet summary::after{content:"";width:8px;height:8px;border-right:1.5px solid var(--muted-foreground);border-bottom:1.5px solid var(--muted-foreground);transform:rotate(45deg) translateY(-2px);transition:transform .3s var(--travel)}
 .sheet[open] summary::after{transform:rotate(-135deg)}
+.sheet::details-content{block-size:0;overflow:hidden;transition:block-size .3s var(--travel),content-visibility .3s allow-discrete}
+.sheet[open]::details-content{block-size:auto}
 .sheet dl{margin:0 0 16px}
 .sheet dt{font-weight:600;margin-top:12px;font-size:15px}
 .sheet dd{margin:2px 0 0;color:var(--muted-foreground);font-size:14px}
@@ -92,9 +99,14 @@ code,pre,.mono{font-family:"Geist Mono",var(--font-mono),ui-monospace,monospace}
 .lesson{min-height:100dvh;display:flex;flex-direction:column}
 .lesson-top{display:flex;align-items:center;gap:12px;height:60px}
 .lesson-top .progress{flex:1}
-.lesson-top .progress>span{transition:width .3s ease-out}
-.panel{flex:1;padding:8px 0 24px;animation:in .2s ease-out}
-@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.lesson-top .progress>span{transition:width .45s var(--travel)}
+.panel{flex:1;padding:8px 0 24px;animation:in .24s var(--arrive)}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* Things that arrive open their own room: height first, the words fade in as it finishes. */
+@keyframes open{from{height:0;padding-block:0;margin-block:0;border-block-width:0}}
+@keyframes drop{from{opacity:0;translate:0 -4px}}
+@keyframes rise{from{opacity:0;translate:0 6px}}
+@keyframes nudge{30%{translate:-3px 0}70%{translate:3px 0}}
 .kicker{font-size:13px;font-weight:500;color:var(--muted-foreground);margin:4px 0 8px;display:flex;align-items:center;gap:6px}
 .kicker::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--uc,var(--primary))}
 .panel h3{font-size:22px;line-height:1.25;margin:0 0 14px;font-weight:600;letter-spacing:-.015em}
@@ -131,23 +143,27 @@ pre .blank{display:inline-block;min-width:70px;border-bottom:2px dashed #facc15;
 .tip{background:var(--muted);border-radius:var(--radius);padding:10px 14px;font-size:15px;margin:0 0 12px}
 
 .options{display:flex;flex-direction:column;gap:8px;margin-top:4px}
-.opt{text-align:left;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;min-height:48px;cursor:pointer;font-size:15px;font-weight:500;display:flex;gap:12px;align-items:flex-start;color:var(--foreground);box-shadow:0 1px 2px oklch(0 0 0 / 4%);transition:background .1s,border-color .1s,box-shadow .1s}
+.opt{text-align:left;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;min-height:48px;cursor:pointer;font-size:15px;font-weight:500;display:flex;gap:12px;align-items:flex-start;color:var(--foreground);box-shadow:0 1px 2px oklch(0 0 0 / 4%);transition:background-color .2s,border-color .2s,box-shadow .2s,opacity .2s,scale .1s}
 .opt:hover{background:var(--accent)}
-.opt .k{flex:none;min-width:22px;height:22px;border-radius:5px;border:1px solid var(--border);background:var(--muted);display:grid;place-items:center;font:500 12px "Geist Mono",monospace;color:var(--muted-foreground)}
+.opt:not([disabled]):active{scale:.99}
+.opt code{background:none !important;border-color:transparent !important;padding:0 !important}
+.opt .k{flex:none;min-width:22px;height:22px;border-radius:5px;border:1px solid var(--border);background:var(--muted);display:grid;place-items:center;font:500 12px "Geist Mono",monospace;color:var(--muted-foreground);transition:background-color .2s,border-color .2s,color .2s}
 .opt.sel{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
 .opt.sel .k{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}
 .opt.right{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok);background:var(--ok-soft)}
-.opt.right .k{background:var(--ok);border-color:var(--ok);color:#fff}
-.opt.wrong{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad);background:var(--bad-soft)}
-.opt.wrong .k{background:var(--bad);border-color:var(--bad);color:#fff}
+.opt.right .k{background:var(--ok-fill);border-color:var(--ok-fill);color:var(--on-fill)}
+.opt.wrong{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad);background:var(--bad-soft);animation:nudge .3s ease-in-out}
+.opt.wrong .k{background:var(--bad-fill);border-color:var(--bad-fill);color:var(--on-fill)}
 .opt[disabled]{cursor:default}
-.opt.gone{opacity:.45;text-decoration:line-through}
+.opt.gone{opacity:.45;box-shadow:none}
+.opt.gone>span:last-child{text-decoration:line-through;text-decoration-color:var(--muted-foreground)}
 
-.slots{min-height:64px;border:1px dashed var(--border);border-radius:var(--radius);padding:8px;display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.slots{transition:background-color .2s,border-color .2s;min-height:64px;border:1px dashed var(--border);border-radius:var(--radius);padding:8px;display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
 .slots.is-empty::before{content:"Tap the items below in the right order";color:var(--muted-foreground);font-size:14px;padding:10px 6px}
 .bank{display:flex;flex-direction:column;gap:8px}
-.chip{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;min-height:44px;font:500 14px "Geist Mono",monospace;cursor:pointer;text-align:left;display:flex;gap:10px;align-items:center;color:var(--foreground);box-shadow:0 1px 2px oklch(0 0 0 / 4%)}
+.chip{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;min-height:44px;font:500 14px "Geist Mono",monospace;cursor:pointer;text-align:left;display:flex;gap:10px;align-items:center;color:var(--foreground);box-shadow:0 1px 2px oklch(0 0 0 / 4%);transition:background-color .2s,scale .1s}
 .chip:hover{background:var(--accent)}
+.chip:active{scale:.99}
 .chip .n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--primary);color:var(--primary-foreground);display:grid;place-items:center;font-size:11px;font-weight:600}
 .chip.used{visibility:hidden}
 .slots.right{border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
@@ -155,7 +171,7 @@ pre .blank{display:inline-block;min-width:70px;border-bottom:2px dashed #facc15;
 
 /* Answer fields. A code field stacks a transparent textarea/input over a
    highlighted <pre> mirror; both share font, padding and wrapping. */
-.entry,.wbox{background:var(--card);border:1px solid var(--input);border-radius:var(--radius);margin-top:6px;box-shadow:0 1px 2px oklch(0 0 0 / 4%)}
+.entry,.wbox{background:var(--card);border:1px solid var(--input);border-radius:var(--radius);margin-top:6px;box-shadow:0 1px 2px oklch(0 0 0 / 4%);transition:border-color .2s,box-shadow .2s,background-color .2s}
 .entry{display:flex;align-items:center;gap:8px;padding:0 12px}
 .entry:focus-within,.wbox:focus-within{border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring) 35%,transparent)}
 .entry .prompt{font-family:"Geist Mono",ui-monospace,monospace;color:var(--muted-foreground)}
@@ -180,44 +196,59 @@ pre .blank{display:inline-block;min-width:70px;border-bottom:2px dashed #facc15;
 .hintbtn svg{width:16px;height:16px;color:var(--warn)}
 .hintbtn small{background:var(--muted);color:var(--muted-foreground);border-radius:99px;min-width:20px;height:20px;display:grid;place-items:center;font-size:11px;font-weight:600;padding:0 6px}
 .hintbtn[disabled] svg{color:var(--muted-foreground)}
-.hints{display:flex;flex-direction:column;gap:8px;margin-top:14px}
-.hints:empty{display:none}
-.hint-item{background:var(--warn-soft);border:1px solid color-mix(in oklab,var(--warn) 35%,transparent);border-radius:var(--radius);padding:8px 12px;font-size:15px}
+.hintbtn small{transition:opacity .2s}
+.hints{display:flex;flex-direction:column}
+.hint-item{background:var(--warn-soft);border:1px solid color-mix(in oklab,var(--warn) 35%,transparent);border-radius:var(--radius);padding:8px 12px;font-size:15px;margin-top:8px;overflow:hidden;animation:open .24s var(--travel),drop .2s .08s var(--arrive) backwards}
+.hint-item:first-child{margin-top:14px}
 .criteria{border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin:0 0 4px;font-size:15px}
 .criteria .kicker{margin:0 0 4px}
 .criteria ul{margin:0;padding-left:20px;list-style:disc}
 .criteria li{margin:3px 0}
 .expect{font-size:14px;color:var(--muted-foreground);margin:0 0 4px}
 .model{margin-top:16px}
+#review>*{animation:rise .24s var(--arrive) backwards}
+#review>:nth-child(2){animation-delay:.06s}
+#review>:nth-child(3){animation-delay:.12s}
 .model p{background:var(--muted);border-radius:var(--radius);padding:10px 14px;font-size:15px}
 .rubric{display:flex;flex-direction:column;gap:8px;margin-top:4px}
 .chk{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:15px;cursor:pointer;min-height:48px}
 .chk input{flex:none;width:18px;height:18px;margin:2px 0 0;accent-color:var(--ok)}
+.chk{transition:border-color .2s,background-color .2s}
 .chk:has(input:checked){border-color:var(--ok);background:var(--ok-soft)}
 
-.footer{position:sticky;bottom:0;border-top:1px solid var(--border);background:var(--background);padding:14px 0 calc(14px + env(safe-area-inset-bottom))}
-.footer.ok{background:color-mix(in oklab,var(--ok) 10%,var(--background));border-color:color-mix(in oklab,var(--ok) 35%,transparent)}
-.footer.no{background:color-mix(in oklab,var(--bad) 9%,var(--background));border-color:color-mix(in oklab,var(--bad) 35%,transparent)}
-.fb{display:none;margin-bottom:12px}
-.footer.ok .fb,.footer.no .fb{display:block}
+.footer{position:sticky;bottom:0;padding:14px 0 calc(14px + env(safe-area-inset-bottom));--footer-bg:var(--background);--footer-line:var(--border)}
+.footer::before{content:"";position:absolute;z-index:-1;inset:0 -100vmax;background:var(--footer-bg);border-top:1px solid var(--footer-line);transition:background-color .2s,border-color .2s}
+.footer.ok{--footer-bg:color-mix(in oklab,var(--ok) 10%,var(--background));--footer-line:color-mix(in oklab,var(--ok) 35%,transparent)}
+.footer.no{--footer-bg:color-mix(in oklab,var(--bad) 9%,var(--background));--footer-line:color-mix(in oklab,var(--bad) 35%,transparent)}
+.fb{display:none;padding-bottom:12px;overflow:hidden}
+.footer.ok .fb,.footer.no .fb{display:block;animation:open .26s var(--travel),rise .22s .08s var(--arrive) backwards}
 .fb strong{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px}
-.footer.ok .fb strong{color:var(--ok)}
-.footer.no .fb strong{color:var(--bad)}
+.footer.ok .fb strong{color:var(--ok-text)}
+.footer.no .fb strong{color:var(--bad-text)}
 .fb p{margin:4px 0 0;font-size:15px}
-.cta{width:100%;height:44px;font-size:15px}
-.footer.ok .cta{background:var(--ok);color:#fff}
-.footer.no .cta{background:var(--bad);color:#fff}
+.cta{width:100%;height:44px;font-size:15px;transition:background-color .2s,color .2s}
+.cta .lbl{display:inline-block}
+.footer.ok .cta,.footer.ok .cta:hover{background:var(--ok-fill);color:var(--on-fill)}
+.footer.no .cta,.footer.no .cta:hover{background:var(--bad-fill);color:var(--on-fill)}
 
-.done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 0;animation:in .25s ease-out}
+.done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 0}
+.done>*{animation:rise .32s var(--arrive) backwards}
+.done>h2{animation-delay:.08s}.done>p{animation-delay:.12s}
+.done>.tiles{animation:none}
+.tile{animation:rise .32s var(--arrive) backwards}
+.tile:nth-child(1){animation-delay:.2s}.tile:nth-child(2){animation-delay:.3s}.tile:nth-child(3){animation-delay:.4s}
+.done>.recap{animation-delay:.5s}
+@keyframes land{from{opacity:0;scale:.8}}
 .trophy{width:64px;height:64px;border-radius:50%;background:var(--muted);border:1px solid var(--border);display:grid;place-items:center;margin-bottom:16px}
+.done>.trophy{animation:land .5s var(--arrive) backwards}
 .trophy svg{width:30px;height:30px;color:var(--warn)}
 .done h2{font-size:24px;font-weight:600;letter-spacing:-.015em;margin:0 0 4px}
 .done p{color:var(--muted-foreground);margin:0 0 20px}
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:400px;margin-bottom:12px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:440px;margin-bottom:12px}
 .tile{border:1px solid var(--border);border-radius:var(--radius);padding:10px 8px;background:var(--card)}
 .tile small{display:block;font-size:12px;color:var(--muted-foreground)}
 .tile b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
-.recap{max-width:440px;text-align:left;border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin:4px 0 0;font-size:15px;background:var(--card)}
+.recap{width:100%;max-width:440px;text-align:left;border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin:4px 0 0;font-size:15px;background:var(--card)}
 .recap b{display:block;margin-bottom:4px;font-weight:600}
 @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
 </style>
@@ -460,10 +491,11 @@ function renderCard(){
   if(L.steps.length) body+=`<div class="hints" id="hints" aria-live="polite"></div><button class="btn hintbtn" data-variant="outline" data-size="sm" id="hintbtn">${I.bulb}<span>Hint</span><small id="hintleft">${L.steps.length}</small></button>`;
   const btn = c.t==='learn' ? `<button class="btn cta" data-size="lg" id="cta">Continue</button>` : `<button class="btn cta" data-size="lg" id="cta" disabled>Check</button>`;
   app.innerHTML=`<div class="lesson wrap" style="--uc:${u.color}">
-    <div class="lesson-top"><button class="btn" data-variant="ghost" data-size="icon" id="quit" aria-label="Quit lesson">${I.x}</button><div class="progress" role="progressbar" aria-label="Lesson progress" aria-valuenow="${Math.round(progressPct())}" aria-valuemin="0" aria-valuemax="100"><span style="width:${progressPct()}%"></span></div></div>
+    <div class="lesson-top"><button class="btn" data-variant="ghost" data-size="icon" id="quit" aria-label="Quit lesson">${I.x}</button><div class="progress" role="progressbar" aria-label="Lesson progress" aria-valuenow="${Math.round(progressPct())}" aria-valuemin="0" aria-valuemax="100"><span style="width:${L.shown??progressPct()}%"></span></div></div>
     <div class="panel">${body}</div>
     <div class="footer" id="footer"><div class="fb" id="fb" aria-live="assertive"></div>${btn}</div></div>`;
   highlight(app);
+  const bar=app.querySelector('.lesson-top .progress>span'); bar.offsetWidth; bar.style.width=(L.shown=progressPct())+'%';
   document.getElementById('quit').onclick=()=>{ renderHome(); window.scrollTo(0,0); };
   const cta=document.getElementById('cta');
   if(c.t==='learn'){ cta.onclick=()=>{L.pos++; renderCard();}; cta.focus({preventScroll:true}); return; }
@@ -488,8 +520,9 @@ function renderCard(){
   }
   const hb=document.getElementById('hintbtn');
   if(hb) hb.onclick=()=>{ if(L.phase!=='answer'||L.hinted>=L.steps.length) return; useHint(c,L.steps[L.hinted++]);
-    const left=L.steps.length-L.hinted; document.getElementById('hintleft').textContent=left;
-    if(!left){ hb.disabled=true; hb.querySelector('span').textContent='No more hints'; hb.querySelector('small').hidden=true; } };
+    const left=L.steps.length-L.hinted, n=document.getElementById('hintleft');
+    if(left){ n.textContent=left; roll(n); }
+    else { hb.disabled=true; n.style.opacity=0; setTimeout(()=>n.hidden=true,200); const t=hb.querySelector('span'); t.textContent='No more hints'; roll(t); } };
   if(c.t==='type'||c.t==='write'){
     const en=wireField(c), start=c.starter||'';
     en.oninput=()=>{ cta.disabled=!en.value.trim()||en.value===start; };
@@ -544,7 +577,7 @@ function review(c){
   box.innerHTML=`<div class="model"><div class="kicker">Sample answer</div>${text?`<p>${esc(c.model).replace(/\n/g,'<br>')}</p>`:`<pre><code class="language-${c.lang}">${esc(c.model)}</code></pre>`}</div>
     <div class="kicker">Tick each point your answer meets</div><div class="rubric">${c.rubric.map(r=>`<label class="chk"><input type="checkbox"><span>${r}</span></label>`).join('')}</div>`;
   highlight(box);
-  const cta=document.getElementById('cta'); cta.textContent='Done';
+  const cta=document.getElementById('cta'); relabel(cta,'Done');
   box.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function grade(c,ok){
@@ -564,10 +597,13 @@ function grade(c,ok){
   const footer=document.getElementById('footer'); footer.classList.add(ok?'ok':'no');
   const answer = ok ? '' : c.t==='write' ? '<p>Compare your answer with the sample above.</p>' : c.t==='type' ? `<p><b>Answer:</b> <code>${esc(c.accept[0])}</code></p>` : (c.t==='order' ? `<p><b>Correct order:</b> ${c.items.map((x,i)=>`${i+1}. ${esc(x)}`).join(' → ')}</p>` : `<p><b>Answer:</b> ${c.t==='fill'?`<code>${esc(c.o[c.a])}</code>`:c.o[c.a]}</p>`);
   document.getElementById('fb').innerHTML=`<strong>${ok?I.ok+(L.hinted?' Right, with a hint':' Nice!'):I.no+' Not quite'}</strong>${answer}<p>${c.why}</p>${ok?'':'<p><i>You will see this one again at the end.</i></p>'}`;
-  const cta=document.getElementById('cta'); cta.textContent=ok?'Continue':'Got it'; cta.focus({preventScroll:true});
+  const cta=document.getElementById('cta'); relabel(cta,ok?'Continue':'Got it'); cta.focus({preventScroll:true});
   saveLesson(L.pos+1);
 }
 function next(){ L.pos++; renderCard(); }
+/* Changed words roll up into place instead of swapping in one frame; the control itself stays put. */
+function relabel(el,text){ el.innerHTML=`<span class="lbl">${text}</span>`; roll(el.firstChild); }
+function roll(el){ if(!matchMedia('(prefers-reduced-motion: reduce)').matches) el.animate?.([{opacity:0,translate:'0 40%'},{opacity:1,translate:'0 0'}],{duration:200,easing:'cubic-bezier(.25,.8,.25,1)'}); }
 function finish(){
   const quizCount=L.lesson.cards.filter(c=>c.t!=='learn').length;
   const acc= quizCount ? Math.round(L.firstTry.size/quizCount*100) : 100;

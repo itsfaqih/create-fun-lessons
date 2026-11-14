@@ -17,6 +17,11 @@
   --bad-soft: oklch(0.577 0.245 27.325 / 10%);
   --warn: oklch(0.75 0.16 75);
   --warn-soft: oklch(0.75 0.16 75 / 14%);
+  --ok-text: oklch(0.48 0.13 155);
+  --bad-text: oklch(0.5 0.2 27);
+  --ok-fill: oklch(0.52 0.13 155);
+  --bad-fill: oklch(0.55 0.22 27);
+  --on-fill: #fff;
   --code-bg: #0a0a0b;
   --code-text: #e6e9f2;
   --code-line: oklch(1 0 0 / 10%);
@@ -35,12 +40,14 @@
     --background: #0a0a0a; --foreground: #fafafa; --card: #171717; --muted: #262626; --muted-foreground: #a1a1a1;
     --border: rgb(255 255 255 / 10%); --input: rgb(255 255 255 / 15%); --primary: #e5e5e5; --primary-foreground: #171717;
     --ok: oklch(0.72 0.16 155); --ok-soft: oklch(0.72 0.16 155 / 14%); --bad: oklch(0.704 0.191 22.216); --bad-soft: oklch(0.704 0.191 22.216 / 14%);
+    --ok-text: oklch(0.8 0.15 155); --bad-text: oklch(0.75 0.16 22); --ok-fill: oklch(0.78 0.15 155); --bad-fill: oklch(0.72 0.17 22); --on-fill: oklch(0.18 0.02 155);
   }
 }
 :root[data-theme='dark'] .cfl {
   --background: #0a0a0a; --foreground: #fafafa; --card: #171717; --muted: #262626; --muted-foreground: #a1a1a1;
   --border: rgb(255 255 255 / 10%); --input: rgb(255 255 255 / 15%); --primary: #e5e5e5; --primary-foreground: #171717;
   --ok: oklch(0.72 0.16 155); --ok-soft: oklch(0.72 0.16 155 / 14%); --bad: oklch(0.704 0.191 22.216); --bad-soft: oklch(0.704 0.191 22.216 / 14%);
+    --ok-text: oklch(0.8 0.15 155); --bad-text: oklch(0.75 0.16 22); --ok-fill: oklch(0.78 0.15 155); --bad-fill: oklch(0.72 0.17 22); --on-fill: oklch(0.18 0.02 155);
 }
 
 .cfl code, .cfl pre, .cfl .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
@@ -110,10 +117,11 @@
 .cfl .opt.is-sel { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
 .cfl .opt.is-sel .key { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
 .cfl .opt.is-right { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok); background: var(--ok-soft); }
-.cfl .opt.is-right .key { background: var(--ok); border-color: var(--ok); color: #fff; }
-.cfl .opt.is-wrong { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); background: var(--bad-soft); }
-.cfl .opt.is-wrong .key { background: var(--bad); border-color: var(--bad); color: #fff; }
-.cfl .opt.is-gone { opacity: 0.45; }
+.cfl .opt.is-right .key { background: var(--ok-fill); border-color: var(--ok-fill); color: var(--on-fill); }
+.cfl .opt.is-wrong { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); background: var(--bad-soft); animation: cfl-nudge 0.3s ease-in-out; }
+@keyframes cfl-nudge { 30% { translate: -3px 0; } 70% { translate: 3px 0; } }
+.cfl .opt.is-wrong .key { background: var(--bad-fill); border-color: var(--bad-fill); color: var(--on-fill); }
+.cfl .opt.is-gone { opacity: 0.45; box-shadow: none; }
 .cfl .opt.is-gone .label { text-decoration-color: currentColor; }
 
 /* Hints */
@@ -140,12 +148,12 @@
 .cfl .footer .cta { width: 100%; height: 42px; font-size: 15px; }
 .cfl .footer .cta:disabled, .cfl .footer .cta[aria-disabled='true'] { opacity: 0.5; }
 .cfl .footer.is-ok { background: color-mix(in oklab, var(--ok) 10%, var(--background)); border-color: color-mix(in oklab, var(--ok) 35%, transparent); }
-.cfl .footer.is-ok .cta { background: var(--ok); color: #fff; }
+.cfl .footer.is-ok .cta { background: var(--ok-fill); color: var(--on-fill); }
 .cfl .footer.is-no { background: color-mix(in oklab, var(--bad) 9%, var(--background)); border-color: color-mix(in oklab, var(--bad) 35%, transparent); }
-.cfl .footer.is-no .cta { background: var(--bad); color: #fff; }
+.cfl .footer.is-no .cta { background: var(--bad-fill); color: var(--on-fill); }
 .cfl .fb strong { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; }
-.cfl .is-ok .fb strong { color: var(--ok); }
-.cfl .is-no .fb strong { color: var(--bad); }
+.cfl .is-ok .fb strong { color: var(--ok-text); }
+.cfl .is-no .fb strong { color: var(--bad-text); }
 .cfl .fb p { margin: 4px 0 0; font-size: 14px; line-height: 1.45; }
 .cfl .fb svg { width: 22px; height: 22px; }
 
