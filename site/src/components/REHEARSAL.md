@@ -7,7 +7,7 @@ The demos follow the stageshow skill's rules for framing, restraint and motion. 
 | Hero | `HeroDemo.astro` | `phone-touch`, `ai-cards` | Hint, Hint again (strikes an option), pick, Check | Footer green: "Right, with a hint" |
 | Lesson map | `MapDemo.astro` (still) | `fade-crop`, `static-card` | The course home after a few lessons | Same |
 | Card types | `CardTypes.astro` (stills) | `bento`, `stacked-cards` | One card of each type, cropped to what sets it apart | Same |
-| Lesson complete | `DoneDemo.astro` | `payout-flow` | Trophy, tiles, streak and XP rolling, recap and Next lesson | The finished screen |
+| Lesson complete | `DoneDemo.astro` | `payout-flow` | Trophy, tiles, the course count rolling with its bar, recap and Next lesson | The finished screen |
 | Coverage | `CoverageDemo.astro` | `hero-demo` (terminal satellite) | The checker fails on `scripts/`, a row is added, the checker prints OK | The new row and the green run |
 
 ## What was checked
@@ -22,7 +22,7 @@ The demos follow the stageshow skill's rules for framing, restraint and motion. 
   - the syllabus table at 390: a two-column compact layout
   - the written-answer tile at 390: the code is hidden, so the rubric shows
   - horizontal overflow at 390 from the install command
-- The strings match the engine in `skills/create-fun-lessons/template.html`: the kickers, "Right, with a hint", "Not quite", "You will see this one again at the end.", "Lesson complete", the done-screen tiles, "Remember", "Next lesson", and the XP formula (+16 = 10 + 3 first-try cards × 2, at 75% first try). The checker strings come from `scripts/check.mjs`.
+- The strings match the engine in `skills/create-fun-lessons/template.html`: the kickers, "Right, with a hint", "Not quite", "You will see this one again at the end.", "Lesson complete", the done-screen tiles, "Remember", "Next lesson", and the Course tile (7 / 12 after this lesson, at 75% first try). The checker strings come from `scripts/check.mjs`.
 
 ## Known and accepted
 

@@ -13,7 +13,7 @@ Ask your agent for a course and it writes a single self-contained HTML file. Ope
 - **Instant feedback.** Every quiz card states what counts as a right answer before you answer. As soon as you check, it shows an explanation, whether you were right or wrong.
 - **Hints.** Every quiz card has a Hint button. The first press gives a nudge. Later presses rule out a wrong option, place a step, or show how the answer starts.
 - **Retries.** A card you miss comes back at the end of the lesson, so each lesson ends with every card answered right.
-- **XP and a day streak.** A finished lesson earns XP, plus a bonus for each card right on the first try. Finishing a lesson on consecutive days grows the streak.
+- **Course progress.** The lesson map shows how many lessons are done, and the lesson-complete screen shows the bar moving forward.
 - **Saved progress.** The page saves progress on the device after every card, even mid-lesson. A progress code moves it to another browser or device.
 - **Syntax highlighting** for every code sample, command and code answer.
 

@@ -42,8 +42,6 @@ code,pre,.mono{font-family:"Geist Mono",var(--font-mono),ui-monospace,monospace}
 .topbar .wrap{display:flex;align-items:center;gap:8px;height:56px}
 .logo{font-weight:600;font-size:15px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .logo span{color:var(--muted-foreground)}
-.topbar .badge{gap:4px;font-variant-numeric:tabular-nums}
-.topbar .badge svg{width:14px;height:14px}
 
 /* home */
 .hero{padding:32px 0 8px}
@@ -238,7 +236,7 @@ pre .blank{display:inline-block;min-width:70px;border-bottom:2px dashed #facc15;
 .done>h2{animation-delay:.08s}.done>p{animation-delay:.12s}
 .done>.tiles{animation:none}
 .tile{animation:rise .32s var(--arrive) backwards}
-.tile:nth-child(1){animation-delay:.2s}.tile:nth-child(2){animation-delay:.3s}.tile:nth-child(3){animation-delay:.4s}
+.tile:nth-child(1){animation-delay:.2s}.tile:nth-child(2){animation-delay:.3s}
 .done>.recap{animation-delay:.5s}
 @keyframes land{from{opacity:0;scale:.8}}
 .trophy{width:64px;height:64px;border-radius:50%;background:var(--muted);border:1px solid var(--border);display:grid;place-items:center;margin-bottom:16px}
@@ -246,10 +244,12 @@ pre .blank{display:inline-block;min-width:70px;border-bottom:2px dashed #facc15;
 .trophy svg{width:30px;height:30px;color:var(--warn)}
 .done h2{font-size:24px;font-weight:600;letter-spacing:-.015em;margin:0 0 4px}
 .done p{color:var(--muted-foreground);margin:0 0 20px}
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:440px;margin-bottom:12px}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;max-width:440px;margin-bottom:12px}
 .tile{border:1px solid var(--border);border-radius:var(--radius);padding:10px 8px;background:var(--card)}
 .tile small{display:block;font-size:12px;color:var(--muted-foreground)}
 .tile b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.tile .progress{height:6px;margin:8px 4px 2px}
+.tile .progress>span{transition:width .6s var(--travel) .45s}
 .recap{width:100%;max-width:440px;text-align:left;border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin:4px 0 0;font-size:15px;background:var(--card)}
 .recap b{display:block;margin-bottom:4px;font-weight:600}
 @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
@@ -307,7 +307,7 @@ const GLOSSARY = [
   const f=()=>r.classList.toggle('dark', r.dataset.theme ? r.dataset.theme==='dark' : m.matches); f(); m.addEventListener('change',f); })();
 const KEY=COURSE.storageKey;
 document.title=COURSE.title;
-const fresh=()=>({done:{},xp:0,streak:0,last:null,cur:null});
+const fresh=()=>({done:{},cur:null});
 let S=fresh();
 const CAN_STORE=(()=>{try{localStorage.setItem(KEY+'-probe','1');localStorage.removeItem(KEY+'-probe');return true;}catch(e){return false;}})();
 const encode=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));
@@ -330,19 +330,11 @@ function restoreFrom(code){
   if(!o||typeof o.done!=='object') throw new Error('bad code');
   S=Object.assign(fresh(),o); save();
 }
-function today(){return new Date().toISOString().slice(0,10)}
-function bumpStreak(){
-  const t=today(); if(S.last===t) return;
-  const y=new Date(Date.now()-864e5).toISOString().slice(0,10);
-  S.streak = S.last===y ? S.streak+1 : 1; S.last=t;
-}
 const ALL = UNITS.flatMap(u=>u.lessons.map(l=>({...l,unit:u})));
 const nextLesson = ()=> ALL.find(l=>!S.done[l.id]);
 
 /* ---------- Icons ---------- */
 const I={
-  bolt:'<svg viewBox="0 0 24 24" fill="#eab308"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
-  fire:'<svg viewBox="0 0 24 24" fill="#f97316"><path d="M12 2s5 4.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 1-3.5S9 11 10.5 11C10.5 7 12 2 12 2z"/></svg>',
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>',
   bulb:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2zM9 20h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
@@ -405,8 +397,7 @@ function wireField(c){
 function renderHome(){
   const doneCount=ALL.filter(l=>S.done[l.id]).length;
   const nx=nextLesson();
-  let h=`<header class="topbar"><div class="wrap"><div class="logo">${COURSE.logoHtml}</div>
-    <span class="badge" data-variant="outline" title="Day streak">${I.fire}${S.streak}</span><span class="badge" data-variant="outline" title="XP">${I.bolt}${S.xp} XP</span></div></header>
+  let h=`<header class="topbar"><div class="wrap"><div class="logo">${COURSE.logoHtml}</div></div></header>
   <main class="wrap"><section class="hero"><h1>${COURSE.heading}</h1>
     <p>${UNITS.length} unit${UNITS.length===1?'':'s'} · ${ALL.length} lesson${ALL.length===1?'':'s'} · ${COURSE.subtitle}</p>
     <div class="overall"><div class="progress" role="progressbar" aria-label="Course progress" aria-valuemin="0" aria-valuemax="${ALL.length}" aria-valuenow="${doneCount}"><span style="width:${doneCount/ALL.length*100}%"></span></div><span>${doneCount} / ${ALL.length} lessons</span></div>
@@ -609,14 +600,15 @@ function roll(el){ if(!matchMedia('(prefers-reduced-motion: reduce)').matches) e
 function finish(){
   const quizCount=L.lesson.cards.filter(c=>c.t!=='learn').length;
   const acc= quizCount ? Math.round(L.firstTry.size/quizCount*100) : 100;
-  const first=!S.done[L.lesson.id];
-  const xp = 10 + L.firstTry.size*2 + (first?0:-5);
-  S.done[L.lesson.id]=true; S.cur=null; S.xp+=Math.max(xp,3); bumpStreak(); save();
+  const pct=()=>ALL.filter(l=>S.done[l.id]).length/ALL.length*100, before=pct();
+  S.done[L.lesson.id]=true; S.cur=null; save();
+  const doneCount=ALL.filter(l=>S.done[l.id]).length;
   const u=L.lesson.unit;
   app.innerHTML=`<div class="lesson wrap"><div class="done"><div class="trophy">${I.trophy}</div><h2>Lesson complete</h2><p>${L.lesson.title}</p>
-    <div class="tiles"><div class="tile"><small>XP</small><b>+${Math.max(xp,3)}</b></div><div class="tile"><small>First try</small><b>${acc}%</b></div><div class="tile"><small>Day streak</small><b>${S.streak}</b></div></div>
+    <div class="tiles"><div class="tile"><small>First try</small><b>${acc}%</b></div><div class="tile" style="--uc:${u.color}"><small>Course</small><b>${doneCount} / ${ALL.length}</b><div class="progress" role="progressbar" aria-label="Course progress" aria-valuemin="0" aria-valuemax="${ALL.length}" aria-valuenow="${doneCount}"><span style="width:${before}%"></span></div></div></div>
     <div class="recap"><b>Remember</b>${L.lesson.recap}</div></div>
     <div class="footer"><button class="btn cta" data-size="lg" id="cta">${nextLesson()?'Next lesson':'Back to map'}</button></div></div>`;
+  const bar=app.querySelector('.tile .progress>span'); bar.offsetWidth; bar.style.width=pct()+'%';
   const n=nextLesson();
   document.getElementById('cta').onclick=()=> n?startLesson(n.id):(renderHome(),window.scrollTo(0,0));
 }

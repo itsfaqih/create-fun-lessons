@@ -1,17 +1,15 @@
 ---
 // The lesson map, as the course opens after a few lessons: the sticky top
-// bar with streak and XP, the map scrolled to the next lesson. A still.
-// Real strings: course name, streak, XP, unit 2's title and lessons, Start.
+// bar, the map scrolled to the next lesson. A still.
+// Real strings: course name, unit 2's title and lessons, Start.
 import BrowserWindow from './BrowserWindow.astro'
 import P from './ProductIcon.astro'
 ---
 <div class="well map-well">
-  <div class="ss-stage cfl map-stage" role="img" aria-label="The course home: a top bar with a 4-day streak and 104 XP, unit 1 finished, and unit 2 with two lessons done and 'The orders handler' marked Start.">
+  <div class="ss-stage cfl map-stage" role="img" aria-label="The course home: unit 1 finished, and unit 2 with two lessons done and 'The orders handler' marked Start.">
     <BrowserWindow url="orders-api/index.html" class="map-win">
       <div class="topbar">
         <div class="logo">Orders API <span>course</span></div>
-        <span class="badge" data-variant="outline"><P name="fire" />4</span>
-        <span class="badge" data-variant="outline"><P name="bolt" />104 XP</span>
       </div>
       <div class="scroll">
         <div class="unit">
