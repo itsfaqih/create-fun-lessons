@@ -65,10 +65,15 @@ code,pre,.mono{font-family:"Geist Mono",var(--font-mono),ui-monospace,monospace}
 .unit-head small i{width:8px;height:8px;border-radius:50%;background:var(--uc)}
 .unit-head h2{grid-column:1;margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em}
 .unit-head p{grid-column:1;margin:0;font-size:14px;color:var(--muted-foreground)}
-.unit-head .badge{grid-column:2;grid-row:1/span 2;font-variant-numeric:tabular-nums}
+.unit-head .badge{grid-column:2;grid-row:1/span 2;justify-self:end;font-variant-numeric:tabular-nums}
 .path{border-top:1px solid var(--border)}
+.lrow{display:flex;align-items:center;border-top:1px solid var(--border)}
+.lrow:first-child{border-top:0}
+.lrow .lreset{flex:none;width:32px;height:32px;margin-right:10px;color:var(--muted-foreground)}
+.lreset svg,.ureset svg{width:15px;height:15px}
+.ureset{grid-column:2;justify-self:end;color:var(--muted-foreground);gap:6px}
 .node{width:100%;display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:56px;background:none;border:0;border-top:1px solid var(--border);text-align:left;cursor:pointer;color:var(--foreground)}
-.node:first-child{border-top:0}
+.lrow .node{border-top:0;flex:1;min-width:0}
 .node:hover{background:var(--accent)}
 .node .dot{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;border:1px solid var(--border);color:var(--muted-foreground);font-variant-numeric:tabular-nums}
 .node .dot svg{width:14px;height:14px}
@@ -323,7 +328,7 @@ function load(){
 S=load();
 function save(){
   if(CAN_STORE){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-  try{history.replaceState(null,'','#p='+encodeURIComponent(encode(S)));}catch(e){}
+  try{history.replaceState(history.state,'','#p='+encodeURIComponent(encode(S)));}catch(e){}
 }
 function restoreFrom(code){
   const o=decode(code);
@@ -337,6 +342,8 @@ const nextLesson = ()=> ALL.find(l=>!S.done[l.id]);
 const I={
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>',
   bulb:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2zM9 20h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  undo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   trophy:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3zm0 4H6v1a2 2 0 0 0 1 1.7zm10 0v2.7A2 2 0 0 0 18 8V7z"/></svg>',
   ok:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" opacity=".18"/><path d="M7 12.5 10.5 16 17 9"/></svg>',
@@ -404,12 +411,12 @@ function renderHome(){
     <div class="saved ${CAN_STORE?'':'warn'}">${CAN_STORE?'Progress saves automatically on this device, even mid-lesson.':`This viewer blocks saving, so progress lasts only until you close it. ${COURSE.homeUrl?`<a href="${COURSE.homeUrl}" target="_blank" rel="noopener">Open the course in your browser</a> to save automatically, or copy`:'Open the page in a normal browser tab to save automatically, or copy'} your progress code below.`}</div>
     ${resumeCard()}</section>`;
   UNITS.forEach((u,ui)=>{
-    const ud=u.lessons.filter(l=>S.done[l.id]).length;
-    h+=`<section class="unit" style="--uc:${u.color};--ud:${u.dark}"><div class="unit-head"><small><i></i>Unit ${ui+1}</small><span class="badge" data-variant="secondary">${ud}/${u.lessons.length}</span><h2>${u.title}</h2><p>${u.blurb}</p></div><div class="path">`;
+    const ud=u.lessons.filter(l=>S.done[l.id]).length, ustarted=ud||u.lessons.some(l=>S.cur&&S.cur.id===l.id);
+    h+=`<section class="unit" style="--uc:${u.color};--ud:${u.dark}"><div class="unit-head"><small><i></i>Unit ${ui+1}</small><span class="badge" data-variant="secondary">${ud}/${u.lessons.length}</span><h2>${u.title}</h2><p>${u.blurb}</p>${ustarted?`<button class="btn ureset" data-variant="ghost" data-size="sm" data-reset-unit="${ui}">${I.undo}Reset unit</button>`:''}</div><div class="path">`;
     u.lessons.forEach((l,li)=>{
       const done=!!S.done[l.id], isNext=nx&&nx.id===l.id, inProg=S.cur&&S.cur.id===l.id;
       const tag= inProg?'Resume' : isNext?'Start' : '';
-      h+=`<button class="node ${done?'is-done':'todo'} ${isNext?'next':''}" data-lesson="${l.id}" aria-label="${l.title}${done?' (done)':''}"><span class="dot">${done?I.check:li+1}</span><span class="t">${l.title}</span>${tag?`<span class="badge" data-variant="outline">${tag}</span>`:''}</button>`;
+      h+=`<div class="lrow"><button class="node ${done?'is-done':'todo'} ${isNext?'next':''}" data-lesson="${l.id}" aria-label="${l.title}${done?' (done)':''}"><span class="dot">${done?I.check:li+1}</span><span class="t">${l.title}</span>${tag?`<span class="badge" data-variant="outline">${tag}</span>`:''}</button>${done||inProg?`<button class="btn lreset" data-variant="ghost" data-size="icon" data-reset-lesson="${l.id}" aria-label="Reset lesson: ${l.title}" title="Reset lesson">${I.undo}</button>`:''}</div>`;
     });
     h+=`</div></section>`;
   });
@@ -436,7 +443,14 @@ function renderHome(){
     catch(e){ msg.textContent='That code is not valid.'; }
   };
   const r=document.getElementById('reset'); if(r) r.onclick=()=>{ if(confirm('Reset all progress?')){S=fresh();save();renderHome();} };
+  app.querySelectorAll('[data-reset-lesson]').forEach(b=>b.onclick=()=>{ const l=ALL.find(x=>x.id===b.dataset.resetLesson); if(confirm(`Reset the lesson "${l.title}"?`)) resetLessons([l]); });
+  app.querySelectorAll('[data-reset-unit]').forEach(b=>b.onclick=()=>{ const u=UNITS[+b.dataset.resetUnit]; if(confirm(`Reset every lesson in "${u.title}"?`)) resetLessons(u.lessons); });
   if(nx && !S.cur){ const el=app.querySelector(`[data-lesson="${nx.id}"]`); if(el && doneCount) el.scrollIntoView({block:'center'}); }
+}
+/* Reset clears a lesson's done mark and any half-finished run of it; the rest of the course keeps its progress. */
+function resetLessons(list){
+  list.forEach(l=>{ delete S.done[l.id]; if(S.cur&&S.cur.id===l.id) S.cur=null; });
+  save(); const y=scrollY; renderHome(); window.scrollTo(0,y);
 }
 function resumeCard(){
   const l=S.cur&&ALL.find(x=>x.id===S.cur.id);
@@ -450,19 +464,21 @@ function startLesson(id){
   const lesson=ALL.find(l=>l.id===id);
   const cur=S.cur&&S.cur.id===id?S.cur:null;
   const queue = cur ? cur.q.map(([i,retry])=>({...lesson.cards[i],_i:i,_retry:!!retry})) : lesson.cards.map((c,i)=>({...c,_i:i}));
-  L={lesson,queue,pos:cur?cur.pos:0,total:lesson.cards.length,firstTry:new Set(cur?cur.ft:[]),missed:new Set(cur?cur.ms:[]),phase:'answer',sel:null,order:[]};
+  if(!history.state?.lesson){ try{history.pushState({lesson:1},'',location.href);}catch(e){} }
+  L={lesson,queue,pos:cur?cur.pos:0,far:cur?cur.pos:0,total:lesson.cards.length,firstTry:new Set(cur?cur.ft:[]),missed:new Set(cur?cur.ms:[]),phase:'answer',sel:null,order:[]};
   saveLesson();
   window.scrollTo(0,0); renderCard();
 }
-/* Mid-lesson snapshot. `pos` is the card to show on resume. */
+/* Mid-lesson snapshot. `pos` is the card to show on resume: the furthest one reached, even after stepping back. */
 function saveLesson(pos=L.pos){
-  S.cur={id:L.lesson.id,pos,q:L.queue.map(c=>[c._i,c._retry?1:0]),ft:[...L.firstTry],ms:[...L.missed]};
+  S.cur={id:L.lesson.id,pos:Math.max(pos,L.far),q:L.queue.map(c=>[c._i,c._retry?1:0]),ft:[...L.firstTry],ms:[...L.missed]};
   save();
 }
 function progressPct(){ return Math.min(100,(L.pos/L.queue.length)*100); }
 function renderCard(){
   const c=L.queue[L.pos];
   if(!c){ return finish(); }
+  L.far=Math.max(L.far,L.pos); L.revisit=L.pos<L.far;
   saveLesson();
   L.phase='answer'; L.sel=null; L.order=[]; L.redraw=null;
   L.steps= c.t==='learn' ? [] : hintSteps(c); L.hinted=0;
@@ -484,12 +500,13 @@ function renderCard(){
   if(L.steps.length) body+=`<div class="hints" id="hints" aria-live="polite"></div><button class="btn hintbtn" data-variant="outline" data-size="sm" id="hintbtn">${I.bulb}<span>Hint</span><small id="hintleft">${L.steps.length}</small></button>`;
   const btn = c.t==='learn' ? `<button class="btn cta" data-size="lg" id="cta">Continue</button>` : `<button class="btn cta" data-size="lg" id="cta" disabled>Check</button>`;
   app.innerHTML=`<div class="lesson wrap" style="--uc:${u.color}">
-    <div class="lesson-top"><button class="btn" data-variant="ghost" data-size="icon" id="quit" aria-label="Quit lesson">${I.x}</button><div class="progress" role="progressbar" aria-label="Lesson progress" aria-valuenow="${Math.round(progressPct())}" aria-valuemin="0" aria-valuemax="100"><span style="width:${L.shown??progressPct()}%"></span></div></div>
+    <div class="lesson-top"><button class="btn" data-variant="ghost" data-size="icon" id="quit" aria-label="Quit lesson">${I.x}</button><button class="btn" data-variant="ghost" data-size="icon" id="prev" aria-label="Previous card" title="Previous card" ${L.pos?'':'disabled'}>${I.back}</button><div class="progress" role="progressbar" aria-label="Lesson progress" aria-valuenow="${Math.round(progressPct())}" aria-valuemin="0" aria-valuemax="100"><span style="width:${L.shown??progressPct()}%"></span></div></div>
     <div class="panel">${body}</div>
     <div class="footer" id="footer"><div class="fb" id="fb" aria-live="assertive"></div>${btn}</div></div>`;
   highlight(app);
   const bar=app.querySelector('.lesson-top .progress>span'); bar.offsetWidth; bar.style.width=(L.shown=progressPct())+'%';
-  document.getElementById('quit').onclick=()=>{ renderHome(); window.scrollTo(0,0); };
+  document.getElementById('quit').onclick=leaveLesson;
+  document.getElementById('prev').onclick=()=>{ if(L.pos){ L.pos--; renderCard(); } };
   const cta=document.getElementById('cta');
   if(c.t==='learn'){ cta.onclick=()=>{L.pos++; renderCard();}; cta.focus({preventScroll:true}); return; }
   if(c.t==='mcq'||c.t==='fill'){
@@ -576,7 +593,8 @@ function review(c){
 function grade(c,ok){
   L.phase='feedback'; document.getElementById('hintbtn')?.remove();
   const key=c._i;
-  if(ok){ if(!L.missed.has(key)&&!L.hinted) L.firstTry.add(key); }
+  if(L.revisit){}
+  else if(ok){ if(!L.missed.has(key)&&!L.hinted) L.firstTry.add(key); }
   else { L.missed.add(key); L.queue.push({...c,_retry:true,_shuffled:null}); }
   if(c.t==='order'){ document.getElementById('slots').classList.add(ok?'right':'wrong'); }
   else if(c.t==='type'||c.t==='write'){
@@ -589,7 +607,7 @@ function grade(c,ok){
   }
   const footer=document.getElementById('footer'); footer.classList.add(ok?'ok':'no');
   const answer = ok ? '' : c.t==='write' ? '<p>Compare your answer with the sample above.</p>' : c.t==='type' ? `<p><b>Answer:</b> <code>${esc(c.accept[0])}</code></p>` : (c.t==='order' ? `<p><b>Correct order:</b> ${c.items.map((x,i)=>`${i+1}. ${esc(x)}`).join(' → ')}</p>` : `<p><b>Answer:</b> ${c.t==='fill'?`<code>${esc(c.o[c.a])}</code>`:c.o[c.a]}</p>`);
-  document.getElementById('fb').innerHTML=`<strong>${ok?I.ok+(L.hinted?' Right, with a hint':' Nice!'):I.no+' Not quite'}</strong>${answer}<p>${c.why}</p>${ok?'':'<p><i>You will see this one again at the end.</i></p>'}`;
+  document.getElementById('fb').innerHTML=`<strong>${ok?I.ok+(L.hinted?' Right, with a hint':' Nice!'):I.no+' Not quite'}</strong>${answer}<p>${c.why}</p>${L.revisit?'<p><i>A card you went back to: this answer does not change your score.</i></p>':ok?'':'<p><i>You will see this one again at the end.</i></p>'}`;
   const cta=document.getElementById('cta'); relabel(cta,ok?'Continue':'Got it'); cta.focus({preventScroll:true});
   saveLesson(L.pos+1);
 }
@@ -610,8 +628,13 @@ function finish(){
     <div class="footer"><button class="btn cta" data-size="lg" id="cta">${nextLesson()?'Next lesson':'Back to map'}</button></div></div>`;
   const bar=app.querySelector('.tile .progress>span'); bar.offsetWidth; bar.style.width=pct()+'%';
   const n=nextLesson();
-  document.getElementById('cta').onclick=()=> n?startLesson(n.id):(renderHome(),window.scrollTo(0,0));
+  document.getElementById('cta').onclick=()=> n?startLesson(n.id):leaveLesson();
 }
+/* A lesson is one browser history entry above the map, so the back button or
+   gesture returns to the map instead of leaving the course. */
+function leaveLesson(){ if(history.state?.lesson) history.back(); else showHome(); }
+function showHome(){ L=null; save(); renderHome(); window.scrollTo(0,0); }
+addEventListener('popstate',e=>{ if(L&&!e.state?.lesson) showHome(); });
 function shuffle(a){ let b=a.slice(); do{ for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} }while(b.length>1 && b.every((v,k)=>v===k)); return b; }
 
 document.addEventListener('keydown',e=>{
