@@ -5,7 +5,7 @@ description: Build a complete course of fun, bite-sized lessons as one HTML page
 
 # Create fun lessons
 
-A course is one self-contained HTML page built from [`template.html`](template.html). The template holds the engine: lesson map, card player with hints and instant feedback, retry of missed cards, XP, day streak, and saved progress. You write only the content block between `COURSE CONTENT` and `END COURSE CONTENT`. Everything outside it stays as shipped, apart from extra highlight.js language tags (see Syntax highlighting).
+A course is one self-contained HTML page built from [`template.html`](template.html). The template holds the engine: lesson map, card player with hints and instant feedback, retry of missed cards, overall course progress, and saved progress. You write only the content block between `COURSE CONTENT` and `END COURSE CONTENT`. Everything outside it stays as shipped, apart from extra highlight.js language tags (see Syntax highlighting).
 
 ## Steps
 
