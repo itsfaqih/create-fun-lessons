@@ -328,7 +328,7 @@ export function serializeLesson(lesson, covers, terms) {
 }
 
 
-const rel = p => relative(process.cwd(), p) || '.'
+const rel = p => { const r = relative(process.cwd(), p) || '.'; return r.startsWith('..') ? p : r }
 
 function readCourse(dir) {
   const file = join(dir, 'course.json')
