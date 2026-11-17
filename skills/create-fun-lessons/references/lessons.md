@@ -7,18 +7,18 @@ A course is a folder of plain files that `scripts/lessons.mjs` builds into one p
 ```text
 course.json        the course settings and the units, in order
 syllabus.md        every part of the subject (see SKILL.md, Syllabus)
-lessons/u1l1.md    one file per lesson, named by its id
+lessons/u1.md      one file per unit, holding its lessons in order
 index.html         the page; build writes it, so never edit it
 ```
 
 ```sh
 node <skill-dir>/scripts/lessons.mjs init <course-dir>                   # start from the sample course
 node <skill-dir>/scripts/lessons.mjs init <course-dir> --from <page.html> # import a page built from template.html
-node <skill-dir>/scripts/lessons.mjs check <course-dir> u2l1 u2l2         # check only these lessons (or unit ids)
+node <skill-dir>/scripts/lessons.mjs check <course-dir> u2                # check only these units (or lesson ids)
 node <skill-dir>/scripts/lessons.mjs build <course-dir> [--repo <repo-dir>]
 ```
 
-`check` with lesson or unit ids checks those lessons and nothing course-wide, so writers working in parallel can each check their own. It writes nothing. `build` checks the whole course, then writes `index.html` and fills each syllabus row's Lessons cell from the lessons' `covers`. It prints `OK: 5 units, 18 lessons, 84 cards, 14 syllabus rows`. On any problem it writes nothing, lists each problem as `lessons/u2l1.md:14: mcq card 2: <what is wrong>`, and exits non-zero. Building twice gives the same bytes. With `--repo`, build also fails on any tracked top-level directory of that repo missing from the syllabus Sources.
+`check` with unit or lesson ids checks those lessons and nothing course-wide, so writers working in parallel can each check their own units. It writes nothing. `build` checks the whole course, then writes `index.html` and fills each syllabus row's Lessons cell from the lessons' `covers`. It prints `OK: 5 units, 18 lessons, 84 cards, 14 syllabus rows`. On any problem it writes nothing, lists each problem as `lessons/u2.md:14: mcq card 2: <what is wrong>`, and exits non-zero. Building twice gives the same bytes. With `--repo`, build also fails on any tracked top-level directory of that repo missing from the syllabus Sources.
 
 ## course.json
 
@@ -44,14 +44,17 @@ node <skill-dir>/scripts/lessons.mjs build <course-dir> [--repo <repo-dir>]
 - `homeUrl` is the served home (optional; see SKILL.md, Steps).
 - `lang` is the course's main code language, or `text` for a course without code.
 - `languages` (optional) adds highlight.js languages the page does not bundle. Build loads each from the highlight.js CDN.
-- Each unit has its own `color`, readable under white text (it fills the unit dot, finished-lesson checks and the Start badge), and a darker `dark` for their borders. `lessons` lists the unit's lesson ids in order; each id is a file in `lessons/`.
+- Each unit has its own `color`, readable under white text (it fills the unit dot, finished-lesson checks and the Start badge), and a darker `dark` for their borders. `lessons` lists the unit's lesson ids in order; each is the `id:` of a lesson in `lessons/`.
 
 Every unit needs a `write` card, ideally closing the unit.
 
 ## Lesson files
 
+A lesson file holds a unit's lessons, in course order, and is named by the unit id, such as `lessons/u1.md`:
+
 ````md
 # Routing a request
+id: u1l1
 recap: The router matches the path and hands the request to one handler.
 covers: HTTP routing, Request lifecycle
 terms:
@@ -71,9 +74,25 @@ o:
 - [x] `src/routes.ts`
 - [ ] `src/db.ts`
 why: `src/routes.ts` maps each path to its handler; the server only starts listening.
+
+# Handlers
+id: u1l2
+recap: A handler turns one request into one response.
+covers: Request lifecycle
+
+## learn: One handler per route
+<p>`getOrder` reads the order and sends it back as JSON.</p>
+
+## type
+q: Name the handler that serves `GET /orders/:id`.
+accept:
+- getOrder
+why: `src/routes.ts` maps that path to `getOrder`.
 ````
 
-- The file starts with `# <lesson title>`. The header that follows takes:
+- A lesson starts at a `# <lesson title>` line outside a fence and runs to the next one, so a `# ` line inside a learn body starts a new lesson; put a heading there as HTML.
+- `id:` under the title is the lesson's id, the one `course.json` lists. Saved progress is kept by id, so an id never changes and is never reused, and a new lesson takes a new id wherever it goes in the file. Two lessons with one id, a listed id that no lesson has, and a lesson no unit lists are errors. A file that holds one lesson may leave out `id:`; its file name is then the id, so `lessons/u1l1.md` is lesson `u1l1`.
+- The header under the title takes:
   - `recap:` one line shown when the lesson is done.
   - `covers:` the syllabus Areas this lesson teaches, comma-separated, matched without regard to case. Build lists the lesson in those rows. Write `covers:` and one `- ` line per Area when a name contains a comma.
   - `terms:` one `- Term: meaning` line per term the lesson introduces (split at the first `: `). The glossary is every lesson's terms, in course order; a term defined twice keeps its first meaning.

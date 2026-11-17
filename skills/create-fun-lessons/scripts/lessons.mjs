@@ -1,5 +1,5 @@
 // Build a create-fun-lessons page from a course folder (course.json,
-// syllabus.md, lessons/<id>.md), check the folder, or create one.
+// syllabus.md, lessons/*.md), check the folder, or create one.
 // The lesson file format is in references/lessons.md.
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
@@ -13,13 +13,15 @@ const USAGE = `usage:
   node lessons.mjs check <dir> [<lesson-or-unit-id> ...] [--repo <repo-dir>]
   node lessons.mjs build <dir> [--repo <repo-dir>]`
 
-const LESSON_FIELDS = { recap: { kind: 'html' }, covers: { kind: 'names' }, terms: { kind: 'terms' } }
+const LESSON_FIELDS = { id: { kind: 'plain' }, recap: { kind: 'html' }, covers: { kind: 'names' }, terms: { kind: 'terms' } }
+const LESSON_ID = /^\w[\w.-]*$/
 
 
 const FENCE_OPEN = /^([ \t]*)(`{3,})([^`\s]*)[ \t]*$/
 const FENCE_CLOSE = /^[ \t]*(`{3,})[ \t]*$/
 const FIELD = /^([a-z][A-Za-z]*):(?:[ \t]+(.*?))?[ \t]*$/
 const CARD = /^## /
+const TITLE = /^# /
 const LIST = /^-( |$)/
 const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
 const unesc = s => s.replace(/&(amp|lt|gt);/g, (_, e) => ({ amp: '&', lt: '<', gt: '>' }[e]))
@@ -109,17 +111,38 @@ const renderLine = (text, line, err) => renderHtml([{ text, line }], err)
 // A plain field is shown as written; only the «…» markers can go wrong.
 const checkPlain = (v, line, err) => { for (const p of shownProblems(v, 'plain')) err(line + p.line, p.msg) }
 
-export function parseLesson(text) {
+// A file holds one or more lessons, each starting at a "# <title>" line. A
+// lesson's id is its "id:" line, or, in a file holding one lesson, the file
+// name; never its place in the file, so inserting a lesson moves no id.
+export function parseLessonFile(text, name) {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n'), fence = []
+  const blocks = toBlocks(lines, (line, msg) => fence.push({ line, msg }))
+  const starts = blocks.flatMap((b, i) => !b.fence && TITLE.test(b.text) ? [i] : [])
+  const cuts = [0, ...starts.slice(1), blocks.length]
+  const lessons = cuts.slice(0, -1).map((a, k) => {
+    const L = parseLesson(blocks.slice(a, cuts[k + 1]))
+    L.end = cuts[k + 1] < blocks.length ? blocks[cuts[k + 1]].line - 1 : lines.length
+    if (L.id === undefined && cuts.length === 2) L.id = name
+    else if (L.id === undefined) L.problems.push({ line: L.lines.title, msg: `this file holds ${cuts.length - 1} lessons, so each needs an "id: <lesson id>" line under its # title` })
+    else if (!LESSON_ID.test(L.id)) { L.problems.push({ line: L.lines.fields.id, msg: `id "${L.id}" is not a lesson id; use letters, digits, _, . and -, as in u2l1` }); L.id = undefined }
+    L.lesson = { id: L.id, ...L.lesson }
+    return L
+  })
+  // An unclosed fence runs to the end of the file, so it is in the last lesson.
+  lessons.at(-1).problems.unshift(...fence)
+  return lessons
+}
+
+function parseLesson(blocks) {
   const problems = []
   const err = (line, msg) => problems.push({ line, msg })
-  const blocks = toBlocks(text.replace(/\r\n?/g, '\n').split('\n'), err)
   const heads = blocks.flatMap((b, i) => !b.fence && CARD.test(b.text) ? [i] : [])
   const header = blocks.slice(0, heads[0] ?? blocks.length)
   const first = header.findIndex(b => !blank(b))
   const tm = first >= 0 && !header[first].fence && /^# +(.*?)[ \t]*$/.exec(header[first].text)
-  if (!tm) err(header[first]?.line ?? 1, 'a lesson file starts with "# <lesson title>"')
+  if (!tm) err(header[first]?.line ?? 1, 'a lesson starts with "# <lesson title>"')
   const head = parseFields(header.slice(tm ? first + 1 : 0), LESSON_FIELDS, 'the lesson header', err)
-  const lines = { title: tm ? header[first].line : 1, fields: head.lines, cards: [] }
+  const lines = { title: header[first]?.line ?? 1, fields: head.lines, cards: [] }
   const cards = []
   heads.forEach((h, k) => {
     const parsed = parseCard(blocks[h], blocks.slice(h + 1, heads[k + 1] ?? blocks.length), cards.length + 1, err)
@@ -128,7 +151,7 @@ export function parseLesson(text) {
     lines.cards.push(parsed.lines)
   })
   return {
-    lesson: { title: tm ? tm[1] : undefined, recap: head.values.recap, cards },
+    id: head.values.id, lesson: { title: tm ? tm[1] : undefined, recap: head.values.recap, cards },
     covers: head.values.covers ?? [], terms: head.values.terms ?? [], lines, problems,
   }
 }
@@ -286,6 +309,7 @@ function writeLesson(lesson, covers, terms, level) {
     return s
   }
   emit('title', `# ${lesson.title}`)
+  if (lesson.id !== undefined) emit('id', `id: ${lesson.id}`)
   if (lesson.recap !== undefined) html('recap', lesson.recap, 'recap')
   if (covers.length) emit('covers', covers.some(c => c.includes(',')) ? 'covers:' : `covers: ${covers.join(', ')}`, ...(covers.some(c => c.includes(',')) ? covers.map(c => `- ${c}`) : []))
   if (terms.length) emit('terms', 'terms:')
@@ -329,7 +353,7 @@ function writeLesson(lesson, covers, terms, level) {
 }
 
 function valuesOf(lesson, covers, terms) {
-  const out = [['title', lesson.title], ['recap', lesson.recap], ['covers', covers]]
+  const out = [['title', lesson.title], ['id', lesson.id], ['recap', lesson.recap], ['covers', covers]]
   terms.forEach((t, i) => out.push([`terms.${i}`, t]))
   lesson.cards.forEach((c, ci) => {
     out.push([`cards.${ci}`, c.t])
@@ -349,7 +373,7 @@ export function serializeLesson(lesson, covers, terms) {
   const want = valuesOf(lesson, covers, terms)
   for (;;) {
     const { text, at } = writeLesson(lesson, covers, terms, level)
-    const back = parseLesson(text)
+    const [back] = parseLessonFile(text)
     const got = new Map(valuesOf(back.lesson, back.covers, back.terms))
     const bad = want.find(([p, v]) => JSON.stringify(got.get(p)) !== JSON.stringify(v))?.[0]
       ?? at[(back.problems[0]?.line ?? 0) - 1]
@@ -377,21 +401,30 @@ function readCourse(dir) {
   if (!Array.isArray(units) || !units.length) return fatal('needs "units": [{ "id", "title", "blurb", "color", "dark", "lessons": [lesson ids] }]')
   if (!Array.isArray(languages) || !languages.every(l => typeof l === 'string' && /^[a-z0-9][\w-]*$/i.test(l))) at('"languages" must be a list of highlight.js language names, such as ["haskell"]')
   units.forEach((u, ui) => {
-    if (!Array.isArray(u?.lessons) || !u.lessons.every(id => typeof id === 'string' && /^\w[\w.-]*$/.test(id)))
-      at(`unit ${ui + 1} (${u?.id ?? '?'}): "lessons" must list lesson ids, each the name of a file in lessons/ without .md`)
+    if (!Array.isArray(u?.lessons) || !u.lessons.every(id => typeof id === 'string' && LESSON_ID.test(id)))
+      at(`unit ${ui + 1} (${u?.id ?? '?'}): "lessons" must list lesson ids, such as "u1l1"`)
   })
   return { file, COURSE, units: units.map(u => ({ ...u, lessons: Array.isArray(u?.lessons) ? u.lessons.filter(id => typeof id === 'string') : [] })), languages: Array.isArray(languages) ? languages.filter(l => typeof l === 'string') : [], problems }
 }
 
-function readLessons(dir, ids) {
-  const out = new Map()
-  for (const id of ids) {
-    const file = join(dir, 'lessons', `${id}.md`)
-    if (!existsSync(file)) continue
-    const parsed = parseLesson(readFileSync(file, 'utf8'))
-    out.set(id, { ...parsed, file, lesson: { id, ...parsed.lesson } })
+// Every lesson in lessons/*.md, in file order, and the first lesson with each
+// id. A lesson's `where` is its id line, or its file when the file names it.
+function readLessons(dir) {
+  const lessonDir = join(dir, 'lessons'), all = [], byId = new Map()
+  const names = existsSync(lessonDir) ? readdirSync(lessonDir).filter(f => f.endsWith('.md')).sort() : []
+  for (const name of names) {
+    const file = join(lessonDir, name)
+    for (const L of parseLessonFile(readFileSync(file, 'utf8'), name.slice(0, -3))) {
+      L.file = file
+      L.where = L.lines.fields.id ? `${rel(file)}:${L.lines.fields.id}` : rel(file)
+      all.push(L)
+      if (L.id === undefined) continue
+      const first = byId.get(L.id)
+      if (first) L.problems.push({ line: L.lines.fields.id ?? L.lines.title, msg: `id "${L.id}" is also the id of the lesson at ${first.where}; give each lesson its own id` })
+      else byId.set(L.id, L)
+    }
   }
-  return out
+  return { all, byId }
 }
 
 function locate(p, { course, lessons, unitsData, sylFile }) {
@@ -402,7 +435,7 @@ function locate(p, { course, lessons, unitsData, sylFile }) {
     const cl = L.lines.cards[p.card]
     let line = cl.fields[p.field] ?? cl.line
     if (p.find) {
-      const src = readFileSync(L.file, 'utf8').split('\n'), end = L.lines.cards[p.card + 1]?.line ?? src.length + 1
+      const src = readFileSync(L.file, 'utf8').split('\n'), end = L.lines.cards[p.card + 1]?.line ?? L.end + 1
       const k = src.slice(line - 1, end - 1).findIndex(s => s.replace(/[«»]/g, '').includes(p.find.trim()))
       if (k >= 0) line += k
     }
@@ -419,21 +452,25 @@ function checkFolder(dir, { only, repo } = {}) {
   if (course.fatal) return { problems: [course.fatal] }
   const problems = [...course.problems]
   const listed = course.units.flatMap(u => u.lessons)
-  const lessonDir = join(dir, 'lessons')
-  const files = existsSync(lessonDir) ? readdirSync(lessonDir).filter(f => f.endsWith('.md')).map(f => f.slice(0, -3)) : []
+  const disk = readLessons(dir)
   let unitIdx = course.units.map((_, i) => i), lessonIds = listed
   if (only) {
-    for (const id of only) if (!course.units.some(u => u.id === id) && !listed.includes(id) && !files.includes(id)) problems.push(`${rel(course.file)}: no unit or lesson "${id}" (lessons/${id}.md does not exist either)`)
+    for (const id of only) if (!course.units.some(u => u.id === id) && !listed.includes(id) && !disk.byId.has(id)) problems.push(`${rel(course.file)}: no unit or lesson "${id}", and no lesson in lessons/ has that id`)
     unitIdx = unitIdx.filter(i => only.includes(course.units[i].id))
-    lessonIds = [...new Set([...unitIdx.flatMap(i => course.units[i].lessons), ...only.filter(id => listed.includes(id) || files.includes(id))])]
-  } else {
-    for (const id of files) if (!listed.includes(id)) problems.push(`${rel(join(lessonDir, `${id}.md`))}: not listed in course.json; add "${id}" to a unit's lessons, or delete the file`)
+    lessonIds = [...new Set([...unitIdx.flatMap(i => course.units[i].lessons), ...only.filter(id => listed.includes(id) || disk.byId.has(id))])]
   }
-  const lessons = readLessons(dir, lessonIds)
+  const lessons = new Map(lessonIds.filter(id => disk.byId.has(id)).map(id => [id, disk.byId.get(id)]))
   course.units.forEach((u, ui) => {
-    for (const id of u.lessons) if ((!only || unitIdx.includes(ui) || only.includes(id)) && !lessons.has(id)) problems.push(`${rel(course.file)}: unit ${ui + 1} (${u.id}) lists "${id}", but ${rel(join(lessonDir, `${id}.md`))} does not exist`)
+    for (const id of u.lessons) if ((!only || unitIdx.includes(ui) || only.includes(id)) && !lessons.has(id)) problems.push(`${rel(course.file)}: unit ${ui + 1} (${u.id}) lists "${id}", but no lesson in lessons/ has that id; write it under "# <title>" with the line "id: ${id}"`)
   })
-  for (const L of lessons.values()) for (const p of L.problems) problems.push(`${rel(L.file)}:${p.line}: ${p.msg}`)
+  // A check of some lessons also reports a lesson with no id in their files,
+  // since it may be the one a writer meant to give that id.
+  const files = new Set(disk.all.filter(L => lessons.has(L.id)).map(L => L.file))
+  for (const L of disk.all) {
+    if (only && !(L.id === undefined ? files.has(L.file) : lessonIds.includes(L.id))) continue
+    if (!only && L.id !== undefined && !listed.includes(L.id)) problems.push(`${L.where}: not listed in course.json; add "${L.id}" to a unit's lessons, or delete ${L.lines.fields.id ? 'the lesson' : 'the file'}`)
+    for (const p of L.problems) problems.push(`${rel(L.file)}:${p.line}: ${p.msg}`)
+  }
 
   const unitsData = course.units.map(u => ({ ...u, lessons: u.lessons.filter(id => lessons.has(id)).map(id => lessons.get(id).lesson) }))
   const glossary = new Map()
@@ -544,19 +581,25 @@ function init(dir, from) {
     floor = i < 0 ? floor : i
     terms.get(lessons[floor].id).push([k, m])
   }
-  const files = [], failed = []
-  for (const l of lessons) {
-    if (!/^\w[\w.-]*$/.test(l.id ?? '')) { failed.push(`lesson "${l.id}": its id cannot be a file name`); continue }
-    const covers = rows.filter(r => !r.skip && r.lessons.split(/[\s,]+/).includes(l.id)).map(r => r.area)
-    try { files.push([l.id, serializeLesson(l, covers, terms.get(l.id))]) }
-    catch (e) { failed.push(`lesson ${l.id}: ${e.message}`) }
+  // One file per unit, named by the unit id, as SKILL.md has writers work.
+  const files = new Map(), failed = []
+  for (const u of UNITS) {
+    if (!LESSON_ID.test(u.id ?? '') || files.has(u.id)) { failed.push(`unit "${u.id}": its id cannot name its own lesson file`); continue }
+    const texts = []
+    for (const l of u.lessons) {
+      if (!LESSON_ID.test(l.id ?? '')) { failed.push(`lesson "${l.id}": not a lesson id; use letters, digits, _, . and -`); continue }
+      const covers = rows.filter(r => !r.skip && r.lessons.split(/[\s,]+/).includes(l.id)).map(r => r.area)
+      try { texts.push(serializeLesson(l, covers, terms.get(l.id))) }
+      catch (e) { failed.push(`lesson ${l.id}: ${e.message}`) }
+    }
+    if (texts.length) files.set(u.id, texts.join('\n'))
   }
   if (failed.length) throw new Error(`${failed.length} lesson(s) cannot be imported:\n- ${failed.join('\n- ')}`)
   mkdirSync(join(dir, 'lessons'), { recursive: true })
   writeFileSync(join(dir, 'course.json'), JSON.stringify(course, null, 2) + '\n')
   writeFileSync(join(dir, 'syllabus.md'), syllabus)
   for (const [id, text] of files) writeFileSync(join(dir, 'lessons', `${id}.md`), text)
-  return { lessons: files.length, syllabus: !from || existsSync(sylPath) }
+  return { lessons: lessons.length, files: files.size, syllabus: !from || existsSync(sylPath) }
 }
 
 
@@ -572,7 +615,7 @@ function main(argv) {
   if (cmd === 'init') {
     try {
       const r = init(dir, from)
-      console.log(`OK: wrote ${rel(join(dir, 'course.json'))}, ${rel(join(dir, 'syllabus.md'))} and ${r.lessons} lesson file(s) in ${rel(join(dir, 'lessons'))}`)
+      console.log(`OK: wrote ${rel(join(dir, 'course.json'))}, ${rel(join(dir, 'syllabus.md'))} and ${r.lessons} lesson(s) in ${r.files} unit file(s) in ${rel(join(dir, 'lessons'))}`)
       if (!r.syllabus) console.log(`No syllabus.md beside ${from}: write its rows, add a covers: line to each lesson, then build.`)
     } catch (e) { console.error(e.message); process.exit(1) }
     return
