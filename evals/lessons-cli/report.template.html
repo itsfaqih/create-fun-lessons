@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lessons.mjs eval</title>
+<style>
+:root {
+  --bg: #fafaf9; --fg: #1c1917; --muted: #6b6560; --line: #e4e1dc; --panel: #ffffff;
+  --old: #8a6d3b; --new: #2f6fdb; --win: #1f7a45; --win-bg: #e4f4ea; --loss: #a8322a; --loss-bg: #fbe8e6; --even-bg: #efedea;
+  --code-bg: #f2f0ed;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141312; --fg: #ece9e4; --muted: #a39d96; --line: #2f2c29; --panel: #1c1b19;
+    --old: #d2ad6a; --new: #79a7ff; --win: #74d39b; --win-bg: #173323; --loss: #f19288; --loss-bg: #3a1a17; --even-bg: #2a2826;
+    --code-bg: #262422;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141312; --fg: #ece9e4; --muted: #a39d96; --line: #2f2c29; --panel: #1c1b19;
+  --old: #d2ad6a; --new: #79a7ff; --win: #74d39b; --win-bg: #173323; --loss: #f19288; --loss-bg: #3a1a17; --even-bg: #2a2826;
+  --code-bg: #262422;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 26px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.01em; }
+h2 { font-size: 19px; margin: 40px 0 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+h3 { font-size: 15px; margin: 22px 0 6px; }
+p, li { max-width: 72ch; }
+.sub { color: var(--muted); margin: 0 0 20px; }
+code, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 18px 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.card b { display: block; font-size: 13px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.card .big { font-size: 22px; font-weight: 650; }
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 820px; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; vertical-align: top; }
+thead th { font-size: 12px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); }
+tbody tr:not(.lim) { border-top: 1px solid var(--line); }
+th small, td small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.lim td { color: var(--muted); font-size: 13px; padding-top: 0; }
+table.runs { min-width: 760px; }
+table.runs td { padding: 6px 10px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.tag.win { color: var(--win); background: var(--win-bg); }
+.tag.loss { color: var(--loss); background: var(--loss-bg); }
+.tag.even { color: var(--muted); background: var(--even-bg); }
+.strip { width: 220px; height: 36px; display: block; }
+.strip line { stroke: var(--line); }
+.d.old { fill: var(--old); opacity: 0.85; }
+.d.new { fill: var(--new); opacity: 0.85; }
+.key { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 3px 0 6px; }
+.key.old { background: var(--old); } .key.new { background: var(--new); }
+.callout { border-left: 3px solid var(--new); background: var(--panel); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+.callout.bad { border-color: var(--loss); }
+.label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+<h1>Does lessons.mjs make course building cheaper and more reliable?</h1>
+<p class="sub">An eval of the create-fun-lessons skill with and without its <code>lessons.mjs</code> CLI. 2026-11-18. {{N_RUNS}} candidate runs on claude-opus-5-5 at high effort, plus 2 blind judges.</p>
+
+{{VERDICT}}
+
+<h2>What was tested</h2>
+{{DESIGN}}
+
+<h2>Build a course from nothing</h2>
+<p>Five runs per arm. Each run builds a 3 to 4 unit course on the ky HTTP client from the same prompt. p is an exact two-sided Mann–Whitney test. With 5 runs per arm the smallest possible p is 0.008. The grey line under each row says what limits that number.</p>
+{{BUILD_TABLE}}
+<h3>Every build run</h3>
+{{BUILD_RUNS}}
+
+<h2>Revise an existing course</h2>
+<p>Five runs per arm. Each run gets the same seed course and three requests: insert a lesson, fix a quiz card the checker rejects, and wrap a code line too wide for a phone.</p>
+{{REVISE_TABLE}}
+<h3>Every revise run</h3>
+{{REVISE_RUNS}}
+
+<h2>Quality, judged blind</h2>
+{{JUDGES}}
+
+<h2>A bug the eval found in lessons.mjs</h2>
+{{BUG}}
+
+<h2>What limits these numbers</h2>
+{{LIMITS_GENERAL}}
+
+<h2>Cost of the eval</h2>
+<p>The {{N_RUNS}} candidate runs came to {{TOTAL_LIST}} list dollars in total (measured, from <code>total_cost_usd</code>). That is an API list-price size, not money: the runs used a Claude subscription.</p>
+{{COST}}
+
+<h2>Recommendation</h2>
+{{RECOMMENDATION}}
+</main>
+</body>
+</html>

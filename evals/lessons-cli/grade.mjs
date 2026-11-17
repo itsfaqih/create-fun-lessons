@@ -67,6 +67,7 @@ if (data) {
   const strings = v => typeof v === 'string' ? [v] : v && typeof v === 'object' ? Object.values(v).flatMap(strings) : []
   g.garbledSpans = strings(data).filter(s => [...s.replace(/<pre[\s\S]*?<\/pre>/g, '').matchAll(/<code[^>]*>([\s\S]*?)<\/code>/g)]
     .some(m => m[1].includes('`'))).length
+  g.leakedMarkers = strings(data).filter(s => /[«»]/.test(s)).length
 }
 
 if (task === 'revise' && data && seedPage) {

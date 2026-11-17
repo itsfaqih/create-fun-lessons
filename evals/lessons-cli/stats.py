@@ -44,6 +44,7 @@ METRICS = {
     'revise_all_done': lambda m, g: int(bool(g.get('revise', {}).get('allDone'))) if 'revise' in g else None,
     'collateral_lessons': lambda m, g: len(g.get('revise', {}).get('collateralLessons', [])) if 'revise' in g else None,
     'garbled_spans': lambda m, g: g.get('garbledSpans'),
+    'leaked_markers': lambda m, g: g.get('leakedMarkers'),
     'quality_mean': lambda m, g: g.get('quality'),
 }
 
