@@ -90,10 +90,17 @@ def result_text(block):
 
 
 def failure_kinds(text):
-    kinds = set()
+    kinds, in_block = set(), False
     for line in text.splitlines():
         l = line.lower()
-        if not re.match(r'\s*(- |\S*lessons/\S+\.md:\d+:|\S*course\.json|syllabus\.md|script does not parse|content block|course content|no inline)', l):
+        if re.search(r'\d+ problem\(s\):', l):
+            in_block = True
+            continue
+        problem = re.match(r'\s*(- |\S*lessons/\S+\.md:\d+:|\S*course\.json|\S*syllabus\.md)', l)
+        fatal = re.match(r'\s*(\S+: )?(script does not parse|content block|course content|no inline)', l)
+        if in_block and not problem:
+            in_block = False
+        if not (in_block or fatal):
             continue
         if 'syllabus' in l or 'in no row' in l or '--repo' in l:
             kinds.add('syllabus')
@@ -172,6 +179,43 @@ def metrics():
               'checks', m['checker_runs'], 'failed', m['checker_failed'], 'out', m['tokens']['outputTokens'], 'list$', m['cost_list_usd'])
 
 
+def judge_quality():
+    """Mean rubric score per run slug, averaged over every judge file in judges/."""
+    per = {}
+    for task, section in (('build', 'courses'), ('revise', 'lessons')):
+        labels_file = STATE / f'judge_labels_{task}.json'
+        if not labels_file.exists():
+            continue
+        labels = json.loads(labels_file.read_text())
+        for jf in sorted((STATE / 'judges').glob('*.json')):
+            scores = json.loads(jf.read_text())[section]
+            for label, s in scores.items():
+                slug = labels[label]['slug'] if isinstance(labels[label], dict) else labels[label]
+                vals = [v for k, v in s.items() if k != 'reasons']
+                per.setdefault(slug, {})[jf.stem] = sum(vals) / len(vals)
+    return per
+
+
+def grade():
+    quality = judge_quality()
+    gs = []
+    for slug, r in registry().items():
+        if not (STATE / 'runs' / slug / 'exit').exists():
+            continue
+        args = ['vp', 'node', str(HERE / 'grade.mjs'), str(WORK / slug), r['arm'], r['task']]
+        if r['task'] == 'revise':
+            args.append(str(STATE / 'seed' / 'clean.html'))
+        g = json.loads(sh(*args))
+        g['slug'] = slug
+        if slug in quality:
+            g['qualityByJudge'] = quality[slug]
+            g['quality'] = round(sum(quality[slug].values()) / len(quality[slug]), 2)
+        (STATE / 'runs' / slug / 'grade.json').write_text(json.dumps(g, indent=1))
+        gs.append(g)
+    (STATE / 'grades.json').write_text(json.dumps(gs, indent=1))
+    print(len(gs), 'graded,', sum('quality' in g for g in gs), 'with judge scores')
+
+
 if __name__ == '__main__':
     cmd, *rest = sys.argv[1:]
-    {'setup': lambda: setup(*rest), 'run': lambda: run(rest), 'metrics': metrics}[cmd]()
+    {'setup': lambda: setup(*rest), 'run': lambda: run(rest), 'metrics': metrics, 'grade': grade}[cmd]()

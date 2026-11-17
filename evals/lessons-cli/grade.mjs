@@ -25,6 +25,7 @@ function run(cmd, args) {
 }
 
 const isWidth = p => / columns; \d+ fit /.test(p)
+const targets0 = seed => JSON.parse(readFileSync(join(dirname(seed), 'targets.json'), 'utf8'))
 const page = findPage(course)
 const g = { ws, arm, task, page: page && page.slice(ws.length + 1) }
 if (!page) { console.log(JSON.stringify({ ...g, error: 'no course page' })); process.exit(0) }
@@ -37,7 +38,7 @@ try {
   data = loadPage(html).data
   const { problems, counts } = checkPage(html, syllabus, { repoDirs: trackedDirs(join(ws, 'ky')) })
   g.common = { ok: problems.length === 0, problems: problems.length, width: problems.filter(isWidth).length,
-    okIgnoringWidth: problems.filter(p => !isWidth(p)).length === 0, other: problems.filter(p => !isWidth(p)).slice(0, 20), counts }
+    widthLines: problems.filter(isWidth), okIgnoringWidth: problems.filter(p => !isWidth(p)).length === 0, other: problems.filter(p => !isWidth(p)).slice(0, 20), counts }
 } catch (e) { g.common = { ok: false, okIgnoringWidth: false, problems: 1, fatal: e.message } }
 
 const ownChecker = join(ws, 'skills/create-fun-lessons/scripts/check.mjs')
@@ -49,7 +50,8 @@ if (arm === 'new' && existsSync(join(course, 'course.json'))) {
   cpSync(course, tmp, { recursive: true })
   const b = run('node', [join(ws, 'skills/create-fun-lessons/scripts/lessons.mjs'), 'build', tmp])
   g.freshBuild = { ok: b.ok, matchesPage: b.ok && readFileSync(join(tmp, 'index.html'), 'utf8') === html,
-    sourceFillBroken: /exactly one ____/.test(b.out), sourceWidth: / columns; \d+ fit /.test(b.out) }
+    sourceFillBroken: /exactly one ____/.test(b.out),
+    sourceWidth: seedPage ? b.out.split('\n').some(l => / columns; \d+ fit /.test(l) && l.includes(`${targets0(seedPage).wideLesson}.md`)) : / columns; \d+ fit /.test(b.out) }
   rmSync(tmp, { recursive: true, force: true })
 }
 
@@ -62,6 +64,9 @@ if (data) {
   g.shape = { units: data.UNITS.length, lessons: lessons.length, cards: cards.length, types,
     glossary: data.GLOSSARY.length, syllabusRows: rows.length, skipped: rows.filter(r => /skip:/i.test(r)).length,
     cardsPerLesson: lessons.map(l => l.cards.length) }
+  const strings = v => typeof v === 'string' ? [v] : v && typeof v === 'object' ? Object.values(v).flatMap(strings) : []
+  g.garbledSpans = strings(data).filter(s => [...s.replace(/<pre[\s\S]*?<\/pre>/g, '').matchAll(/<code[^>]*>([\s\S]*?)<\/code>/g)]
+    .some(m => m[1].includes('`'))).length
 }
 
 if (task === 'revise' && data && seedPage) {
@@ -73,7 +78,8 @@ if (task === 'revise' && data && seedPage) {
   const added = nowIds.filter(id => !seedIds.includes(id))
   const inserted = u2.lessons[1]
   const brokenFill = data.UNITS.flatMap(u => u.lessons).flatMap(l => l.cards).filter(c => c.t === 'fill' && (c.code ?? '').split('____').length !== 2)
-  const wide = (g.common?.problems ?? 0) && (g.common.width ?? 0)
+  const widthLines = g.common?.widthLines ?? []
+  const wide = widthLines.filter(p => p.includes(`lesson ${targets0(seedPage).wideLesson} `)).length
   const byId = Object.fromEntries(seed.UNITS.flatMap(u => u.lessons).map(l => [l.id, l]))
   const targets = JSON.parse(readFileSync(join(dirname(seedPage), 'targets.json'), 'utf8'))
   const changed = data.UNITS.flatMap(u => u.lessons).filter(l => byId[l.id] && ![targets.fillLesson, targets.wideLesson].includes(l.id)
@@ -86,6 +92,7 @@ if (task === 'revise' && data && seedPage) {
     storageKeyKept: data.COURSE.storageKey === seed.COURSE.storageKey,
     fillFixed: brokenFill.length === 0 && !g.freshBuild?.sourceFillBroken,
     widthFixed: !wide && !g.freshBuild?.sourceWidth,
+    newWideLines: widthLines.length - wide,
     newLessonInSyllabus: added.length === 1 && new RegExp(`\\b${added[0]}\\b`).test(syllabus ?? ''),
     collateralLessons: changed,
     addedId: added[0] ?? null,
