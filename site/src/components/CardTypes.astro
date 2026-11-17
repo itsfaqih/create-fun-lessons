@@ -77,19 +77,19 @@ app.<span class="f">use</span>(<span class="f">auth</span>)
         <div class="cfl mini m-order">
           <div class="kicker">Put in order</div>
           <ol class="slots">
-            <li><span class="n">1</span>Router matches <code>/orders</code></li>
-            <li><span class="n">2</span><code>auth</code> checks the token</li>
+            <li><span class="n">1</span>Router matches <code>/orders</code><svg class="grip" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></li>
+            <li><span class="n">2</span><code>auth</code> checks the token<svg class="grip" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></li>
             <li class="empty"><span class="n">3</span></li>
           </ol>
           <div class="bank">
-            <span class="chip">INSERT runs</span>
-            <span class="chip">Body is validated</span>
+            <span class="chip">INSERT runs<svg class="grip" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></span>
+            <span class="chip">Body is validated<svg class="grip" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></span>
           </div>
         </div>
       </div>
       <div class="copy">
         <h3>Order</h3>
-        <p>Tap the steps of a flow into sequence: a request, a deploy, a migration.</p>
+        <p>Tap or drag the steps of a flow into sequence: a request, a deploy, a migration.</p>
       </div>
     </article>
 
@@ -187,6 +187,8 @@ app.<span class="f">use</span>(<span class="f">auth</span>)
   }
   #cards .slots li.empty { background: none; border: 1px dashed var(--input); }
   #cards .slots .n { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 5px; background: var(--background); border: 1px solid var(--border); font: 500 11px 'Geist Mono', monospace; color: var(--muted-foreground); }
+  #cards .slots .grip, #cards .chip .grip { width: 14px; height: 14px; margin-left: auto; color: var(--muted-foreground); }
+  #cards .chip .grip { margin-left: 10px; }
   #cards .bank { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 18px; }
   #cards .chip { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); box-shadow: 0 1px 2px rgb(0 0 0 / 5%); font-size: 14px; font-weight: 500; white-space: nowrap; }
 

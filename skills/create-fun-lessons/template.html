@@ -163,16 +163,75 @@ pre .blank{display:inline-block;min-width:70px;border-bottom:2px dashed #facc15;
 .opt.gone{opacity:.45;box-shadow:none}
 .opt.gone>span:last-child{text-decoration:line-through;text-decoration-color:var(--muted-foreground)}
 
-.slots{transition:background-color .2s,border-color .2s;min-height:64px;border:1px dashed var(--border);border-radius:var(--radius);padding:8px;display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
-.slots.is-empty::before{content:"Tap the items below in the right order";color:var(--muted-foreground);font-size:14px;padding:10px 6px}
+.slots{transition:background-color .2s,border-color .2s,padding-bottom .2s var(--arrive);min-height:64px;border:1px dashed var(--border);border-radius:var(--radius);padding:8px;display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.slots.is-empty::before{content:"Tap or drag the items below into order";color:var(--muted-foreground);font-size:14px;padding:10px 6px}
 .bank{display:flex;flex-direction:column;gap:8px}
-.chip{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;min-height:44px;font:500 14px "Geist Mono",monospace;cursor:pointer;text-align:left;display:flex;gap:10px;align-items:center;color:var(--foreground);box-shadow:0 1px 2px oklch(0 0 0 / 4%);transition:background-color .2s,scale .1s}
+.chip{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;min-height:44px;font:500 14px "Geist Mono",monospace;cursor:pointer;text-align:left;display:flex;gap:10px;align-items:center;color:var(--foreground);box-shadow:0 1px 2px oklch(0 0 0 / 4%);transition:background-color .2s,scale .1s,box-shadow .2s;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .chip:hover{background:var(--accent)}
 .chip:active{scale:.99}
 .chip .n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--primary);color:var(--primary-foreground);display:grid;place-items:center;font-size:11px;font-weight:600}
+.chip .tx{flex:1;min-width:0}
 .chip.used{visibility:hidden}
+/* Order chips drag: mouse from anywhere, touch from the grip (or a long press). */
+.chip .grip{flex:none;display:grid;place-items:center;width:28px;height:32px;margin:-6px -6px -6px 0;color:var(--muted-foreground);touch-action:none;cursor:grab}
+.chip .grip svg{width:14px;height:14px}
+.chip.dragging{position:relative;z-index:3;cursor:grabbing;scale:1.02;box-shadow:0 8px 24px oklch(0 0 0 / 16%),0 0 0 1px var(--ring);background:var(--card)}
+.sorting .chip:not(.dragging){transition:translate .2s var(--arrive),background-color .2s}
 .slots.right{border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
 .slots.wrong{border-style:solid;border-color:var(--bad);background:var(--bad-soft)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* Click & fill: blanks in a code line (always on the dark code surface) or a
+   sentence, and a wrapping bank of chips. */
+.chips{flex-direction:row;flex-wrap:wrap}
+.chips .chip{min-height:40px;padding:8px 12px}
+.chips .chip.used{visibility:visible;color:transparent;background:none;box-shadow:none;border-style:dashed;pointer-events:none}
+pre.cloze,.fb pre{white-space:pre-wrap;overflow-wrap:anywhere}
+.blank.slot{font:inherit;color:#facc15;background:none;border:0;border-bottom:2px dashed #facc15;border-radius:4px 4px 0 0;min-width:56px;min-height:1.5em;padding:0 6px;margin:0 1px;cursor:pointer;vertical-align:baseline;transition:background-color .2s,border-color .2s,color .2s}
+.blank.slot.next{background:rgba(250,204,21,.14)}
+.blank.slot.filled{color:var(--code-text);border-bottom-style:solid;border-bottom-color:#7f8aa3;background:rgba(255,255,255,.08)}
+.blank.slot.given{border-bottom-color:#facc15}
+.blank.slot.right{color:#86efac;border-bottom-color:#4ade80;background:rgba(74,222,128,.14)}
+.blank.slot.wrong{color:#fca5a5;border-bottom-color:#f87171;background:rgba(248,113,113,.16);text-decoration:line-through;text-decoration-thickness:1px}
+.blank.slot[disabled]{cursor:default}
+p.cloze{font-size:17px;line-height:2.1;margin:0 0 14px}
+p.cloze .blank.slot{color:var(--foreground);border-bottom-color:var(--muted-foreground);font-weight:500}
+p.cloze .blank.slot.next{background:var(--warn-soft);border-bottom-color:var(--warn)}
+p.cloze .blank.slot.filled{background:var(--muted);border-bottom-color:var(--foreground)}
+p.cloze .blank.slot.given{border-bottom-color:var(--warn)}
+p.cloze .blank.slot.right{color:var(--ok-text);background:var(--ok-soft);border-bottom-color:var(--ok)}
+p.cloze .blank.slot.wrong{color:var(--bad-text);background:var(--bad-soft);border-bottom-color:var(--bad)}
+pre .blank.fix{color:#86efac;border-bottom:2px solid #4ade80;padding:0 2px}
+.fb pre{margin:8px 0 0;font-size:13px}
+.fb .cloze{font-size:15px;line-height:1.6;margin:4px 0 0}
+.fb .cloze b{color:var(--ok-text)}
+
+/* Visuals: inline SVG drawn with these classes, so every diagram, chart and
+   illustration follows the theme. Patterns: references/visuals.md. */
+.viz{margin:4px 0 16px}
+.viz svg{display:block;width:100%;height:auto;max-width:var(--w,400px);margin:0 auto;overflow:visible}
+.viz figcaption{font-size:13px;font-weight:400;font-family:InterVariable,Inter,system-ui,sans-serif;letter-spacing:0;color:var(--muted-foreground);text-align:center;margin-top:6px}
+.viz text{fill:var(--foreground);font:500 12px InterVariable,Inter,system-ui,sans-serif}
+.viz text.sub{fill:var(--muted-foreground);font-weight:400;font-size:11px}
+.viz text.mono{font-family:"Geist Mono",ui-monospace,monospace;font-size:11px}
+.viz text.on{fill:#fff}
+.viz .box{fill:var(--card);stroke:var(--border);stroke-width:1}
+.viz .box.hi{fill:color-mix(in oklab,var(--uc,var(--primary)) 14%,var(--card));stroke:var(--uc,var(--primary));stroke-width:1.5}
+.viz .box.soft{fill:var(--muted);stroke:none}
+.viz .zone{fill:none;stroke:var(--muted-foreground);stroke-width:1;stroke-dasharray:4 4}
+.viz .edge{fill:none;stroke:var(--muted-foreground);stroke-width:1.5;marker-end:url(#viz-arrow)}
+.viz .edge.back{stroke-dasharray:5 4}
+.viz .edge.hi{stroke:var(--foreground);marker-end:url(#viz-arrow-hi)}
+.viz .life{stroke:var(--border);stroke-width:1.5;stroke-dasharray:3 4}
+.viz .axis{stroke:var(--muted-foreground);stroke-width:1}
+.viz .grid{stroke:var(--border);stroke-width:1}
+.viz .fill{fill:var(--uc,var(--primary))}
+.viz .fill.alt{fill:var(--muted-foreground);opacity:.55}
+.viz .series{fill:none;stroke:var(--uc,var(--primary));stroke-width:2.25;stroke-linejoin:round;stroke-linecap:round}
+.viz .area{fill:var(--uc,var(--primary));opacity:.14}
+.viz .dot{fill:var(--uc,var(--primary));stroke:var(--card);stroke-width:2}
+#viz-arrow path{fill:var(--muted-foreground)}
+#viz-arrow-hi path{fill:var(--foreground)}
 
 /* Answer fields. A code field stacks a transparent textarea/input over a
    highlighted <pre> mirror; both share font, padding and wrapping. */
@@ -262,6 +321,11 @@ pre .blank{display:inline-block;min-width:70px;border-bottom:2px dashed #facc15;
 </head>
 <body>
 <div id="app"></div>
+<!-- Arrowheads shared by every .viz diagram: marker-end:url(#viz-arrow), or #viz-arrow-hi for a highlighted edge. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="viz-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 9 5 0 9z"/></marker>
+  <marker id="viz-arrow-hi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 9 5 0 9z"/></marker>
+</defs></svg>
 
 <script>
 /* ===== COURSE CONTENT: replace everything from here to END COURSE CONTENT ===== */
@@ -277,10 +341,10 @@ const COURSE = {
 
 const UNITS = [
 {
-  id:'u1', title:'Using this template', blurb:'Every card type, once.',
+  id:'u1', title:'Using this template', blurb:'Every card type and visual, once.',
   color:'#1f9d6b', dark:'#157a52',
   lessons:[
-  { id:'u1l1', title:'Card types', recap:'learn teaches; mcq, fill and order check.', cards:[
+  { id:'u1l1', title:'Card types', recap:'learn teaches; mcq, fill, blanks and order check.', cards:[
     {t:'learn', h:'A learn card', body:`<p>Body is HTML. Use <code>code</code>, lists, and the helpers below.</p>
       <div class="flow"><div class="step">Step one<small>detail</small></div><div class="arrow">↓</div><div class="step">Step two</div></div>
       <div class="where">📄 <code>path/to/file.ts</code></div><div class="tip">A highlighted tip.</div>
@@ -288,16 +352,82 @@ const UNITS = [
       <pre><code class="language-shell">git commit -m "first" &amp;&amp; <span class="hl">git push --force-with-lease</span>  # shell</code></pre>`},
     {t:'mcq', q:'Which card asks a multiple-choice question?', o:['<code>learn</code>','<code>mcq</code>','<code>order</code>'], a:1, why:'<code>mcq</code> shows options; <code>a</code> is the index of the right one.'},
     {t:'fill', q:'Fill the blank.', code:`const answer = ____`, o:['42','"forty-two"'], a:0, hint:'The answer is a number, not a string.', why:'The blank is four underscores in <code>code</code>.'},
-    {t:'order', q:'Put these in order.', items:['First','Second','Third'], why:'Write <code>items</code> in the correct order; the page shuffles them.'},
+    {t:'blanks', q:'Keep only the even numbers.', code:`const evens = nums.____(n => n % 2 ____ 0)`, answers:['filter','==='], extra:['map','='], why:'<code>filter</code> keeps the items its test passes; <code>===</code> compares, where <code>=</code> would assign.'},
+    {t:'order', q:'Put these in order.', items:['First','Second','Third','Fourth'], why:'Write <code>items</code> in the correct order; the page shuffles them.'},
     {t:'type', q:'List every file, hidden ones included, in long format.', lang:'shell', accept:['ls -la','ls -al','/^ls -l -a$|^ls -a -l$/'], expect:'One command, flags in any order.', hint:['The command that lists files is <code>ls</code>.','Combine two flags: one for long format, one for all files.'], why:'<code>-l</code> is long format and <code>-a</code> includes dotfiles; flags combine in any order.'},
     {t:'write', q:'Write <code>double(n)</code>, which returns twice its argument.', lang:'code', starter:'function double(n) {\n  \n}', model:'function double(n) {\n  return n * 2\n}', rubric:['Returns a value with <code>return</code>','Multiplies <code>n</code> by 2 (or adds it to itself)'], hint:['A function hands back its result with one keyword.','<code>return n * 2</code> is one way; there are others.'], why:'A function hands its result back with <code>return</code>; without it the call yields <code>undefined</code>.'},
+  ]},
+  { id:'u1l2', title:'Visuals', recap:'Draw what is spatial, a flow, or numeric: diagrams, charts and illustrations.', cards:[
+    {t:'learn', h:'A flow diagram', body:`<p>Draw a branch as a diagram; a straight pipeline fits the <code>.flow</code> helper.</p>
+      <figure class="viz"><svg viewBox="0 0 320 248" role="img" aria-label="A request checks the cache. A hit returns the cached copy. A miss queries the database, saves the row to the cache, then returns it.">
+        <rect class="box" x="100" y="4" width="120" height="36" rx="8"/><text x="160" y="22" dy=".35em" text-anchor="middle">Request in</text>
+        <path class="edge" d="M160 40V62"/>
+        <path class="box hi" d="M160 64 216 92 160 120 104 92z"/><text x="160" y="92" dy=".35em" text-anchor="middle">In cache?</text>
+        <path class="edge" d="M104 92H60V140"/><text class="sub" x="80" y="84" text-anchor="middle">yes</text>
+        <path class="edge" d="M216 92H260V140"/><text class="sub" x="240" y="84" text-anchor="middle">no</text>
+        <rect class="box" x="4" y="142" width="112" height="36" rx="8"/><text x="60" y="160" dy=".35em" text-anchor="middle">Return cached</text>
+        <rect class="box" x="204" y="142" width="112" height="36" rx="8"/><text x="260" y="160" dy=".35em" text-anchor="middle">Query database</text>
+        <path class="edge" d="M260 178V204"/>
+        <rect class="box" x="204" y="206" width="112" height="36" rx="8"/><text x="260" y="224" dy=".35em" text-anchor="middle">Save to cache</text>
+        <path class="edge back" d="M204 224H60V180"/><text class="sub" x="132" y="216" text-anchor="middle">then return</text>
+      </svg><figcaption>A read-through cache: every miss fills it.</figcaption></figure>`},
+    {t:'learn', h:'A sequence diagram', body:`<p>One column per actor, time running down. Dashed arrows are replies.</p>
+      <figure class="viz"><svg viewBox="0 0 320 206" role="img" aria-label="The browser sends GET /orders/42 to the server. The server queries the database, gets one row back, and replies 200 with JSON.">
+        <rect class="box" x="8" y="4" width="84" height="28" rx="6"/><text x="50" y="18" dy=".35em" text-anchor="middle">Browser</text>
+        <rect class="box hi" x="118" y="4" width="84" height="28" rx="6"/><text x="160" y="18" dy=".35em" text-anchor="middle">Server</text>
+        <rect class="box" x="228" y="4" width="84" height="28" rx="6"/><text x="270" y="18" dy=".35em" text-anchor="middle">Database</text>
+        <path class="life" d="M50 32V202M160 32V202M270 32V202"/>
+        <path class="edge" d="M50 64H158"/><text class="mono" x="105" y="56" text-anchor="middle">GET /orders/42</text>
+        <path class="edge" d="M160 104H268"/><text class="mono" x="215" y="96" text-anchor="middle">SELECT … 42</text>
+        <path class="edge back" d="M270 144H162"/><text class="mono" x="215" y="136" text-anchor="middle">1 row</text>
+        <path class="edge back" d="M160 184H52"/><text class="mono" x="105" y="176" text-anchor="middle">200 + JSON</text>
+      </svg><figcaption>One request, from click to response.</figcaption></figure>`},
+    {t:'mcq', q:`Which part reads from Redis?
+      <figure class="viz"><svg viewBox="0 0 320 226" role="img" aria-label="The browser calls the router inside the api service. The router passes requests to the handlers. The handlers connect to Postgres and to Redis.">
+        <rect class="box" x="110" y="4" width="100" height="34" rx="8"/><text x="160" y="21" dy=".35em" text-anchor="middle">Browser</text>
+        <rect class="zone" x="16" y="56" width="288" height="96" rx="12"/><text class="sub" x="28" y="72">api service</text>
+        <path class="edge" d="M160 38V46H90V84"/>
+        <rect class="box" x="40" y="86" width="100" height="44" rx="8"/><text x="90" y="101" dy=".35em" text-anchor="middle">Router</text><text class="sub mono" x="90" y="117" dy=".35em" text-anchor="middle">routes.ts</text>
+        <path class="edge" d="M140 108H178"/>
+        <rect class="box" x="180" y="86" width="100" height="44" rx="8"/><text x="230" y="101" dy=".35em" text-anchor="middle">Handlers</text><text class="sub mono" x="230" y="117" dy=".35em" text-anchor="middle">orders.ts</text>
+        <path class="edge" d="M210 130V166H90V184"/><path class="edge" d="M250 130V184"/>
+        <rect class="box soft" x="40" y="186" width="100" height="34" rx="8"/><text x="90" y="203" dy=".35em" text-anchor="middle">Postgres</text>
+        <rect class="box soft" x="200" y="186" width="100" height="34" rx="8"/><text x="250" y="203" dy=".35em" text-anchor="middle">Redis</text>
+      </svg></figure>`, o:['Browser','Router','Handlers'], a:2, why:'Follow the arrows: only the handlers have an arrow into Redis. The router hands requests on and never touches storage.'},
+    {t:'learn', h:'A bar chart', body:`<p>Compare sizes with horizontal bars: the labels stay readable on a phone.</p>
+      <figure class="viz"><svg viewBox="0 0 320 140" role="img" aria-label="Bundle size by package: core 142 kB, ui 96 kB, cli 38 kB, docs 12 kB.">
+        <path class="axis" d="M76 4V136"/>
+        <text x="68" y="20" dy=".35em" text-anchor="end">core</text><rect class="fill" x="76" y="10" width="190" height="20" rx="3"/><text class="mono" x="272" y="20" dy=".35em">142 kB</text>
+        <text x="68" y="54" dy=".35em" text-anchor="end">ui</text><rect class="fill" x="76" y="44" width="128.5" height="20" rx="3"/><text class="mono" x="210.5" y="54" dy=".35em">96 kB</text>
+        <text x="68" y="88" dy=".35em" text-anchor="end">cli</text><rect class="fill alt" x="76" y="78" width="50.8" height="20" rx="3"/><text class="mono" x="132.8" y="88" dy=".35em">38 kB</text>
+        <text x="68" y="122" dy=".35em" text-anchor="end">docs</text><rect class="fill alt" x="76" y="112" width="16.1" height="20" rx="3"/><text class="mono" x="98.1" y="122" dy=".35em">12 kB</text>
+      </svg><figcaption>Bundle size by package. The two that ship to users are in colour.</figcaption></figure>`},
+    {t:'mcq', q:`Which release made p95 latency jump?
+      <figure class="viz"><svg viewBox="0 0 320 166" role="img" aria-label="p95 latency per release, in milliseconds: about 120 for v1 to v3, 240 at v4, 230 at v5, 130 at v6 and 115 at v7.">
+        <path class="grid" d="M36 12H308M36 54.7H308M36 97.3H308"/><path class="axis" d="M36 140H308"/>
+        <text class="sub" x="30" y="12" dy=".35em" text-anchor="end">300</text><text class="sub" x="30" y="54.7" dy=".35em" text-anchor="end">200</text><text class="sub" x="30" y="97.3" dy=".35em" text-anchor="end">100</text><text class="sub" x="30" y="140" dy=".35em" text-anchor="end">0</text>
+        <path class="area" d="M36 88.8L81.3 89.7 126.7 86.7 172 37.6 217.3 41.9 262.7 84.5 308 90.9V140H36z"/>
+        <path class="series" d="M36 88.8L81.3 89.7 126.7 86.7 172 37.6 217.3 41.9 262.7 84.5 308 90.9"/>
+        <text class="sub" x="36" y="156" text-anchor="middle">v1</text><text class="sub" x="81.3" y="156" text-anchor="middle">v2</text><text class="sub" x="126.7" y="156" text-anchor="middle">v3</text><text class="sub" x="172" y="156" text-anchor="middle">v4</text><text class="sub" x="217.3" y="156" text-anchor="middle">v5</text><text class="sub" x="262.7" y="156" text-anchor="middle">v6</text><text class="sub" x="308" y="156" text-anchor="middle">v7</text>
+      </svg><figcaption>p95 latency per release, ms</figcaption></figure>`, o:['v3','v4','v6'], a:1, why:'The line doubles between v3 and v4 and falls back at v6, so v4 brought the slowdown and v6 fixed it.'},
+    {t:'learn', h:'An illustration', body:`<p>Picture a concept that has a shape. <code>slice(start, end)</code> copies from <code>start</code> up to, but not including, <code>end</code>.</p>
+      <figure class="viz"><svg viewBox="0 0 320 132" role="img" aria-label="An array of five letters, a to e, with indexes 0 to 4. slice(1, 3) starts at index 1 and stops before index 3, giving b and c.">
+        <text class="mono" x="88" y="10" dy=".35em" text-anchor="middle">start = 1</text><path class="edge hi" d="M88 20V40"/>
+        <text class="mono" x="184" y="10" dy=".35em" text-anchor="middle">end = 3</text><path class="edge" d="M184 20V40"/>
+        <rect class="box" x="40" y="44" width="48" height="40"/><rect class="box hi" x="88" y="44" width="48" height="40"/><rect class="box hi" x="136" y="44" width="48" height="40"/><rect class="box" x="184" y="44" width="48" height="40"/><rect class="box" x="232" y="44" width="48" height="40"/>
+        <text class="mono" x="64" y="64" dy=".35em" text-anchor="middle">'a'</text><text class="mono" x="112" y="64" dy=".35em" text-anchor="middle">'b'</text><text class="mono" x="160" y="64" dy=".35em" text-anchor="middle">'c'</text><text class="mono" x="208" y="64" dy=".35em" text-anchor="middle">'d'</text><text class="mono" x="256" y="64" dy=".35em" text-anchor="middle">'e'</text>
+        <text class="sub" x="64" y="98" dy=".35em" text-anchor="middle">0</text><text class="sub" x="112" y="98" dy=".35em" text-anchor="middle">1</text><text class="sub" x="160" y="98" dy=".35em" text-anchor="middle">2</text><text class="sub" x="208" y="98" dy=".35em" text-anchor="middle">3</text><text class="sub" x="256" y="98" dy=".35em" text-anchor="middle">4</text>
+        <text class="mono" x="136" y="122" dy=".35em" text-anchor="middle">→ ['b', 'c']</text>
+      </svg><figcaption><code>letters.slice(1, 3)</code></figcaption></figure>`},
+    {t:'blanks', q:'Complete the rule.', lang:'text', code:'slice(start, end) copies from index ____ up to, but not including, index ____.', answers:['start','end'], extra:['0','length'], why:'The copy begins at <code>start</code> and stops just before <code>end</code>, so <code>slice(1, 3)</code> holds two items.'},
   ]},
   ]
 },
 ];
 
 const GLOSSARY = [
-  ['Card','One screen of a lesson: learn, mcq, fill, order, type or write.'],
+  ['Card','One screen of a lesson: learn, mcq, fill, blanks, order, type or write.'],
+  ['Visual','A diagram, chart or illustration drawn in inline SVG inside a card.'],
   ['Hint','Help on a quiz card. A right answer after a hint does not count as first try.'],
 ];
 /* ===== END COURSE CONTENT ===== */
@@ -344,6 +474,7 @@ const I={
   bulb:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2zM9 20h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/></svg>',
   back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
   undo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
+  grip:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   trophy:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3zm0 4H6v1a2 2 0 0 0 1 1.7zm10 0v2.7A2 2 0 0 0 18 8V7z"/></svg>',
   ok:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" opacity=".18"/><path d="M7 12.5 10.5 16 17 9"/></svg>',
@@ -480,7 +611,7 @@ function renderCard(){
   if(!c){ return finish(); }
   L.far=Math.max(L.far,L.pos); L.revisit=L.pos<L.far;
   saveLesson();
-  L.phase='answer'; L.sel=null; L.order=[]; L.redraw=null;
+  L.phase='answer'; L.sel=null; L.order=[]; L.fills=[]; L.given=new Set(); L.redraw=null;
   L.steps= c.t==='learn' ? [] : hintSteps(c); L.hinted=0;
   const u=L.lesson.unit;
   let body='';
@@ -491,7 +622,10 @@ function renderCard(){
     body=`${head}<div class="options" role="radiogroup">${c.o.map((o,i)=>`<button class="opt" role="radio" aria-checked="false" data-i="${i}"><span class="k">${i+1}</span><span>${c.t==='fill'?`<code>${esc(o)}</code>`:o}</span></button>`).join('')}</div>`;
   } else if(c.t==='order'){
     c._shuffled = c._shuffled || shuffle(c.items.map((x,i)=>i));
-    body=`<div class="kicker">Put in order</div><h3>${c.q}</h3><div class="slots is-empty" id="slots" aria-live="polite"></div><div class="bank" id="bank">${c._shuffled.map(i=>`<button class="chip" data-i="${i}">${esc(c.items[i])}</button>`).join('')}</div>`;
+    body=`<div class="kicker">Put in order</div><h3>${c.q}</h3><div class="slots is-empty" id="slots"></div><div class="bank" id="bank">${c._shuffled.map(i=>orderChip(c,i)).join('')}</div><p class="sr" id="ordhelp">Arrow keys move a placed item; Enter sends it back.</p><p class="sr" id="said" aria-live="polite"></p>`;
+  } else if(c.t==='blanks'){
+    c._bank = c._bank || shuffle(blankPool(c).map((_,i)=>i));
+    body=`<div class="kicker">${c._retry?'Try again':'Fill the blanks'}</div><h3>${c.q}</h3>${blanksMarkup(c)}<p class="expect">${blanksExpect(c)}</p><div class="bank chips" id="bank">${c._bank.map(i=>`<button class="chip" data-i="${i}">${esc(blankPool(c)[i])}</button>`).join('')}</div><p class="sr" id="said" aria-live="polite"></p>`;
   } else if(c.t==='type'){
     body=`<div class="kicker">${c._retry?'Try again':'Type the answer'}</div><h3>${c.q}</h3>${c.code?`<pre><code class="language-${c.lang||'code'}">${esc(c.code)}</code></pre>`:''}<p class="expect" id="expect">${expectText(c)}</p>${field(c)}`;
   } else if(c.t==='write'){
@@ -516,18 +650,8 @@ function renderCard(){
       if(c.t==='fill'){ const fc=document.getElementById('fillcode'); fc.innerHTML=fillCode(c,L.sel); delete fc.dataset.hl; highlight(fc.parentElement); }
     });
   }
-  if(c.t==='order'){
-    const slots=document.getElementById('slots'), bank=document.getElementById('bank');
-    const redraw=()=>{
-      slots.classList.toggle('is-empty',L.order.length===0);
-      slots.innerHTML=L.order.map((i,k)=>`<button class="chip" data-i="${i}"><span class="n">${k+1}</span>${esc(c.items[i])}</button>`).join('');
-      bank.querySelectorAll('.chip').forEach(b=>b.classList.toggle('used',L.order.includes(+b.dataset.i)));
-      cta.disabled=L.order.length!==c.items.length;
-      slots.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ if(L.phase!=='answer')return; L.order=L.order.filter(x=>x!==+b.dataset.i); redraw(); });
-    };
-    bank.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ if(L.phase!=='answer')return; const i=+b.dataset.i; if(!L.order.includes(i)){L.order.push(i); redraw();} });
-    L.redraw=redraw; redraw();
-  }
+  if(c.t==='order') wireOrder(c,cta);
+  if(c.t==='blanks') wireBlanks(c,cta);
   const hb=document.getElementById('hintbtn');
   if(hb) hb.onclick=()=>{ if(L.phase!=='answer'||L.hinted>=L.steps.length) return; useHint(c,L.steps[L.hinted++]);
     const left=L.steps.length-L.hinted, n=document.getElementById('hintleft');
@@ -540,9 +664,160 @@ function renderCard(){
   }
   cta.onclick=()=> L.phase==='answer' ? check(c) : L.phase==='review' ? grade(c,[...app.querySelectorAll('.rubric input')].every(x=>x.checked)) : next(c);
 }
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* FLIP: an element that moved glides from where it was to where it now sits. */
+function glide(el,from){
+  if(!from||reduced()||!el.animate) return;
+  const r=el.getBoundingClientRect(), dx=from.left-r.left, dy=from.top-r.top;
+  if(Math.abs(dx)+Math.abs(dy)>1) el.animate([{translate:`${dx}px ${dy}px`},{translate:'0 0'}],{duration:240,easing:'cubic-bezier(.25,.8,.25,1)'});
+}
+function say(text){ const s=document.getElementById('said'); if(s) s.textContent=text; }
+
+/* ---------- Order card ---------- */
+/* Tap a chip to place it, tap a placed chip to send it back. Drag reorders:
+   mouse or pen from anywhere on a chip, touch from its grip or after a long
+   press; the other chips move aside, and the dropped chip settles into its
+   slot. A focused placed chip moves with the arrow keys. */
+function orderChip(c,i,k){
+  const placed=k!==undefined;
+  return `<button class="chip" data-i="${i}" ${placed?`aria-label="Step ${k+1}: ${esc(c.items[i]).replace(/"/g,'&quot;')}" aria-describedby="ordhelp"`:''}>${placed?`<span class="n">${k+1}</span>`:''}<span class="tx">${esc(c.items[i])}</span><span class="grip" aria-hidden="true">${I.grip}</span></button>`;
+}
+function wireOrder(c,cta){
+  const slots=document.getElementById('slots'), bank=document.getElementById('bank'), panel=slots.parentElement;
+  const visible=()=>[...slots.children,...bank.querySelectorAll('.chip:not(.used)')];
+  const redraw=focus=>{
+    const before=new Map(visible().map(b=>[+b.dataset.i,b.getBoundingClientRect()]));
+    bank.querySelectorAll('.chip').forEach(b=>{ b.style.translate=''; b.classList.remove('dragging'); b.classList.toggle('used',L.order.includes(+b.dataset.i)); });
+    slots.classList.remove('sorting'); bank.classList.remove('sorting'); slots.style.paddingBottom='';
+    slots.classList.toggle('is-empty',L.order.length===0);
+    slots.innerHTML=L.order.map((i,k)=>orderChip(c,i,k)).join('');
+    cta.disabled=L.order.length!==c.items.length;
+    visible().forEach(b=>glide(b,before.get(+b.dataset.i)));
+    if(focus!==undefined) slots.querySelector(`[data-i="${focus}"]`)?.focus({preventScroll:true});
+  };
+  L.redraw=redraw; redraw();
+  panel.addEventListener('click',e=>{
+    const b=e.target.closest('.chip'); if(!b||L.phase!=='answer'||performance.now()-(L.dragEnd||0)<350) return;
+    const i=+b.dataset.i;
+    if(b.parentElement===slots){ L.order=L.order.filter(x=>x!==i); redraw(); }
+    else if(!L.order.includes(i)){ L.order.push(i); redraw(); }
+  });
+  slots.addEventListener('keydown',e=>{
+    const b=e.target.closest('.chip'), step={ArrowUp:-1,ArrowLeft:-1,ArrowDown:1,ArrowRight:1}[e.key];
+    if(!b||!step||L.phase!=='answer') return;
+    e.preventDefault();
+    const i=+b.dataset.i, k=L.order.indexOf(i), to=k+step;
+    if(to<0||to>=L.order.length) return;
+    L.order.splice(k,1); L.order.splice(to,0,i); redraw(i);
+    say(`Moved to step ${to+1} of ${L.order.length}.`);
+  });
+  let d=null;
+  const begin=()=>{
+    d.on=true; clearTimeout(d.timer);
+    try{ d.b.setPointerCapture(d.id); }catch(e){}
+    d.b.classList.add('dragging'); slots.classList.add('sorting'); bank.classList.add('sorting');
+    d.others=[...slots.children].filter(x=>x!==d.b).map(el=>{ const r=el.getBoundingClientRect(); return {el,mid:r.top+r.height/2}; });
+    d.pitch=d.b.offsetHeight+8; d.k0=d.from==='slots'?L.order.indexOf(d.i):-1;
+    navigator.vibrate?.(8);
+  };
+  const end=commit=>{
+    clearTimeout(d?.timer); const st=d; d=null;
+    if(!st?.on) return;
+    L.dragEnd=performance.now();
+    const order=L.order.filter(x=>x!==st.i);
+    if(commit&&st.k!=null) order.splice(st.k,0,st.i);
+    if(commit&&(st.k!=null||st.from==='slots')) L.order=order;
+    redraw();
+    if(commit&&st.k!=null) say(`Placed at step ${st.k+1} of ${L.order.length}.`);
+  };
+  panel.addEventListener('pointerdown',e=>{
+    const b=e.target.closest('.chip'); if(!b||L.phase!=='answer'||e.button>0||d) return;
+    d={b,i:+b.dataset.i,from:b.parentElement===slots?'slots':'bank',x:e.clientX,y:e.clientY,id:e.pointerId,grip:!!e.target.closest('.grip'),touch:e.pointerType==='touch',on:false,k:null};
+    if(d.touch&&!d.grip) d.timer=setTimeout(()=>d&&!d.on&&begin(),320);
+    if(d.grip) e.preventDefault();
+  });
+  panel.addEventListener('pointermove',e=>{
+    if(!d||e.pointerId!==d.id) return;
+    const dx=e.clientX-d.x, dy=e.clientY-d.y;
+    if(!d.on){
+      if(Math.hypot(dx,dy)<6) return;
+      if(d.touch&&!d.grip){ clearTimeout(d.timer); d=null; return; }   // a swipe scrolls the page
+      begin();
+    }
+    e.preventDefault();
+    d.b.style.translate=`${dx}px ${dy}px`;
+    const sr=slots.getBoundingClientRect(), y=e.clientY;
+    const inSlots= y>sr.top-d.pitch && y<sr.bottom+(d.from==='bank'?d.pitch:d.pitch/2);
+    d.k= inSlots ? d.others.filter(o=>o.mid<y).length : null;
+    d.others.forEach((o,j)=>{
+      const shift=(d.from==='slots'&&j>=d.k0?-d.pitch:0)+(d.k!=null&&j>=d.k?d.pitch:0);
+      o.el.style.translate=shift?`0 ${shift}px`:'';
+    });
+    slots.style.paddingBottom= d.from==='bank'&&d.k!=null ? `${8+d.pitch}px` : '';
+  });
+  panel.addEventListener('pointerup',e=>{ if(d&&e.pointerId===d.id) end(true); });
+  panel.addEventListener('pointercancel',e=>{ if(d&&e.pointerId===d.id) end(false); });
+  // Once a long press has picked a chip up, the finger drags it instead of scrolling the page.
+  panel.addEventListener('touchmove',e=>{ if(d?.on) e.preventDefault(); },{passive:false});
+}
+
+/* ---------- Click & fill card ---------- */
+/* Chips are the answers plus any spare `extra` ones. Tapping a chip puts it in
+   the next empty blank; tapping a filled blank sends its chip back. */
+const blankPool=c=>[...c.answers,...(c.extra||[])];
+const prose=c=>c.lang==='text';
+function blanksMarkup(c,fix){
+  const parts=esc(c.code).split('____');
+  const slot=k=> fix ? (prose(c)?`<b>${esc(c.answers[k])}</b>`:`<span class="blank fix">${esc(c.answers[k])}</span>`) : `<button class="blank slot" data-b="${k}"></button>`;
+  const inner=parts.map((p,k)=>p+(k<parts.length-1?slot(k):'')).join('');
+  return prose(c) ? `<p class="cloze" ${fix?'':'id="cloze"'}>${inner}</p>` : `<pre ${fix?'':'class="cloze" id="cloze"'}><code class="language-${c.lang||'code'}">${inner}</code></pre>`;
+}
+function blanksExpect(c){
+  const n=c.answers.length, spare=(c.extra||[]).length;
+  return `Fill all ${n} blanks; each chip fits one. ${spare?`${spare} chip${spare>1?'s are':' is'} spare.`:'Every chip is used.'} Tap a filled blank to send its chip back.`;
+}
+function wireBlanks(c,cta){
+  const pool=blankPool(c), n=c.answers.length, bank=document.getElementById('bank'), slots=[...document.querySelectorAll('#cloze .slot')];
+  L.fills=Array(n).fill(null);
+  const redraw=(moved,from)=>{
+    const next=L.fills.indexOf(null);
+    slots.forEach((s,k)=>{
+      const j=L.fills[k];
+      s.textContent= j===null ? '' : pool[j];
+      s.classList.toggle('filled',j!==null); s.classList.toggle('next',k===next); s.classList.toggle('given',L.given.has(k));
+      s.setAttribute('aria-label', j===null ? `Blank ${k+1}, empty` : `Blank ${k+1}: ${pool[j]}${L.given.has(k)?' (from a hint)':', tap to send back'}`);
+    });
+    bank.querySelectorAll('.chip').forEach(b=>b.classList.toggle('used',L.fills.includes(+b.dataset.i)));
+    cta.disabled=next!==-1;
+    if(moved) glide(moved,from);
+  };
+  L.redraw=redraw; redraw();
+  bank.addEventListener('click',e=>{
+    const b=e.target.closest('.chip'); if(!b||L.phase!=='answer') return;
+    const k=L.fills.indexOf(null); if(k<0) return;
+    const from=b.getBoundingClientRect(); L.fills[k]=+b.dataset.i; redraw(slots[k],from);
+    say(`${pool[+b.dataset.i]} in blank ${k+1}.`);
+  });
+  slots.forEach((s,k)=>s.onclick=()=>{
+    if(L.phase!=='answer'||L.fills[k]===null||L.given.has(k)) return;
+    const j=L.fills[k], from=s.getBoundingClientRect(); L.fills[k]=null;
+    redraw(bank.querySelector(`.chip[data-i="${j}"]`),from);
+    say(`${pool[j]} back in the bank.`);
+  });
+}
+/* A hint fills one blank with a right chip and locks it. */
+function giveBlank(c,k){
+  const pool=blankPool(c);
+  if(L.fills[k]!==null&&pool[L.fills[k]]===c.answers[k]){ L.given.add(k); return L.redraw(); }
+  const free=pool.map((t,j)=>j).filter(j=>pool[j]===c.answers[k]&&!L.fills.some((f,m)=>f===j&&L.given.has(m)));
+  const j=free.find(j=>!L.fills.includes(j))??free[0];
+  const m=L.fills.indexOf(j); if(m>=0) L.fills[m]=null;
+  L.fills[k]=j; L.given.add(k); L.redraw();
+}
+
 /* Hints: the card's own `hint` text first, then automatic help where the card
    type allows it: strike out wrong options (keeping one), place the next item
-   in order, or reveal how a typed answer starts. */
+   in order, fill the next blank, or reveal how a typed answer starts. */
 /* What a type answer must look like, shown before the learner answers. */
 function expectText(c){
   const what=c.expect||{shell:'One command.',code:'One line of code.'}[c.lang]||'A short answer.';
@@ -552,6 +827,7 @@ function hintSteps(c){
   const steps=[].concat(c.hint||[]).map(text=>({text}));
   if(c.t==='mcq'||c.t==='fill') shuffle(c.o.map((_,i)=>i).filter(i=>i!==c.a)).slice(1).forEach(i=>steps.push({drop:i}));
   if(c.t==='order') c.items.slice(0,-1).forEach((_,k)=>steps.push({place:k}));
+  if(c.t==='blanks') c.answers.slice(0,-1).forEach((_,k)=>steps.push({give:k}));
   if(c.t==='type'){ const a=c.accept[0], w=a.split(/\s+/); steps.push({text:`It starts with <code>${esc(w.length>1?w[0]:a.slice(0,Math.ceil(a.length/3)))}</code>…`}); }
   return steps;
 }
@@ -563,6 +839,7 @@ function useHint(c,h){
       if(c.t==='fill'){ const fc=document.getElementById('fillcode'); fc.innerHTML=fillCode(c,null); delete fc.dataset.hl; highlight(fc.parentElement); } }
   }
   if(h.place!==undefined){ L.order=c.items.map((_,i)=>i).slice(0,h.place+1); L.redraw(); }
+  if(h.give!==undefined) giveBlank(c,h.give);
   highlight(document.getElementById('hints')||app);
 }
 function fillCode(c,sel){
@@ -574,6 +851,7 @@ function check(c){
   if(c.t==='write') return review(c);
   let ok;
   if(c.t==='order') ok=L.order.every((v,k)=>v===k);
+  else if(c.t==='blanks'){ const pool=blankPool(c); ok=L.fills.every((j,k)=>pool[j]===c.answers[k]); }
   else if(c.t==='type') ok=accepts(c,document.getElementById('entry').value);
   else ok=L.sel===c.a;
   grade(c,ok);
@@ -595,8 +873,9 @@ function grade(c,ok){
   const key=c._i;
   if(L.revisit){}
   else if(ok){ if(!L.missed.has(key)&&!L.hinted) L.firstTry.add(key); }
-  else { L.missed.add(key); L.queue.push({...c,_retry:true,_shuffled:null}); }
+  else { L.missed.add(key); L.queue.push({...c,_retry:true,_shuffled:null,_bank:null}); }
   if(c.t==='order'){ document.getElementById('slots').classList.add(ok?'right':'wrong'); }
+  else if(c.t==='blanks'){ const pool=blankPool(c); app.querySelectorAll('#cloze .slot').forEach((s,k)=>{ s.disabled=true; s.classList.remove('next'); s.classList.add(pool[L.fills[k]]===c.answers[k]?'right':'wrong'); }); }
   else if(c.t==='type'||c.t==='write'){
     const en=document.getElementById('entry'); en.readOnly=true;
     document.getElementById('entrybox').classList.add(ok?'right':'wrong');
@@ -606,8 +885,9 @@ function grade(c,ok){
     app.querySelectorAll('.opt').forEach(b=>{ b.disabled=true; const i=+b.dataset.i; if(i===c.a && ok) b.classList.add('right'); if(i===L.sel && !ok) b.classList.add('wrong'); });
   }
   const footer=document.getElementById('footer'); footer.classList.add(ok?'ok':'no');
-  const answer = ok ? '' : c.t==='write' ? '<p>Compare your answer with the sample above.</p>' : c.t==='type' ? `<p><b>Answer:</b> <code>${esc(c.accept[0])}</code></p>` : (c.t==='order' ? `<p><b>Correct order:</b> ${c.items.map((x,i)=>`${i+1}. ${esc(x)}`).join(' → ')}</p>` : `<p><b>Answer:</b> ${c.t==='fill'?`<code>${esc(c.o[c.a])}</code>`:c.o[c.a]}</p>`);
+  const answer = ok ? '' : c.t==='write' ? '<p>Compare your answer with the sample above.</p>' : c.t==='type' ? `<p><b>Answer:</b> <code>${esc(c.accept[0])}</code></p>` : c.t==='blanks' ? `<p><b>Correct fill:</b></p>${blanksMarkup(c,true)}` : (c.t==='order' ? `<p><b>Correct order:</b> ${c.items.map((x,i)=>`${i+1}. ${esc(x)}`).join(' → ')}</p>` : `<p><b>Answer:</b> ${c.t==='fill'?`<code>${esc(c.o[c.a])}</code>`:c.o[c.a]}</p>`);
   document.getElementById('fb').innerHTML=`<strong>${ok?I.ok+(L.hinted?' Right, with a hint':' Nice!'):I.no+' Not quite'}</strong>${answer}<p>${c.why}</p>${L.revisit?'<p><i>A card you went back to: this answer does not change your score.</i></p>':ok?'':'<p><i>You will see this one again at the end.</i></p>'}`;
+  highlight(document.getElementById('fb'));
   const cta=document.getElementById('cta'); relabel(cta,ok?'Continue':'Got it'); cta.focus({preventScroll:true});
   saveLesson(L.pos+1);
 }
@@ -642,7 +922,7 @@ document.addEventListener('keydown',e=>{
   if(e.target.matches('textarea')) return;
   if(e.target.matches('input')){ if(e.key==='Enter'){ const c=document.getElementById('cta'); if(c&&!c.disabled){ e.preventDefault(); c.click(); } } return; }
   if(e.key>='1'&&e.key<='9'){ const b=app.querySelector(`.opt[data-i="${+e.key-1}"]`); if(b&&!b.disabled) b.click(); }
-  if(e.key==='Enter' && document.activeElement?.id!=='cta'){ const c=document.getElementById('cta'); if(c&&!c.disabled){ e.preventDefault(); c.click(); } }
+  if(e.key==='Enter' && document.activeElement?.id!=='cta' && !document.activeElement?.closest('.chip,.slot')){ const c=document.getElementById('cta'); if(c&&!c.disabled){ e.preventDefault(); c.click(); } }
 });
 renderHome();
 </script>
