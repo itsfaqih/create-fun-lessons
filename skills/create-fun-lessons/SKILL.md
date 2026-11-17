@@ -25,7 +25,7 @@ The course takes the learner from zero to contributor: by the last unit they can
    - cross-cutting concerns: configuration, errors, logging, testing, build, deploy
    - contributing, then a capstone that plans a real change
 
-   Unit count follows the syllabus. A lesson holds 3–6 cards, so a bigger area gets more lessons rather than longer ones. Assume the learner knows nothing unless told otherwise. Plan what each lesson asks the learner to do: recognise (`mcq`, `fill`, `order`), recall an exact command or expression (`type`), or produce code or an explanation (`write`). Write each lesson id into its rows' Lessons column. Done when every row lists lesson ids or a skip reason, every lesson has a title, a one-line recap, its sources, and its quiz card types, and every unit has a `write` card.
+   Unit count follows the syllabus. A lesson holds 3–6 cards, so a bigger area gets more lessons rather than longer ones. Assume the learner knows nothing unless told otherwise. Plan what each lesson asks the learner to do: recognise (`mcq`, `fill`, `blanks`, `order`), recall an exact command or expression (`type`), or produce code or an explanation (`write`). Write each lesson id into its rows' Lessons column. Done when every row lists lesson ids or a skip reason, every lesson has a title, a one-line recap, its sources, and its quiz card types, and every unit has a `write` card.
 4. **Write.** Copy `template.html` into the course folder. Fill `COURSE`, `UNITS`, and `GLOSSARY` using the schema below; the glossary holds every term the course introduces. Done when every outlined lesson is written.
 5. **Check.** Run `node <skill-dir>/scripts/check.mjs <page>` until it prints `OK`; for a codebase add `--repo <repo-dir>`, which fails on any tracked top-level directory missing from the syllabus. Then open the page in a browser at 400px wide and play one lesson that has a `type` or `write` card: use a hint, answer one card wrong, and finish the lesson. Reload and confirm the "Continue where you left off" card. Done when the checker prints `OK`, code shows in colour, every card fits without horizontal scroll, and the click-through finishes.
 6. **Deliver** the page path as a plain markdown link, so it stays clickable, and report the syllabus's skipped rows with their reasons. When the learner will use a phone, also serve the course folder: sandboxed viewers, such as an in-app phone preview, block browser storage. Run `python3 -m http.server <port> --bind 0.0.0.0 --directory <course-dir>` detached, put a URL the phone can reach (LAN or Tailscale IP) in `COURSE.homeUrl`, and give that URL. The page's storage warning then links to the served copy, where progress saves.
@@ -55,6 +55,7 @@ const GLOSSARY = [['Term', 'One-line meaning'], ...]
 | `learn` | `h`, `body` | `body` is HTML; helpers below |
 | `mcq` | `q`, `o[]`, `a`, `why`, `hint?` | `a` is the index of the right option; `q`, `o`, `why` are HTML |
 | `fill` | `q`, `code`, `o[]`, `a`, `why`, `lang?`, `hint?` | `code` is plain text with exactly one `____`; options are plain text |
+| `blanks` | `q`, `code`, `answers[]`, `why`, `extra[]?`, `lang?`, `hint?` | click and fill: 2+ blanks, a bank of chips; see below |
 | `order` | `q`, `items[]`, `why`, `hint?` | `items` in the correct order, as plain text; the page shuffles them |
 | `type` | `q`, `accept[]`, `why`, `expect?`, `code?`, `lang?`, `hint?` | one-line answer, checked automatically |
 | `write` | `q`, `model`, `rubric[]`, `why`, `hint`, `starter?`, `lang?` | open answer (code, a script, an essay), self-graded |
@@ -67,12 +68,15 @@ In HTML fields, write a literal `<` as `&lt;`.
 - `<div class="where">📄 <code>path</code></div>`, for a source file
 - `<div class="tip">`
 - `<pre><code class="language-…">`, with `<span class="hl">` around the line that matters
+- `<figure class="viz">`, an inline SVG diagram, chart, or illustration (see **Picture** below)
 
 **`type`.** The answer passes when, with whitespace trimmed and collapsed (and a leading `$` dropped for `shell`), it equals any literal in `accept` or matches any entry written as `/regex/flags`. `accept[0]` is a literal, shown as the answer on a miss. List every real variant: reordered flags, `--long` forms, optional quotes. Anchor regexes with `^…$`. `code` is optional plain-text context above the field. Above the field the page states the acceptance criteria: the expected form, then the matching rule ("One command. Spacing and a leading `$` are ignored; capitals count."). `expect` (HTML) replaces the expected form; name every variant `accept` allows ("One command, flags in any order.").
 
+**`blanks`.** A line of code or a sentence with several blanks; tapping a chip from the bank puts it in the next empty blank, and tapping a filled blank sends its chip back. `code` is plain text with one `____` per blank, 2 or more; `answers` lists the chip for each blank in order, and `extra` adds spare chips, as plausible as the wrong options of an `mcq`. A blank passes when its chip's text equals its answer, so repeated chip texts are interchangeable. `lang` colours the code; `lang: 'text'` sets a sentence in prose. Above the bank the page states the acceptance criteria: how many blanks, and how many chips are spare. Feedback marks each blank right or wrong and, on a miss, shows the correct fill.
+
 **`write`.** For work too open to match by text. The `rubric` is the acceptance criteria, listed under "Your answer should" before the learner writes. After Check the learner sees `model` (plain text, the sample answer) and ticks each criterion their answer meets: all ticked counts as right, anything less sends the card to the retry queue. Write 2–4 criteria (HTML), each a yes-or-no requirement observable in the answer ("Calls `await` on the fetch"). `starter` prefills the field, such as a function signature.
 
-**Hints.** Every quiz card has a Hint button. Each tap reveals the next step: the card's own `hint` first (a string, or an array revealed one at a time), then automatic help: `mcq` and `fill` strike out wrong options until one remains, `order` places the next item, `type` reveals how the answer starts. A right answer after a hint passes without the first-try bonus. Order hints from gentle to specific, each narrowing the search: the concept, then the file, then the part to change. The checker names the cards that need an authored `hint`.
+**Hints.** Every quiz card has a Hint button. Each tap reveals the next step: the card's own `hint` first (a string, or an array revealed one at a time), then automatic help: `mcq` and `fill` strike out wrong options until one remains, `order` places the next item, `blanks` fills the next blank with its right chip, `type` reveals how the answer starts. A right answer after a hint passes without the first-try bonus. Order hints from gentle to specific, each narrowing the search: the concept, then the file, then the part to change. The checker names the cards that need an authored `hint`.
 
 **Syntax highlighting.** highlight.js colours every code sample, command, and code answer field, live as the learner types. A `lang` is one of:
 - `text`: prose, uncoloured (the default for `type` and `write`)
@@ -85,6 +89,7 @@ Set `COURSE.lang` to the course's main language, or `'text'` for a course withou
 ## Writing the cards
 
 - **Bite.** One idea per card. A learn card fits on a phone screen without scrolling past the code sample.
+- **Picture** every concept that is spatial, a flow, or numeric: a diagram, chart, or illustration in a `learn` card, or in a quiz `q` that asks the learner to read it. Draw it from the patterns in [`references/visuals.md`](references/visuals.md).
 - Quiz each new concept within one or two cards of teaching it.
 - **Recall over recognition.** After an `mcq` introduces a command, ask for it again as a `type` card. Close each unit on a `write` card that produces something real: a function, a script, a config block, or a few sentences explaining a design choice.
 - Make wrong options plausible: a real neighbouring file, a real but wrong function. `why` says why the right answer is right, in one or two sentences.

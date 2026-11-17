@@ -46,6 +46,14 @@ const checkLang = (where, l) => {
 if (typeof COURSE?.lang !== 'string' || !COURSE.lang.trim()) err('COURSE', "missing lang: the highlight.js language for code (e.g. 'typescript'), or 'text' for a course without code")
 else if (COURSE.lang !== 'text' && !loaded(COURSE.lang)) err('COURSE', `lang "${COURSE.lang}" is not a highlight.js language this page loads`)
 const str = v => typeof v === 'string' && v.trim().length > 0
+// Visuals are inline SVG that scale to a phone and carry a text alternative.
+const checkSvg = (where, html) => {
+  for (const [tag] of String(html ?? '').matchAll(/<svg\b[^>]*>/g)) {
+    if (!/\sviewBox="\s*-?[\d.]+(?:[\s,]+-?[\d.]+){3}\s*"/.test(tag)) err(where, 'an <svg> needs a viewBox so it scales to the card (see references/visuals.md)')
+    if (!/\srole="img"/.test(tag) || !/\saria-label="[^"]+"/.test(tag)) err(where, 'an <svg> needs role="img" and an aria-label describing what it shows')
+    if (/\swidth="\d/.test(tag)) err(where, 'an <svg> takes its width from the card; drop the width attribute')
+  }
+}
 let lessonCount = 0, cardCount = 0
 const lessonIds = new Set()
 
@@ -67,6 +75,8 @@ for (const [ui, u] of (UNITS ?? []).entries()) {
       cardCount++
       const cw = `${lw} card ${ci + 1} (${c.t})`
       if (c.t !== 'learn' && !str(c.why)) err(cw, 'missing why')
+      for (const k of ['body', 'q', 'why']) checkSvg(cw, c[k])
+      if (Array.isArray(c.o)) c.o.forEach(o => checkSvg(cw, o))
       if (c.hint !== undefined && !(str(c.hint) || (Array.isArray(c.hint) && c.hint.length && c.hint.every(str)))) err(cw, 'hint must be a string or an array of strings')
       // Every quiz card offers a hint; these have no automatic one to fall back on.
       if (!c.hint && (c.t === 'write' || ((c.t === 'mcq' || c.t === 'fill') && c.o?.length < 3))) err(cw, 'needs a hint (no automatic hint for this card)')
@@ -82,6 +92,17 @@ for (const [ui, u] of (UNITS ?? []).entries()) {
           if (c.t === 'fill' && (c.code ?? '').split('____').length !== 2) err(cw, 'code must contain exactly one ____')
           if (c.t === 'fill') checkLang(cw, c.lang)
           break
+        case 'blanks': {
+          if (!str(c.q)) err(cw, 'missing q')
+          if (!str(c.code)) { err(cw, 'missing code (the line or sentence, with ____ for each blank)'); break }
+          const blanks = c.code.split('____').length - 1
+          if (blanks < 2) err(cw, `code has ${blanks} blank(s); a blanks card needs 2+ (use fill for one)`)
+          if (!Array.isArray(c.answers) || !c.answers.every(str)) { err(cw, 'answers must be an array of chip texts, one per blank in order'); break }
+          if (c.answers.length !== blanks) err(cw, `code has ${blanks} blank(s) but answers has ${c.answers.length}; give one answer per ____, in order`)
+          if (c.extra !== undefined && !(Array.isArray(c.extra) && c.extra.every(str))) err(cw, 'extra must be an array of spare chip texts')
+          checkLang(cw, c.lang)
+          break
+        }
         case 'order':
           if (!str(c.q)) err(cw, 'missing q')
           if (!Array.isArray(c.items) || c.items.length < 3) err(cw, 'items needs 3+ entries, in correct order')
