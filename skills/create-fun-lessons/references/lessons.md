@@ -129,7 +129,28 @@ The fence's language sets the card's `lang`. Alternatively give `lang: shell` as
 
 ### Code width
 
-A phone fits 41 columns of code in a code box, and 36 in the `write` answer editor (`starter`). A longer line scrolls sideways, so build rejects it and names it; break it over lines. A line with no space after its indentation, such as a long URL, is allowed. A `____` blank counts as the width of its longest chip.
+A phone fits 41 columns of code in a code box, and 36 in the `write` answer editor (`starter`). A longer line scrolls sideways, so build rejects it. A line judged by eye is usually a few columns longer than it looks, so write each line well under the limit and shape the code as you write it:
+
+- Put one statement on a line, and an `if` body on the line below its `if`.
+- Put a comment on its own line above the code, never after it.
+- Break a call or object literal that holds more than a short item or two: one argument or key per line, indented two spaces.
+- Break a chain before each `.method()`.
+- Break a long string or template literal into a variable on the line above.
+- A line with no space, such as a long URL or call chain, counts too: break it after a `(` or before a `.`, or shorten it. A URL can go in the text instead, which wraps.
+- In `fill` and `blanks`, a `____` counts as wide as the longest chip, wrong options and spare chips included. Keep chips short, or give the blank a line of its own.
+
+`const data = await api.post(url, {json: body}).json()` is 53 columns, so write it as:
+
+````md
+code:
+```ts
+const data = await api
+  .post(url, {json: body})
+  .json()
+```
+````
+
+A `code:` value broken over lines goes in a fence, as above.
 
 ## Card types
 

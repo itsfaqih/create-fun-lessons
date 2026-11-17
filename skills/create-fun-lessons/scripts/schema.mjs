@@ -200,10 +200,14 @@ function checkWidth(text, surface, blankCols, err) {
     if (blankCols) shown = shown.split('____').join('x'.repeat(blankCols))
     shown = shown.replace(/[^\t]*\t/g, s => s.slice(0, -1).padEnd(Math.ceil(s.length / 8) * 8))
     const width = [...shown].length
-    const plain = line.replaceAll(HL, '')
-    if (width <= cols || !/\s/.test(plain.trim())) continue
-    const start = plain.trim().length > 28 ? `${plain.trim().slice(0, 28)}…` : plain.trim()
-    err(`code line "${start}" is ${width} columns; ${cols} fit ${surface === 'editor' ? 'the answer editor' : 'a code box'} on a phone without sideways scrolling, so break it over lines`, plain)
+    if (width <= cols) continue
+    const plain = line.replaceAll(HL, ''), trimmed = plain.trim()
+    const start = trimmed.length > 28 ? `${trimmed.slice(0, 28)}…` : trimmed
+    const blank = blankCols && line.includes('____') ? `, counting each ____ as ${blankCols}, the width of its longest chip` : ''
+    const fix = blank ? 'so shorten the longest chip or break the line'
+      : /\s/.test(trimmed) ? 'so break it over lines'
+      : 'and it has no space, so break it after a "(" or before a ".", or shorten it; a long URL reads fine in the text, which wraps'
+    err(`code line "${start}" is ${width} columns${blank}; ${cols} fit ${surface === 'editor' ? 'the answer editor' : 'a code box'} on a phone without sideways scrolling, ${fix}`, plain)
   }
 }
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }

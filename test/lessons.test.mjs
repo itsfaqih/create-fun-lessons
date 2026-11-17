@@ -115,6 +115,16 @@ const broken = [
     edit(f, "const x = «highlighted»('text', 42)", "const x = «highlighted»('text', 42)\nconst total = items.reduce((sum, item) => sum + item.price, 0)")
     return [f, lineOf(f, 'const total'), /learn card 1: code line "const total = items\.reduce\(\(…" is 62 columns; 41 fit a code box/]
   }],
+  ['a code line with no space that is too wide for a phone', dir => {
+    const f = join(dir, 'lessons/u1.md')
+    edit(f, "const x = «highlighted»('text', 42)", "const x = «highlighted»('text', 42)\n  validateAndMerge(cloneDeep(defaultOptions))")
+    return [f, lineOf(f, 'validateAndMerge'), /learn card 1: code line "validateAndMerge\(cloneDeep\(d…" is 45 columns; 41 fit a code box on a phone without sideways scrolling, and it has no space/]
+  }],
+  ['a fill line that a long option makes too wide', dir => {
+    const f = join(dir, 'lessons/u1.md')
+    edit(f, '- [ ] "forty-two"', '- [ ] "forty-two, spelled out in full words"')
+    return [f, lineOf(f, 'code: const answer = ____'), /fill card 3: code line "const answer = ____" is 55 columns, counting each ____ as 40, the width of its longest chip; 41 fit a code box on a phone without sideways scrolling, so shorten the longest chip/]
+  }],
   ['a «…» highlight that never closes', dir => {
     const f = join(dir, 'lessons/u1.md')
     edit(f, "const x = «highlighted»('text', 42)", "const x = «highlighted('text', 42)")
