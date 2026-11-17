@@ -125,6 +125,11 @@ const broken = [
     edit(f, '- [ ] "forty-two"', '- [ ] "forty-two, spelled out in full words"')
     return [f, lineOf(f, 'code: const answer = ____'), /fill card 3: code line "const answer = ____" is 55 columns, counting each ____ as 40, the width of its longest chip; 41 fit a code box on a phone without sideways scrolling, so shorten the longest chip/]
   }],
+  ['an entity written in a TypeScript fence', dir => {
+    const f = join(dir, 'lessons/u1.md')
+    edit(f, '## mcq', '## learn: Generics\n```ts\nconst a = ky(u).json&lt;User&gt;()\n```\n\n## mcq')
+    return [f, lineOf(f, 'json&lt;User'), /learner sees "&lt;" as written: a ``` fence shows code exactly as typed/]
+  }],
   ['a «…» highlight that never closes', dir => {
     const f = join(dir, 'lessons/u1.md')
     edit(f, "const x = «highlighted»('text', 42)", "const x = «highlighted('text', 42)")
@@ -232,6 +237,15 @@ test('check with ids validates only those lessons and units', () => {
   assert.match(unit.out, /u1\.md/)
   assert.doesNotMatch(unit.out, /stray/)
   assert.equal(existsSync(join(dir, 'index.html')), false)
+})
+
+test('covers on one line matches an Area whose name holds a comma', () => {
+  const { root, dir } = freshCourse()
+  edit(join(dir, 'syllabus.md'), '| Card types |', '| Card types, hints |')
+  edit(join(dir, 'lessons/u1.md'), 'covers: Card types', 'covers: Card types, hints')
+  const r = lessons(root, 'build', 'course')
+  assert.equal(r.code, 0, r.out)
+  assert.match(read(dir, 'syllabus.md'), /\| Card types, hints \|[^\n]*\| u1l1/)
 })
 
 test('build writes each Lessons cell from covers and keeps skip rows', () => {

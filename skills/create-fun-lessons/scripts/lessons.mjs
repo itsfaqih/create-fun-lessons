@@ -27,6 +27,8 @@ const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&g
 const unesc = s => s.replace(/&(amp|lt|gt);/g, (_, e) => ({ amp: '&', lt: '<', gt: '>' }[e]))
 // A «…» highlight that runs over line breaks becomes one span per line, with
 // the line breaks and indentation between them left outside.
+// A fence in one of these languages, or with no language, may show an entity on purpose.
+const MARKUP = /^(html|xml|svg|xhtml|markup|vue|svelte|jsx|tsx|md|markdown|text|plaintext)?$/i
 const mark = s => s.replace(/«([^«»]*)»/g, (_, h) => h.split(/(\s*\n\s*)/)
   .map((p, i, all) => i % 2 || (!p && all.length > 1) ? p : `<span class="hl">${p}</span>`).join(''))
 
@@ -74,6 +76,10 @@ function renderHtml(blocks, err) {
     if (!b.fence) { text.push(b); continue }
     flush()
     const body = b.content.join('\n')
+    if (b.info !== 'raw' && !MARKUP.test(b.info)) b.content.forEach((l, k) => {
+      const e = /&(lt|gt|amp|quot|apos|#\d+|#x[\da-f]+);/i.exec(l)
+      if (e) err(b.line + 1 + k, `the learner sees "${e[0]}" as written: a \`\`\` fence shows code exactly as typed, so write the character itself`)
+    })
     put(b.indent + (b.info === 'raw' ? body : `<pre><code${b.info ? ` class="language-${b.info}"` : ''}>${mark(esc(body))}</code></pre>`), k => b.line + 1 + k)
   }
   flush()

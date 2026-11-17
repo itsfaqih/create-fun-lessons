@@ -280,7 +280,7 @@ export function checkSyllabus(text, lessonIds) {
 // Returns the lesson ids for each row, in the order the lessons are given.
 export function checkCovers(rows, lessons, { full = true } = {}) {
   const problems = []
-  const key = s => s.trim().toLowerCase()
+  const key = s => s.trim().toLowerCase().replace(/\s*,\s*/g, ', ')
   const byArea = new Map()
   for (const r of rows) {
     if (byArea.has(key(r.area))) problems.push({ syllabus: r, msg: `Area "${r.area}" is also row ${byArea.get(key(r.area)).n}; give each row its own Area name` })
@@ -289,7 +289,14 @@ export function checkCovers(rows, lessons, { full = true } = {}) {
   const ids = new Map(rows.map(r => [r, []]))
   for (const l of lessons) {
     if (!l.covers?.length) problems.push({ lesson: l.id, field: 'covers', msg: 'covers names no syllabus Area; add covers: <Area>, <Area>' })
-    for (const name of l.covers ?? []) {
+    const names = l.covers ?? []
+    for (let i = 0; i < names.length; i++) {
+      let name = names[i]
+      // `covers: Build, lint and CI` splits at its comma; rejoin pieces that name one Area.
+      for (let j = i + 1; !byArea.has(key(name)) && j < names.length; j++) {
+        const joined = names.slice(i, j + 1).join(', ')
+        if (byArea.has(key(joined))) { name = joined; i = j }
+      }
       const r = byArea.get(key(name))
       if (!r) problems.push({ lesson: l.id, field: 'covers', msg: `covers "${name}" matches no syllabus Area; the closest is "${closest(name, rows.map(r => r.area))}"` })
       else if (r.skip) problems.push({ lesson: l.id, field: 'covers', msg: `covers "${name}", a skip row of syllabus.md (${r.lessons}); teach it, or drop it from covers` })
