@@ -13,10 +13,8 @@ const USAGE = `usage:
   node lessons.mjs check <dir> [<lesson-or-unit-id> ...] [--repo <repo-dir>]
   node lessons.mjs build <dir> [--repo <repo-dir>]`
 
-// The header of a lesson file, before its first card.
 const LESSON_FIELDS = { recap: { kind: 'html' }, covers: { kind: 'names' }, terms: { kind: 'terms' } }
 
-/* ---------- Lesson file -> data ---------- */
 
 const FENCE_OPEN = /^([ \t]*)(`{3,})([^`\s]*)[ \t]*$/
 const FENCE_CLOSE = /^[ \t]*(`{3,})[ \t]*$/
@@ -158,12 +156,10 @@ function parseFields(blocks, spec, what, fileErr) {
     if (f.kind === 'lang') { values.lang = rest || undefined; if (rest) langs.unshift({ lang: rest, line: b.line, from: 'lang:' }); else err(b.line, 'lang: needs a value'); stray(own); continue }
     if (items || f.list === 'list' || f.list === 'choices' || f.kind === 'terms' || (f.kind === 'names' && rest === '')) {
       if (rest !== '' && f.kind !== 'names') { err(b.line, `${key} takes a list: "${key}:" then one "- " line per item`); continue }
-      const start = own.findIndex(x => !blank(x))
-      let end = start
-      while (end >= 0 && end < own.length && (listItem(own[end]) || (blank(own[end]) && own.slice(end).some(x => !blank(x)) && listItem(own.slice(end).find(x => !blank(x)))))) end++
-      const list = start < 0 ? [] : own.slice(start, end).filter(listItem)
-      stray(start < 0 ? [] : own.slice(end))
-      if (start >= 0 && !list.length) { err(own[start].line, `${key} takes a list: one "- " line per item`); continue }
+      let end = 0
+      while (end < own.length && (listItem(own[end]) || blank(own[end]))) end++
+      const list = own.slice(0, end).filter(listItem)
+      stray(own.slice(end))
       values[key] = listValue(key, f, list.map(x => ({ text: x.text.slice(2), line: x.line })), values, err)
       continue
     }
@@ -212,7 +208,6 @@ function listValue(key, f, items, values, err) {
   return out
 }
 
-/* ---------- Data -> lesson file (init) ---------- */
 
 // Each value is written in the most readable form that parses back to it
 // exactly: backticks and fences, then the HTML as it is, then a ```raw fence.
@@ -332,7 +327,6 @@ export function serializeLesson(lesson, covers, terms) {
   }
 }
 
-/* ---------- Course folder ---------- */
 
 const rel = p => relative(process.cwd(), p) || '.'
 
@@ -366,7 +360,6 @@ function readLessons(dir, ids) {
   return out
 }
 
-// Structured problems from schema.mjs, pointed at the source file and line.
 function locate(p, { course, lessons, unitsData, sylFile }) {
   if (p.syllabus) return `${rel(sylFile)}${p.syllabus.line ? `:${p.syllabus.line}` : ''}: ${p.msg}`
   if (p.lesson !== undefined && lessons.has(p.lesson)) {
@@ -479,7 +472,6 @@ function build(dir, { repo, write }) {
   return { problems: [], counts: page.counts }
 }
 
-/* ---------- init ---------- */
 
 const SAMPLE_SYLLABUS = `| Area | Sources | Lessons |
 |---|---|---|
@@ -533,7 +525,6 @@ function init(dir, from) {
   return { lessons: files.length, syllabus: !from || existsSync(sylPath) }
 }
 
-/* ---------- CLI ---------- */
 
 function main(argv) {
   const args = [...argv]
