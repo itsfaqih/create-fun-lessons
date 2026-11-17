@@ -50,7 +50,7 @@ g.own = { ok: own.ok, tail: own.out.trim().split('\n').slice(0, 6) }
 if (arm === 'new' && existsSync(join(course, 'course.json'))) {
   const tmp = mkdtempSync(join(tmpdir(), 'kyc-'))
   cpSync(course, tmp, { recursive: true })
-  const b = run('node', [join(ws, 'skills/create-fun-lessons/scripts/lessons.mjs'), 'build', tmp])
+  const b = run('node', [join(ws, 'skills/create-fun-lessons/scripts/lessons.mjs'), 'build', tmp, '--repo', join(ws, 'ky')])
   g.freshBuild = { ok: b.ok, matchesPage: b.ok && readFileSync(join(tmp, 'index.html'), 'utf8') === html,
     sourceFillBroken: /exactly one ____/.test(b.out),
     sourceWidth: seedPage ? b.out.split('\n').some(l => / columns; \d+ fit /.test(l) && l.includes(`${targets0(seedPage).wideLesson}.md`)) : / columns; \d+ fit /.test(b.out) }
