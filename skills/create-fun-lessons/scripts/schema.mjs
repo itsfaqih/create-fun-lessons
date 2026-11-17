@@ -157,6 +157,10 @@ function validateCard(c, err, languages) {
       if (f.kind === 'html') {
         checkSvg(item, msg => err(msg, name))
         for (const m of item.matchAll(/<pre><code(?: class="language-([^"]+)")?/g)) checkLang(m[1], name)
+        for (const m of item.matchAll(/<pre\b[^>]*>([\s\S]*?)<\/pre>/g))
+          checkWidth(decode(m[1].replace(/<span class="hl">/g, HL).replace(/<[^>]*>/g, '')), 'pre', 0, (msg, find) => err(msg, name, find))
+      } else if (f.shows?.(c)) {
+        checkWidth(item, f.shows(c), blankColumns(c, name), (msg, find) => err(msg, name, find))
       }
     }
   }

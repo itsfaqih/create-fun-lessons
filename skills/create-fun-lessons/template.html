@@ -348,11 +348,12 @@ const UNITS = [
     {t:'learn', h:'A learn card', body:`<p>Body is HTML. Use <code>code</code>, lists, and the helpers below.</p>
       <div class="flow"><div class="step">Step one<small>detail</small></div><div class="arrow">↓</div><div class="step">Step two</div></div>
       <div class="where">📄 <code>path/to/file.ts</code></div><div class="tip">A highlighted tip.</div>
-      <pre><code>const x = <span class="hl">highlighted</span>('text', 42) // comment</code></pre>
-      <pre><code class="language-shell">git commit -m "first" &amp;&amp; <span class="hl">git push --force-with-lease</span>  # shell</code></pre>`},
+      <pre><code>const x = <span class="hl">highlighted</span>('text', 42)</code></pre>
+      <pre><code class="language-shell">git commit -m "first" \\
+  &amp;&amp; <span class="hl">git push --force-with-lease</span></code></pre>`},
     {t:'mcq', q:'Which card asks a multiple-choice question?', o:['<code>learn</code>','<code>mcq</code>','<code>order</code>'], a:1, why:'<code>mcq</code> shows options; <code>a</code> is the index of the right one.'},
     {t:'fill', q:'Fill the blank.', code:`const answer = ____`, o:['42','"forty-two"'], a:0, hint:'The answer is a number, not a string.', why:'The blank is four underscores in <code>code</code>.'},
-    {t:'blanks', q:'Keep only the even numbers.', code:`const evens = nums.____(n => n % 2 ____ 0)`, answers:['filter','==='], extra:['map','='], why:'<code>filter</code> keeps the items its test passes; <code>===</code> compares, where <code>=</code> would assign.'},
+    {t:'blanks', q:'Keep only the even numbers.', code:`nums.____(n => n % 2 ____ 0)`, answers:['filter','==='], extra:['map','='], why:'<code>filter</code> keeps the items its test passes; <code>===</code> compares, where <code>=</code> would assign.'},
     {t:'order', q:'Put these in order.', items:['First','Second','Third','Fourth'], why:'Write <code>items</code> in the correct order; the page shuffles them.'},
     {t:'type', q:'List every file, hidden ones included, in long format.', lang:'shell', accept:['ls -la','ls -al','/^ls -l -a$|^ls -a -l$/'], expect:'One command, flags in any order.', hint:['The command that lists files is <code>ls</code>.','Combine two flags: one for long format, one for all files.'], why:'<code>-l</code> is long format and <code>-a</code> includes dotfiles; flags combine in any order.'},
     {t:'write', q:'Write <code>double(n)</code>, which returns twice its argument.', lang:'code', starter:'function double(n) {\n  \n}', model:'function double(n) {\n  return n * 2\n}', rubric:['Returns a value with <code>return</code>','Multiplies <code>n</code> by 2 (or adds it to itself)'], hint:['A function hands back its result with one keyword.','<code>return n * 2</code> is one way; there are others.'], why:'A function hands its result back with <code>return</code>; without it the call yields <code>undefined</code>.'},
