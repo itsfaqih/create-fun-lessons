@@ -58,13 +58,16 @@ The agent then:
 
 1. **Maps the subject.** It lists every part of it in `syllabus.md`: each app, package and module, the entry points, data, config, tooling and conventions.
 2. **Researches each part** to the depth a contributor needs, and traces each fact to a file or a URL.
-3. **Outlines and writes** the units and lessons, filling the content block of `template.html`.
-4. **Checks** the page with `scripts/check.mjs` until it prints `OK`, then plays one lesson in a browser.
-5. **Delivers** the path to the page, and lists any skipped syllabus rows with their reasons.
+3. **Outlines** the units and lessons in `course.json`.
+4. **Writes** each lesson as a short text file, `lessons/<id>.md`, and checks it. For a big course, several writers work on units at once.
+5. **Builds** the page with `scripts/lessons.mjs` until it prints `OK`, then plays one lesson in a browser.
+6. **Delivers** the path to the page, and lists any skipped syllabus rows with their reasons.
+
+To change the course later, the agent edits a lesson file and builds again. Progress carries over.
 
 Progress saves in the browser, tied to the address the page is opened at, so the agent hands over one home address to use on every visit. On a desktop that is the page file. For a phone, the agent serves the course folder on a fixed port at a stable address the phone can reach, and gives you the command to restart the server after a reboot.
 
-## Full coverage with `syllabus.md` and `check.mjs`
+## Full coverage with `syllabus.md`
 
 `syllabus.md` sits beside the course page and maps every part of the subject to the lessons that teach it:
 
@@ -75,35 +78,44 @@ Progress saves in the browser, tied to the address the page is opened at, so the
 | Generated API client | `gen/client/` | skip: generated from `api.yaml`, taught in u4l2 |
 ```
 
-Each Lessons cell lists existing lesson ids, or reads `skip: <reason>`. Skips are only for code the learner never needs to read, such as generated or vendored code, or for what the user put out of scope.
+Each lesson names the Areas it teaches in its `covers:` line, and the build writes the Lessons cells from them. A row reads `skip: <reason>` only for code the learner never needs to read, such as generated or vendored code, or for what the user put out of scope.
 
-`scripts/check.mjs` validates the course and the syllabus:
+## Building with `lessons.mjs`
+
+A course is a folder: `course.json`, `syllabus.md`, and `lessons/<id>.md`. `scripts/lessons.mjs` builds it into `index.html`. It runs on `node` 18 or later and needs no install:
 
 ```sh
-node skills/create-fun-lessons/scripts/check.mjs path/to/course.html
-node skills/create-fun-lessons/scripts/check.mjs path/to/course.html --repo path/to/repo
+node skills/create-fun-lessons/scripts/lessons.mjs init path/to/course
+node skills/create-fun-lessons/scripts/lessons.mjs check path/to/course u2l1 u2l2
+node skills/create-fun-lessons/scripts/lessons.mjs build path/to/course --repo path/to/repo
 ```
 
-It fails when:
+`init` starts a course folder from the sample, or with `--from <page.html>` imports a page built from the template. `check` with lesson or unit ids checks just those lessons. `build` checks the whole course and, when it is clean, writes the page and the syllabus's Lessons cells. It fails, and writes nothing, when:
 
-- the page's script does not parse, or its content block throws
-- a unit, lesson or card is missing a required field, such as a lesson's recap, a card's explanation (`why`), or a hint on a card type that has no automatic hints
+- a lesson file does not follow the format, or a card is missing a required field, such as a lesson's recap, a card's explanation (`why`), or a hint on a card type that has no automatic hints
+- a line of code is too wide for a phone's code box
 - a unit has no written-answer card
 - a code language is one the page does not load
-- `syllabus.md` is missing, or has no table rows
-- a syllabus row names a lesson that does not exist, or neither lists lessons nor gives a skip reason
-- a lesson appears in no syllabus row
+- a lesson file is not listed in `course.json`, or a listed lesson has no file
+- a lesson's `covers` names no syllabus Area (the message names the closest), or a syllabus row is covered by no lesson and gives no skip reason
 - with `--repo`: any tracked top-level directory of the repo appears in no Sources cell
 
-On success it prints a summary such as `OK: 5 units, 18 lessons, 84 cards, 14 syllabus rows`. On failure it lists each problem and exits with a non-zero code.
+On success it prints a summary such as `OK: 5 units, 18 lessons, 84 cards, 14 syllabus rows`. On failure it lists each problem at its file and line, such as `lessons/u2l1.md:14: mcq card 2: …`, and exits with a non-zero code. The lesson format is in `references/lessons.md`.
+
+`scripts/check.mjs path/to/index.html [--repo path/to/repo]` runs the same checks on a built page and the `syllabus.md` beside it.
 
 ## Repository layout
 
 ```text
 skills/create-fun-lessons/
-  SKILL.md           the skill: steps, syllabus rules, content schema, card-writing guide
-  template.html      the course engine plus a sample lesson; agents fill its content block
-  scripts/check.mjs  the course and syllabus checker
+  SKILL.md               the skill: steps, syllabus rules, saved progress
+  references/lessons.md  the lesson file format, card types and card-writing guide
+  references/visuals.md  diagram, chart and illustration patterns
+  template.html          the course engine plus a sample course; build fills its content block
+  scripts/lessons.mjs    init, check and build a course folder
+  scripts/schema.mjs     the card schema and checks, shared by both scripts
+  scripts/check.mjs      checks a built page and its syllabus
+test/                    tests for the scripts (node --test test/)
 site/                the landing page (Astro)
 assets/icon.svg      the project icon
 AGENTS.md            notes for agents working on this repo

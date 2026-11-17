@@ -6,7 +6,7 @@ Patterns for drawing a concept inside a card: diagrams, charts, and illustration
 
 | The concept is | Draw |
 |---|---|
-| a pipeline with no branches | the `.flow` HTML helper (see `SKILL.md`) |
+| a pipeline with no branches | the `.flow` HTML helper (see [`lessons.md`](lessons.md)) |
 | steps that branch or loop | [Flow](#flow) |
 | messages between actors over time | [Sequence](#sequence) |
 | parts of a system and what calls what | [Architecture](#architecture) |

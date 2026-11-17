@@ -5,13 +5,13 @@ description: Build a complete course of fun, bite-sized lessons as one HTML page
 
 # Create fun lessons
 
-A course is one self-contained HTML page built from [`template.html`](template.html). The template holds the engine: lesson map, card player with hints and instant feedback, retry of missed cards, a Back button to the previous card, overall course progress, saved progress, and reset for one lesson, one unit, or the whole course. You write only the content block between `COURSE CONTENT` and `END COURSE CONTENT`. Everything outside it stays as shipped, apart from extra highlight.js language tags (see Syntax highlighting).
+A course is one self-contained HTML page. Its engine, [`template.html`](template.html), holds the lesson map, card player with hints and instant feedback, retry of missed cards, a Back button to the previous card, overall course progress, saved progress, and reset for one lesson, one unit, or the whole course. You write the content as plain files in a course folder, and [`scripts/lessons.mjs`](scripts/lessons.mjs) builds the page from them. [`references/lessons.md`](references/lessons.md) is the authoring contract: the folder, `course.json`, the lesson file format with an example of every card type, and how to write good cards. Run the CLI with `node` (18 or later); it needs no install.
 
 ## Steps
 
 The course takes the learner from zero to contributor: by the last unit they can explain why each part exists, find the code behind any feature, trace any request through the system, and plan a change. The syllabus (below) proves the coverage.
 
-1. **Inventory.** Create the course folder (the one the user's or project's rules name for pages, else a new folder named after the course) and start `syllabus.md` in it. Add a row for every part of the subject:
+1. **Inventory.** Pick the course folder (the one the user's or project's rules name for pages, else a new folder named after the course) and run `node <skill-dir>/scripts/lessons.mjs init <course-dir>`. It writes `course.json`, `syllabus.md` and two sample lessons that show every card type. Replace the sample syllabus rows with a row for every part of the subject:
    - a codebase: every app, package, and module directory; entry points (main, routes, CLI commands, workers, scheduled jobs); data model and storage (schemas, migrations, queries); API surface and contracts; configuration and environment variables; auth and permissions; external services; shared utilities; build, test, lint, CI, and deploy tooling; conventions (naming, errors, logging); docs and decision records
    - a library: every export group of the public API, configuration, errors, extension points, and version differences
    - a topic: every section of the authoritative curriculum or docs table of contents
@@ -25,18 +25,20 @@ The course takes the learner from zero to contributor: by the last unit they can
    - cross-cutting concerns: configuration, errors, logging, testing, build, deploy
    - contributing, then a capstone that plans a real change
 
-   Unit count follows the syllabus. A lesson holds 3–6 cards, so a bigger area gets more lessons rather than longer ones. Assume the learner knows nothing unless told otherwise. Plan what each lesson asks the learner to do: recognise (`mcq`, `fill`, `blanks`, `order`), recall an exact command or expression (`type`), or produce code or an explanation (`write`). Write each lesson id into its rows' Lessons column. Done when every row lists lesson ids or a skip reason, every lesson has a title, a one-line recap, its sources, and its quiz card types, and every unit has a `write` card.
-4. **Write.** Copy `template.html` into the course folder. Fill `COURSE`, `UNITS`, and `GLOSSARY` using the schema below; the glossary holds every term the course introduces. Done when every outlined lesson is written.
-5. **Check.** Run `node <skill-dir>/scripts/check.mjs <page>` until it prints `OK`; for a codebase add `--repo <repo-dir>`, which fails on any tracked top-level directory missing from the syllabus. Then open the page in a browser at 400px wide and play one lesson that has a `type` or `write` card: use a hint, answer one card wrong, and finish the lesson. Reload and confirm the "Continue where you left off" card. Done when the checker prints `OK`, code shows in colour, every card fits without horizontal scroll, and the click-through finishes.
+   Write it into `course.json`: the course's title, `storageKey` and `lang`, then each unit with its lesson ids (see references/lessons.md). Unit count follows the syllabus. A lesson holds 3–6 cards, so a bigger area gets more lessons rather than longer ones. Assume the learner knows nothing unless told otherwise. For each lesson, plan its title, a one-line recap, the syllabus Areas it covers, its sources, and what it asks the learner to do: recognise (`mcq`, `fill`, `blanks`, `order`), recall an exact command or expression (`type`), or produce code or an explanation (`write`). Delete the sample lessons. Done when every syllabus row is covered by a planned lesson or reads `skip: <reason>`, and every unit plans a `write` card.
+4. **Write** one file per lesson, `lessons/<id>.md`, in the format of references/lessons.md. Each lesson names its syllabus Areas in `covers:` and its new terms in `terms:`. For a course of more than a few units, write units in parallel with subagents where available: give each writer references/lessons.md, its lessons' outline, and the research notes for their rows. Each writer runs `node <skill-dir>/scripts/lessons.mjs check <course-dir> <its lesson ids>` until it prints `OK`. Done when every outlined lesson file exists and checks `OK`.
+5. **Build.** Run `node <skill-dir>/scripts/lessons.mjs build <course-dir>` until it prints `OK`; for a codebase add `--repo <repo-dir>`, which fails on any tracked top-level directory missing from the syllabus. Each problem names its file and line; fix the lesson there and build again. Build writes `index.html` and fills the syllabus's Lessons column from each lesson's `covers`. Then open `index.html` in a browser at 400px wide and play one lesson that has a `type` or `write` card: use a hint, answer one card wrong, and finish the lesson. Reload and confirm the "Continue where you left off" card. Done when build prints `OK`, code shows in colour, every card fits without horizontal scroll, and the click-through finishes.
 6. **Deliver** the course at its home: the one URL the learner opens on every visit, because progress belongs to that URL's origin (see Saved progress).
-   - Desktop only: the home is the page file. Give its path as a plain markdown link, so it stays clickable.
+   - Desktop only: the home is the course folder's `index.html`. Give its path as a plain markdown link, so it stays clickable.
    - A phone, or a learner who wants a URL: serve the course folder detached, so it outlives your session, on a fixed port and a stable address the phone can reach: `python3 -m http.server <port> --bind 0.0.0.0 --directory <course-dir>`. A stable address is a VPN or mesh-network name or IP (such as Tailscale's), or the machine's `<hostname>.local` name; a DHCP LAN IP can change and strand the progress saved under it. Publishing to a static host gives the most stable home and reaches the phone anywhere, but it makes the course public, so do it only when the user asks.
 
-   Set `COURSE.homeUrl` to the served home, so a viewer that blocks storage links there. Give the learner the home URL, the command that restarts the server on the same port and address after a reboot, and the habit that keeps progress: one browser on each device, in a normal (not private) window. Report the syllabus's skipped rows with their reasons. Done when the home URL, fetched from another device or from the machine's own network address, serves the page, and the page opened there says "Progress saves automatically on this device".
+   Set `homeUrl` in `course.json` to the served home and build again, so a viewer that blocks storage links there. Give the learner the home URL, the command that restarts the server on the same port and address after a reboot, and the habit that keeps progress: one browser on each device, in a normal (not private) window. Report the syllabus's skipped rows with their reasons. Done when the home URL, fetched from another device or from the machine's own network address, serves the page, and the page opened there says "Progress saves automatically on this device".
+
+**Revising a course.** Edit the lesson files or `course.json`, then build. The served folder picks up the new `index.html` on the learner's next reload. To revise a page made before the course folder existed, import it first: `node <skill-dir>/scripts/lessons.mjs init <course-dir> --from <page.html>`, with its `syllabus.md` beside the page. Import keeps the page's `storageKey` and lesson ids, so learners keep their progress.
 
 ## Syllabus
 
-`syllabus.md` sits beside the page and maps every part of the subject to the lessons that teach it. The checker reads its table: each row's Lessons cell lists existing lesson ids, or reads `skip: <reason>`. Skip only what the learner never needs to read, such as generated or vendored code, or what the user put out of scope; name where it comes from or what replaces it.
+`syllabus.md` sits in the course folder and maps every part of the subject to the lessons that teach it. Write the Area and Sources of each row; build fills the Lessons cell from the lessons whose `covers` name that Area, in course order. A row no lesson covers fails the build, unless its Lessons cell reads `skip: <reason>`. Skip only what the learner never needs to read, such as generated or vendored code, or what the user put out of scope; name where it comes from or what replaces it.
 
 ```md
 | Area | Sources | Lessons |
@@ -45,64 +47,9 @@ The course takes the learner from zero to contributor: by the last unit they can
 | Generated API client | `gen/client/` | skip: generated from `api.yaml`, taught in u4l2 |
 ```
 
-## Content schema
-
-```js
-const COURSE = { title, logoHtml, heading, subtitle, storageKey, lang, homeUrl /* optional */ }
-const UNITS = [{ id, title, blurb, color: '#rrggbb', dark: '#rrggbb', lessons: [
-  { id, title, recap, cards: [ /* cards */ ] } ] }]
-const GLOSSARY = [['Term', 'One-line meaning'], ...]
-```
-
-| Card | Fields | Notes |
-|---|---|---|
-| `learn` | `h`, `body` | `body` is HTML; helpers below |
-| `mcq` | `q`, `o[]`, `a`, `why`, `hint?` | `a` is the index of the right option; `q`, `o`, `why` are HTML |
-| `fill` | `q`, `code`, `o[]`, `a`, `why`, `lang?`, `hint?` | `code` is plain text with exactly one `____`; options are plain text |
-| `blanks` | `q`, `code`, `answers[]`, `why`, `extra[]?`, `lang?`, `hint?` | click and fill: 2+ blanks, a bank of chips; see below |
-| `order` | `q`, `items[]`, `why`, `hint?` | `items` in the correct order, as plain text; the page shuffles them |
-| `type` | `q`, `accept[]`, `why`, `expect?`, `code?`, `lang?`, `hint?` | one-line answer, checked automatically |
-| `write` | `q`, `model`, `rubric[]`, `why`, `hint`, `starter?`, `lang?` | open answer (code, a script, an essay), self-graded |
-
-In HTML fields, write a literal `<` as `&lt;`.
-
-**`learn` helpers:**
-- `<div class="flow">` holding `.step` and `.arrow` divs, for a pipeline
-- `<table class="tbl">`
-- `<div class="where">📄 <code>path</code></div>`, for a source file
-- `<div class="tip">`
-- `<pre><code class="language-…">`, with `<span class="hl">` around the line that matters
-- `<figure class="viz">`, an inline SVG diagram, chart, or illustration (see **Picture** below)
-
-**`type`.** The answer passes when, with whitespace trimmed and collapsed (and a leading `$` dropped for `shell`), it equals any literal in `accept` or matches any entry written as `/regex/flags`. `accept[0]` is a literal, shown as the answer on a miss. List every real variant: reordered flags, `--long` forms, optional quotes. Anchor regexes with `^…$`. `code` is optional plain-text context above the field. Above the field the page states the acceptance criteria: the expected form, then the matching rule ("One command. Spacing and a leading `$` are ignored; capitals count."). `expect` (HTML) replaces the expected form; name every variant `accept` allows ("One command, flags in any order.").
-
-**`blanks`.** A line of code or a sentence with several blanks; tapping a chip from the bank puts it in the next empty blank, and tapping a filled blank sends its chip back. `code` is plain text with one `____` per blank, 2 or more; `answers` lists the chip for each blank in order, and `extra` adds spare chips, as plausible as the wrong options of an `mcq`. A blank passes when its chip's text equals its answer, so repeated chip texts are interchangeable. `lang` colours the code; `lang: 'text'` sets a sentence in prose. Above the bank the page states the acceptance criteria: how many blanks, and how many chips are spare. Feedback marks each blank right or wrong and, on a miss, shows the correct fill.
-
-**`write`.** For work too open to match by text. The `rubric` is the acceptance criteria, listed under "Your answer should" before the learner writes. After Check the learner sees `model` (plain text, the sample answer) and ticks each criterion their answer meets: all ticked counts as right, anything less sends the card to the retry queue. Write 2–4 criteria (HTML), each a yes-or-no requirement observable in the answer ("Calls `await` on the fetch"). `starter` prefills the field, such as a function signature.
-
-**Hints.** Every quiz card has a Hint button. Each tap reveals the next step: the card's own `hint` first (a string, or an array revealed one at a time), then automatic help: `mcq` and `fill` strike out wrong options until one remains, `order` places the next item, `blanks` fills the next blank with its right chip, `type` reveals how the answer starts. A right answer after a hint passes without the first-try bonus. Order hints from gentle to specific, each narrowing the search: the concept, then the file, then the part to change. The checker names the cards that need an authored `hint`.
-
-**Syntax highlighting.** highlight.js colours every code sample, command, and code answer field, live as the learner types. A `lang` is one of:
-- `text`: prose, uncoloured (the default for `type` and `write`)
-- `shell`: bash, with command names and flags coloured; a `type` field also gets a `$` prompt
-- `code`: the course language, `COURSE.lang`
-- any highlight.js name, such as `python`, `sql`, or `yaml`
-
-Set `COURSE.lang` to the course's main language, or `'text'` for a course without code. A `<pre><code>` takes its language from `class="language-…"`, else `COURSE.lang`, so give every shell block `class="language-shell"` and every other-language block its own class. The checker rejects a language the page does not load; to add one, put its `languages/<name>.min.js` script tag after the highlight.js tag at the top of the page.
-
-## Writing the cards
-
-- **Bite.** One idea per card. A learn card fits on a phone screen without scrolling past the code sample.
-- **Picture** every concept that is spatial, a flow, or numeric: a diagram, chart, or illustration in a `learn` card, or in a quiz `q` that asks the learner to read it. Draw it from the patterns in [`references/visuals.md`](references/visuals.md).
-- Quiz each new concept within one or two cards of teaching it.
-- **Recall over recognition.** After an `mcq` introduces a command, ask for it again as a `type` card. Close each unit on a `write` card that produces something real: a function, a script, a config block, or a few sentences explaining a design choice.
-- Make wrong options plausible: a real neighbouring file, a real but wrong function. `why` says why the right answer is right, in one or two sentences.
-- **Depth.** Teach each area at the level of real names: the actual file, the function, its arguments and return value, who calls it, and what breaks when it changes. A lesson that only names an area has not taught it yet. Point to real paths, so the learner can open the code next.
-- Give each unit its own `color`, readable under white text (it fills the unit dot, finished-lesson checks and the Start badge), and a darker `dark` for their borders.
-
 ## Saved progress
 
-The engine saves after every card to `localStorage`, under `COURSE.storageKey`, with lesson `id`s inside. Browser storage belongs to an origin (scheme, host, and port), so the learner's progress lives in one browser at one origin, and a URL with any of those three changed opens an empty course. Several courses can share one origin, since each has its own `storageKey`. The engine also mirrors progress into the URL hash, which survives reloads of that tab, and the home page offers a progress code to move it between browsers or devices.
+The engine saves after every card to `localStorage`, under `course.json`'s `storageKey`, with lesson `id`s inside. Browser storage belongs to an origin (scheme, host, and port), so the learner's progress lives in one browser at one origin, and a URL with any of those three changed opens an empty course. Several courses can share one origin, since each has its own `storageKey`. The engine also mirrors progress into the URL hash, which survives reloads of that tab, and the home page offers a progress code to move it between browsers or devices.
 
 Progress persists when the learner opens:
 - the same page file, from the same path, in a desktop browser
@@ -112,11 +59,11 @@ Progress is lost or stranded by:
 - a server that picks a new port each run (a random or next-free port); restart on the home's port, freeing it first if something else holds it
 - a different address for the same machine: `localhost`, the LAN IP, and a VPN name are three origins, and a LAN IP that changes is a new one
 - a private window, which clears storage when it closes
-- a sandboxed viewer, such as an in-app preview, which blocks storage; the page warns and links `COURSE.homeUrl`
+- a sandboxed viewer, such as an in-app preview, which blocks storage; the page warns and links `homeUrl`
 - another browser, or on iOS a home-screen web app versus the same URL in a Safari tab, which keep separate storage
 - Safari, which can clear a site's storage after about a week without a visit; the progress code restores it
 
 To keep learners' progress when you revise a course:
-- keep `storageKey`, existing lesson `id`s, and the home URL the same
+- keep `storageKey`, existing lesson `id`s (the lesson file names), and the home URL the same; build never changes them
 - add new lessons with new ids
 - change `storageKey` only for a deliberate reset

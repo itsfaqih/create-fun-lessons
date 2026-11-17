@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -204,4 +204,26 @@ test('a copy of the template with its own storageKey passes check.mjs', () => {
   const r = run(root, CHECK, 'index.html')
   assert.equal(r.code, 0, r.out)
   assert.match(r.out, /^OK: 1 units, 2 lessons, 14 cards, 2 syllabus rows/)
+})
+
+test('every example in references/lessons.md builds', () => {
+  const doc = read(SKILL, 'references/lessons.md').split('\n'), blocks = []
+  for (let i = 0; i < doc.length; i++) {
+    const m = /^(`{3,})(\w*)$/.exec(doc[i])
+    if (!m) continue
+    const end = doc.indexOf(m[1], i + 1)
+    blocks.push({ info: m[2], text: doc.slice(i + 1, end).join('\n') })
+    i = end
+  }
+  const md = blocks.filter(b => b.info === 'md').map(b => b.text)
+  const root = tmp(), dir = join(root, 'docs')
+  mkdirSync(join(dir, 'lessons'), { recursive: true })
+  writeFileSync(join(dir, 'course.json'), blocks.find(b => b.info === 'json').text)
+  writeFileSync(join(dir, 'syllabus.md'), '| Area | Sources | Lessons |\n|---|---|---|\n| HTTP routing | `src/` | |\n| Request lifecycle | `src/` | |\n| Caching | `src/` | |\n')
+  writeFileSync(join(dir, 'lessons/u1l1.md'), md.find(t => t.startsWith('# ')))
+  writeFileSync(join(dir, 'lessons/u1l2.md'), ['# Every card', 'recap: One of each.', 'covers: Caching', '', ...md.filter(t => t.startsWith('## '))].join('\n'))
+  const r = lessons(root, 'build', 'docs')
+  assert.equal(r.code, 0, r.out)
+  const cards = pageData(join(dir, 'index.html')).UNITS[0].lessons[1].cards.map(c => c.t)
+  assert.deepEqual([...new Set(cards)].sort(), ['blanks', 'fill', 'learn', 'mcq', 'order', 'type', 'write'])
 })

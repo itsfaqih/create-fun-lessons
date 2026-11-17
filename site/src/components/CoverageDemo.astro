@@ -1,10 +1,10 @@
 ---
-// Coverage: the checker run with --repo finds a top-level directory the
+// Coverage: the build run with --repo finds a top-level directory the
 // syllabus leaves out; a row for it appears in syllabus.md; the second run
 // prints OK. Plays once in view; the poster is the green run.
-// Real strings: the syllabus header and rows, both check outputs.
+// Real strings: the syllabus header and rows, both build outputs.
 import BrowserWindow from './BrowserWindow.astro'
-const cmd = 'node check.mjs course.html --repo .'
+const cmd = 'node lessons.mjs build . --repo ..'
 const rows = [
   ['HTTP routing', ['src/routes/'], 'u2l1, u2l2'],
   ['Orders handlers', ['src/orders/'], 'u2l3, u2l4'],
@@ -12,7 +12,7 @@ const rows = [
 ] as const
 ---
 <div class="well cov-well">
-  <div class="ss-stage cfl cov-stage" id="coverage-demo" role="img" aria-label="The checker reports that the scripts directory appears in no Sources cell; a Release scripts row is added to syllabus.md; the checker then prints OK.">
+  <div class="ss-stage cfl cov-stage" id="coverage-demo" role="img" aria-label="The build reports that the scripts directory appears in no Sources cell; a Release scripts row is added to syllabus.md; the build then prints OK.">
     <BrowserWindow url="syllabus.md" class="cov-win">
       <div class="md">
         <div class="md-h"># Syllabus: Orders API</div>
@@ -30,7 +30,7 @@ const rows = [
       <div class="term-body">
         <div class="ln"><span class="p">$</span><span class="typed" data-type="cmd1" style={`--len:${cmd.length}`}>{cmd}</span><span class="caret c1"></span></div>
         <div class="ln outs">
-          <div class="out o-bad"><span class="red">1 problem(s):</span><br />- syllabus.md: top-level directory "scripts/" appears in no Sources cell</div>
+          <div class="out o-bad"><span class="red">1 problem(s):</span><br />syllabus.md: top-level directory "scripts/" appears in no Sources cell</div>
           <div class="out o-ok"><span class="green">OK: 5 units, 18 lessons, 84 cards, 4 syllabus rows</span></div>
         </div>
       </div>
@@ -113,7 +113,7 @@ const rows = [
       await a.wait(700)
       a.mark('type')
       a.set({ step: 1 })
-      await a.type('cmd1', 'node check.mjs course.html --repo .', 38)
+      await a.type('cmd1', 'node lessons.mjs build . --repo ..', 38)
       await a.wait(350)
       a.mark('problem')
       a.set({ step: 2 })
