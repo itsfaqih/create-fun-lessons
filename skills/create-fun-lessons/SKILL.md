@@ -28,7 +28,11 @@ The course takes the learner from zero to contributor: by the last unit they can
    Unit count follows the syllabus. A lesson holds 3–6 cards, so a bigger area gets more lessons rather than longer ones. Assume the learner knows nothing unless told otherwise. Plan what each lesson asks the learner to do: recognise (`mcq`, `fill`, `blanks`, `order`), recall an exact command or expression (`type`), or produce code or an explanation (`write`). Write each lesson id into its rows' Lessons column. Done when every row lists lesson ids or a skip reason, every lesson has a title, a one-line recap, its sources, and its quiz card types, and every unit has a `write` card.
 4. **Write.** Copy `template.html` into the course folder. Fill `COURSE`, `UNITS`, and `GLOSSARY` using the schema below; the glossary holds every term the course introduces. Done when every outlined lesson is written.
 5. **Check.** Run `node <skill-dir>/scripts/check.mjs <page>` until it prints `OK`; for a codebase add `--repo <repo-dir>`, which fails on any tracked top-level directory missing from the syllabus. Then open the page in a browser at 400px wide and play one lesson that has a `type` or `write` card: use a hint, answer one card wrong, and finish the lesson. Reload and confirm the "Continue where you left off" card. Done when the checker prints `OK`, code shows in colour, every card fits without horizontal scroll, and the click-through finishes.
-6. **Deliver** the page path as a plain markdown link, so it stays clickable, and report the syllabus's skipped rows with their reasons. When the learner will use a phone, also serve the course folder: sandboxed viewers, such as an in-app phone preview, block browser storage. Run `python3 -m http.server <port> --bind 0.0.0.0 --directory <course-dir>` detached, put a URL the phone can reach (LAN or Tailscale IP) in `COURSE.homeUrl`, and give that URL. The page's storage warning then links to the served copy, where progress saves.
+6. **Deliver** the course at its home: the one URL the learner opens on every visit, because progress belongs to that URL's origin (see Saved progress).
+   - Desktop only: the home is the page file. Give its path as a plain markdown link, so it stays clickable.
+   - A phone, or a learner who wants a URL: serve the course folder detached, so it outlives your session, on a fixed port and a stable address the phone can reach: `python3 -m http.server <port> --bind 0.0.0.0 --directory <course-dir>`. A stable address is a VPN or mesh-network name or IP (such as Tailscale's), or the machine's `<hostname>.local` name; a DHCP LAN IP can change and strand the progress saved under it. Publishing to a static host gives the most stable home and reaches the phone anywhere, but it makes the course public, so do it only when the user asks.
+
+   Set `COURSE.homeUrl` to the served home, so a viewer that blocks storage links there. Give the learner the home URL, the command that restarts the server on the same port and address after a reboot, and the habit that keeps progress: one browser on each device, in a normal (not private) window. Report the syllabus's skipped rows with their reasons. Done when the home URL, fetched from another device or from the machine's own network address, serves the page, and the page opened there says "Progress saves automatically on this device".
 
 ## Syllabus
 
@@ -98,7 +102,21 @@ Set `COURSE.lang` to the course's main language, or `'text'` for a course withou
 
 ## Saved progress
 
-The engine saves after every card, keyed by `COURSE.storageKey` and lesson `id`s, and the home page offers a progress code to move it between browsers. To keep learners' progress when you revise a course:
-- keep `storageKey` and existing lesson `id`s the same
+The engine saves after every card to `localStorage`, under `COURSE.storageKey`, with lesson `id`s inside. Browser storage belongs to an origin (scheme, host, and port), so the learner's progress lives in one browser at one origin, and a URL with any of those three changed opens an empty course. Several courses can share one origin, since each has its own `storageKey`. The engine also mirrors progress into the URL hash, which survives reloads of that tab, and the home page offers a progress code to move it between browsers or devices.
+
+Progress persists when the learner opens:
+- the same page file, from the same path, in a desktop browser
+- the same served URL, with the same host and port, in the same browser
+
+Progress is lost or stranded by:
+- a server that picks a new port each run (a random or next-free port); restart on the home's port, freeing it first if something else holds it
+- a different address for the same machine: `localhost`, the LAN IP, and a VPN name are three origins, and a LAN IP that changes is a new one
+- a private window, which clears storage when it closes
+- a sandboxed viewer, such as an in-app preview, which blocks storage; the page warns and links `COURSE.homeUrl`
+- another browser, or on iOS a home-screen web app versus the same URL in a Safari tab, which keep separate storage
+- Safari, which can clear a site's storage after about a week without a visit; the progress code restores it
+
+To keep learners' progress when you revise a course:
+- keep `storageKey`, existing lesson `id`s, and the home URL the same
 - add new lessons with new ids
 - change `storageKey` only for a deliberate reset
