@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { CARD_TYPES, validateCourse, validateUnit, validateLesson, parseSyllabus, checkCovers, checkRepoCoverage } from './schema.mjs'
+import { CARD_TYPES, validateCourse, validateUnit, validateLesson, parseSyllabus, checkCovers, checkRepoCoverage, shownProblems, decode } from './schema.mjs'
 import { loadPage, checkPage, trackedDirs, summary } from './check.mjs'
 
 const TEMPLATE = fileURLToPath(new URL('../template.html', import.meta.url))
@@ -23,7 +23,10 @@ const CARD = /^## /
 const LIST = /^-( |$)/
 const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
 const unesc = s => s.replace(/&(amp|lt|gt);/g, (_, e) => ({ amp: '&', lt: '<', gt: '>' }[e]))
-const mark = s => s.replace(/«([^«»\n]*)»/g, '<span class="hl">$1</span>')
+// A «…» highlight that runs over line breaks becomes one span per line, with
+// the line breaks and indentation between them left outside.
+const mark = s => s.replace(/«([^«»]*)»/g, (_, h) => h.split(/(\s*\n\s*)/)
+  .map((p, i, all) => i % 2 || (!p && all.length > 1) ? p : `<span class="hl">${p}</span>`).join(''))
 
 // Lines grouped so that a ``` fence is one block: nothing inside a fence is
 // ever read as structure.
@@ -52,35 +55,59 @@ const listItem = b => !b.fence && LIST.test(b.text)
 const trim = bs => { let a = 0, z = bs.length; while (a < z && blank(bs[a])) a++; while (z > a && blank(bs[z - 1])) z--; return bs.slice(a, z) }
 
 // HTML source -> HTML: a ``` fence becomes <pre><code>, escaped, with «…»
-// highlighted; a ```raw fence goes in as written; `x` (or ``x`y``, as in
-// Markdown) outside tags, <pre> and <code> becomes <code>, escaped.
-function renderHtml(blocks) {
-  const out = [], state = { depth: 0 }
+// highlighted; a ```raw fence goes in as written; `x` outside tags, <pre> and
+// <code> becomes <code>. What the learner would see wrongly is reported at
+// its source line.
+function renderHtml(blocks, err) {
+  const out = [], from = [], state = { depth: 0 }
   let text = []
-  const flush = () => { if (text.length) out.push(inlineCode(text.join('\n'), state)); text = [] }
+  const put = (html, lines) => html.split('\n').forEach((l, k) => { out.push(l); from.push(lines(k)) })
+  const flush = () => {
+    if (!text.length) return
+    const t = text, src = t.map(b => b.text).join('\n'), lineAt = k => t[k]?.line ?? t.at(-1).line
+    put(inlineCode(src, state, at => err(lineAt(src.slice(0, at).split('\n').length - 1), STRAY)), lineAt)
+    text = []
+  }
   for (const b of blocks) {
-    if (!b.fence) { text.push(b.text); continue }
+    if (!b.fence) { text.push(b); continue }
     flush()
     const body = b.content.join('\n')
-    out.push(b.indent + (b.info === 'raw' ? body : `<pre><code${b.info ? ` class="language-${b.info}"` : ''}>${mark(esc(body))}</code></pre>`))
+    put(b.indent + (b.info === 'raw' ? body : `<pre><code${b.info ? ` class="language-${b.info}"` : ''}>${mark(esc(body))}</code></pre>`), k => b.line + 1 + k)
   }
   flush()
-  return out.join('\n')
+  const html = out.join('\n')
+  for (const p of shownProblems(html)) err(from[p.line], p.msg)
+  return html
 }
-const SPAN = /<[^>]*>|(?<!`)(`+)([^`\n](?:[^\n]*?[^`\n])?)\1(?!`)/g
 const codeTag = (m, state) => {
   const t = /^<(\/?)(?:pre|code)\b/i.exec(m)
   if (t) state.depth = Math.max(0, state.depth + (t[1] ? -1 : 1))
 }
-function inlineCode(text, state) {
-  return text.replace(SPAN, (m, ticks, code) => {
-    if (ticks === undefined) { codeTag(m, state); return m }
-    if (state.depth) return m
-    if (code.length > 2 && code[0] === ' ' && code.at(-1) === ' ' && code.trim()) code = code.slice(1, -1)
-    return `<code>${esc(code)}</code>`
-  })
+const STRAY = 'the learner sees a stray backtick: a `code` span ends at the next run of the same number of backticks on its line; for a literal backtick write &#96;'
+// As in Markdown, a run of backticks opens a span that the next run of the same
+// length closes (on its line), so ``x`y`` holds a backtick; a run nothing
+// closes stays as written, and `stray` gets its offset. The span is code,
+// escaped for you; an entity written in it, as in `a &lt; b`, stands for its
+// character.
+function inlineCode(text, state, stray) {
+  const tokens = /<[^>]*>|`+/g
+  let out = '', done = 0
+  for (let m; (m = tokens.exec(text));) {
+    if (m[0][0] === '<') { codeTag(m[0], state); continue }
+    if (state.depth) continue
+    const n = m[0].length, start = tokens.lastIndex, eol = text.indexOf('\n', start)
+    const close = [...text.slice(start, eol < 0 ? undefined : eol).matchAll(/`+/g)].find(r => r[0].length === n)
+    if (!close) { stray(m.index); continue }
+    let code = text.slice(start, start + close.index)
+    if (code[0] === ' ' && code.at(-1) === ' ' && code.trim()) code = code.slice(1, -1)
+    out += `${text.slice(done, m.index)}<code>${esc(decode(code))}</code>`
+    done = tokens.lastIndex = start + close.index + n
+  }
+  return out + text.slice(done)
 }
-const renderLine = text => renderHtml([{ text }])
+const renderLine = (text, line, err) => renderHtml([{ text, line }], err)
+// A plain field is shown as written; only the «…» markers can go wrong.
+const checkPlain = (v, line, err) => { for (const p of shownProblems(v, 'plain')) err(line + p.line, p.msg) }
 
 export function parseLesson(text) {
   const problems = []
@@ -117,9 +144,9 @@ function parseCard(head, body, n, fileErr) {
   const card = { t }
   if (type.heading) {
     if (!m[2]) err(head.line, `needs a heading: ## ${t}: <heading>`)
-    else card[type.heading] = renderLine(m[2])
+    else card[type.heading] = renderLine(m[2], head.line, err)
     const own = trim(body)
-    card[type.rest] = renderHtml(own)
+    card[type.rest] = renderHtml(own, err)
     return { card, lines: { line: head.line, fields: { [type.heading]: head.line, [type.rest]: own[0]?.line ?? head.line } } }
   }
   if (m[2] !== undefined) err(head.line, `only a learn card takes a heading; write ## ${t}`)
@@ -160,22 +187,23 @@ function parseFields(blocks, spec, what, fileErr) {
       while (end < own.length && (listItem(own[end]) || blank(own[end]))) end++
       const list = own.slice(0, end).filter(listItem)
       stray(own.slice(end))
-      values[key] = listValue(key, f, list.map(x => ({ text: x.text.slice(2), line: x.line })), values, err)
+      values[key] = listValue(key, f, list.map(x => ({ text: x.text.slice(2), line: x.line })), values, err, fileErr)
       continue
     }
     if (f.kind === 'names') { values[key] = rest.split(',').map(s => s.trim()).filter(Boolean); stray(own); continue }
     if (f.kind === 'plain') {
-      if (rest !== '') { values[key] = rest; stray(own); continue }
+      if (rest !== '') { values[key] = rest; checkPlain(rest, b.line, fileErr); stray(own); continue }
       const k = own.findIndex(x => !blank(x))
       if (k < 0 || !own[k].fence) { err(b.line, `${key} is empty; ${hint(key, f)}`); stray(own); continue }
       values[key] = own[k].content.join('\n')
+      checkPlain(values[key], own[k].line + 1, fileErr)
       if (own[k].info) langs.push({ lang: own[k].info, line: own[k].line, from: `the ${key} fence` })
       stray(own.slice(k + 1))
       continue
     }
     const cut = own.findIndex(listItem)
     const src = trim([...(rest !== '' ? [{ text: rest, line: b.line }] : []), ...(cut < 0 ? own : own.slice(0, cut))])
-    values[key] = renderHtml(src)
+    values[key] = renderHtml(src, fileErr)
     if (cut >= 0) stray(own.slice(cut))
   }
   return { values, lines, langs, failed }
@@ -187,21 +215,27 @@ function hint(key, f) {
   return `${key} continues until the next field line`
 }
 
-function listValue(key, f, items, values, err) {
+// `err` marks the field as reported; `shown` reports what the learner would
+// see wrongly without hiding the schema's other problems with the field.
+function listValue(key, f, items, values, err, shown) {
   if (f.kind === 'names') return items.map(x => x.text.trim()).filter(Boolean)
   if (f.kind === 'terms') return items.flatMap(x => {
     const at = x.text.indexOf(': ')
     if (at < 1) { err(x.line, 'a term is "- <term>: <meaning>"'); return [] }
-    return [[renderLine(x.text.slice(0, at)), renderLine(x.text.slice(at + 2))]]
+    return [[renderLine(x.text.slice(0, at), x.line, shown), renderLine(x.text.slice(at + 2), x.line, shown)]]
   })
-  const item = s => f.kind === 'html' ? renderLine(s) : s
-  if (f.list !== 'choices') return items.map(x => item(x.text))
+  const item = (s, line) => {
+    if (f.kind === 'html') return renderLine(s, line, shown)
+    checkPlain(s, line, shown)
+    return s
+  }
+  if (f.list !== 'choices') return items.map(x => item(x.text, x.line))
   const right = []
   const out = items.map((x, i) => {
     const m = /^\[([ xX])\] ?(.*)$/.exec(x.text)
-    if (!m) { err(x.line, `each ${key} item starts with [x] (the right one) or [ ]`); return item(x.text) }
+    if (!m) { err(x.line, `each ${key} item starts with [x] (the right one) or [ ]`); return item(x.text, x.line) }
     if (m[1] !== ' ') right.push(i)
-    return item(m[2])
+    return item(m[2], x.line)
   })
   if (right.length === 1) values.a = right[0]
   else err(items[0]?.line, `mark exactly one ${key} item [x]; ${right.length} are marked`)
@@ -217,7 +251,7 @@ function prettyHtml(v) {
   const s = v.replace(/<code>([^<\n]*)<\/code>|<[^>]*>/g, (m, inner) => {
     if (inner === undefined) { codeTag(m, state); return m }
     const code = unesc(inner)
-    if (state.depth || !code || esc(code) !== inner) return m
+    if (state.depth || !code || esc(code) !== inner || decode(code) !== code) return m
     const ticks = '`'.repeat(Math.max(0, ...(code.match(/`+/g) ?? []).map(r => r.length)) + 1)
     const pad = /^`|`$/.test(code) || (/^ .* $/.test(code) && code.trim()) ? ' ' : ''
     return ticks + pad + code + pad + ticks
@@ -428,7 +462,7 @@ function checkFolder(dir, { only, repo } = {}) {
       catch (e) { problems.push(`--repo: cannot list tracked files in ${repo}: ${e.message.split('\n')[0]}`) }
     }
   }
-  const reported = p => p.card !== undefined && lessons.get(p.lesson)?.lines.cards[p.card]?.failed?.has(p.field)
+  const reported = p => p.shown || (p.card !== undefined && lessons.get(p.lesson)?.lines.cards[p.card]?.failed?.has(p.field))
   problems.push(...found.filter(p => !reported(p)).map(p => locate(p, ctx)))
   const cards = [...lessons.values()].reduce((n, L) => n + L.lesson.cards.length, 0)
   return { problems, data, course, syllabus, rows, ids, counts: { units: unitsData.length, lessons: lessons.size, cards, rows: rows.length } }

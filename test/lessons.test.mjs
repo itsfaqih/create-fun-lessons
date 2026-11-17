@@ -105,6 +105,21 @@ const broken = [
     edit(f, "const x = «highlighted»('text', 42)", "const x = «highlighted»('text', 42)\nconst total = items.reduce((sum, item) => sum + item.price, 0)")
     return [f, lineOf(f, 'const total'), /learn card 1: code line "const total = items\.reduce\(\(…" is 62 columns; 41 fit a code box/]
   }],
+  ['a «…» highlight that never closes', dir => {
+    const f = join(dir, 'lessons/u1l1.md')
+    edit(f, "const x = «highlighted»('text', 42)", "const x = «highlighted('text', 42)")
+    return [f, lineOf(f, 'const x ='), /learn card 1: the learner sees raw «…» markers: they highlight code only inside a ``` fence/]
+  }],
+  ['a backtick span that never closes', dir => {
+    const f = join(dir, 'lessons/u1l1.md')
+    edit(f, 'Use `code`, lists', 'Use `code, lists')
+    return [f, lineOf(f, 'Use `code, lists'), /learn card 1: the learner sees a stray backtick: a `code` span ends at the next run of the same number of backticks on its line/]
+  }],
+  ['an entity escaped twice', dir => {
+    const f = join(dir, 'lessons/u1l1.md')
+    edit(f, 'why: `mcq` shows options', 'why: `Array&amp;lt;T&amp;gt;` shows options')
+    return [f, lineOf(f, 'Array&amp;lt;'), /mcq card 2: the learner sees the text "&lt;", an entity escaped twice/]
+  }],
 ]
 for (const [name, breakIt] of broken) {
   test(`build reports ${name} at its file and line, and writes nothing`, () => {
@@ -121,6 +136,66 @@ for (const [name, breakIt] of broken) {
     assert.equal(read(dir, 'syllabus.md'), syllabus)
   })
 }
+
+test('check reports what the learner would see wrongly, as build does', () => {
+  const { root, dir } = freshCourse()
+  const f = join(dir, 'lessons/u1l2.md')
+  writeFileSync(f, read(f).replace(/^recap: .*$/m, 'recap: Draw «what» is spatial.'))
+  const checked = lessons(root, 'check', 'course'), one = lessons(root, 'check', 'course', 'u1l2')
+  assert.equal(checked.code, 1)
+  assert.match(checked.out, new RegExp(`^1 problem\\(s\\):\ncourse/lessons/u1l2\\.md:${lineOf(f, 'recap:')}: the learner sees raw «…» markers`))
+  assert.equal(one.out, checked.out)
+})
+
+test('backtick spans and «…» highlights render as the author meant', () => {
+  const { root, dir } = freshCourse()
+  writeFileSync(join(dir, 'lessons/u1l3.md'), [
+    '# Spans', 'recap: `?` starts a query.', 'covers: Card types', 'terms:', '- `/`: the root path', '',
+    '## learn: Paths and `?`',
+    '<p>`/` is the root and `?` starts the query.</p>',
+    '<p>Call `.json&lt;User&gt;()` once, or ``a`b`` for a backtick.</p>',
+    '```ts', 'const total = «items.reduce(', '  (sum, x) => sum + x, 0)»', '```', '',
+    '## mcq', 'q: Which one starts the query?', 'o:', '- [ ] `/`', '- [x] `?`', '- [ ] `#`', 'why: `?` starts it; `/` is the root.', '',
+  ].join('\n'))
+  edit(join(dir, 'course.json'), '"u1l2"', '"u1l2", "u1l3"')
+  const r = lessons(root, 'build', 'course')
+  assert.equal(r.code, 0, r.out)
+  const { UNITS, GLOSSARY } = pageData(join(dir, 'index.html'))
+  const lesson = UNITS[0].lessons[2], [learn, mcq] = lesson.cards
+  assert.equal(lesson.recap, '<code>?</code> starts a query.')
+  assert.deepEqual(GLOSSARY.at(-1), ['<code>/</code>', 'the root path'])
+  assert.equal(learn.h, 'Paths and <code>?</code>')
+  assert.equal(learn.body, [
+    '<p><code>/</code> is the root and <code>?</code> starts the query.</p>',
+    '<p>Call <code>.json&lt;User&gt;()</code> once, or <code>a`b</code> for a backtick.</p>',
+    '<pre><code class="language-ts">const total = <span class="hl">items.reduce(</span>',
+    '  <span class="hl">(sum, x) =&gt; sum + x, 0)</span></code></pre>',
+  ].join('\n'))
+  assert.deepEqual(mcq.o, ['<code>/</code>', '<code>?</code>', '<code>#</code>'])
+  assert.equal(mcq.why, '<code>?</code> starts it; <code>/</code> is the root.')
+  assert.equal(run(root, CHECK, 'course/index.html').code, 0)
+
+  copyFileSync(join(dir, 'index.html'), join(root, 'page.html'))
+  copyFileSync(join(dir, 'syllabus.md'), join(root, 'syllabus.md'))
+  assert.equal(lessons(root, 'init', 'again', '--from', 'page.html').code, 0)
+  assert.equal(lessons(root, 'build', 'again').code, 0)
+  assert.deepEqual(pageData(join(root, 'again/index.html')).UNITS, UNITS)
+})
+
+test('check.mjs reports raw «…» markers and entities escaped twice in a page written by hand', () => {
+  const root = tmp()
+  const page = read(TEMPLATE).replace("storageKey: 'create-fun-lessons-sample-v1'", "storageKey: 'test-copy-v1'")
+  writeFileSync(join(root, 'syllabus.md'), TWO_ROWS)
+  writeFileSync(join(root, 'quoted.html'), page.replace('shows options;', 'shows options, as in “the `a` option”;'))
+  assert.equal(run(root, CHECK, 'quoted.html').code, 0)
+  writeFileSync(join(root, 'broken.html'), page
+    .replace('<span class="hl">highlighted</span>', '«highlighted»')
+    .replace('shows options;', 'shows options for <code>Array&amp;lt;T&amp;gt;</code>;'))
+  const r = run(root, CHECK, 'broken.html')
+  assert.equal(r.code, 1)
+  assert.match(r.out, /- lesson u1l1 card 1 \(learn\): the learner sees raw «…» markers/)
+  assert.match(r.out, /- lesson u1l1 card 2 \(mcq\): the learner sees the text "&lt;", an entity escaped twice/)
+})
 
 test('check with ids validates only those lessons and units', () => {
   const { root, dir } = freshCourse()

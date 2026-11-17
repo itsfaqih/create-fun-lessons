@@ -88,15 +88,15 @@ why: `src/routes.ts` maps each path to its handler; the server only starts liste
 
 `recap`, terms, learn headings and bodies, `q`, `why`, `expect`, `hint`, `mcq` options and `rubric` items are HTML. A value continues onto the following lines until the next field line, `- ` line, or `## ` line. Inside them:
 
-- `` `x` `` becomes `<code>x</code>`, escaped for you, so `` `a<b` `` is safe. Write ``` ``x`y`` ``` for code that holds a backtick. Backticks inside tags, `<pre>` and `<code>` stay as written.
-- A ``` fence becomes a code box, `<pre><code class="language-ts">` for ```` ```ts ````, escaped for you. Wrap the part that matters in `«…»` to highlight it. A fence with no language uses `lang` from course.json.
+- `` `x` `` becomes `<code>x</code>`, escaped for you, so `` `a<b` `` is safe. As in Markdown, a span ends at the next run of the same number of backticks on its line: `` `/` or `?` `` is two spans, and ``` ``x`y`` ``` is code that holds a backtick. An entity in a span stands for its character, so `` `a &lt; b` `` and `` `a < b` `` both show `a < b`. Backticks inside tags, `<pre>` and `<code>` stay as written. A backtick that no run closes is an error; write a literal one as `&#96;`.
+- A ``` fence becomes a code box, `<pre><code class="language-ts">` for ```` ```ts ````, escaped for you. It shows its text exactly, entities included, so write `<` itself. Wrap the part that matters in `«…»` to highlight it. A highlight may run over line breaks, so a highlighted line stays highlighted when you break it to fit the code width. A `«` or `»` without its partner is an error. A fence with no language uses `lang` from course.json.
 - A ```` ```raw ```` fence goes into the page exactly as written, for HTML the rules above would change.
-- Everywhere else write HTML: a literal `<` is `&lt;` and `&` is `&amp;`.
+- Everywhere else write HTML: a literal `<` is `&lt;` and `&` is `&amp;`. An entity escaped twice, such as `&amp;lt;`, is an error, because the learner would see `&lt;`. To show that text on purpose, write `&#38;lt;`. For a guillemet in text, write `&laquo;` or `&raquo;`.
 - A continuation line that starts with a lowercase `word:` starts a new field. Begin it with a tag, or put the value in a ```` ```raw ```` fence.
 
 ### Plain fields
 
-`code`, `model`, `starter`, and the items of `accept`, `items`, `answers`, `extra` and `fill` options are plain text, shown exactly as written. Give a one-line value on the field line, or write `name:` and a fence on the next line:
+`code`, `model`, `starter`, and the items of `accept`, `items`, `answers`, `extra` and `fill` options are plain text, shown exactly as written, so `«…»` does not highlight there and is an error. Give a one-line value on the field line, or write `name:` and a fence on the next line:
 
 ````md
 code:
