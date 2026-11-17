@@ -115,7 +115,7 @@ skills/create-fun-lessons/
   scripts/lessons.mjs    init, check and build a course folder
   scripts/schema.mjs     the card schema and checks, shared by both scripts
   scripts/check.mjs      checks a built page and its syllabus
-test/                    tests for the scripts (node --test test/)
+test/                    tests for the scripts (node --test test/lessons.test.mjs)
 site/                the landing page (Astro)
 assets/icon.svg      the project icon
 AGENTS.md            notes for agents working on this repo
