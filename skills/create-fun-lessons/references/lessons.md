@@ -50,6 +50,18 @@ node <skill-dir>/scripts/lessons.mjs build <course-dir>
 
 Every unit needs a `write` card, ideally closing the unit.
 
+## Writing the cards
+
+A lesson teaches two or three ideas in 5–6 cards: each idea a learn card, then a quiz on it. A bigger area gets more lessons rather than longer ones.
+
+- **Bite.** One idea per learn card. A learn card fits on a phone screen without scrolling past the code sample. A card that stacks several facts is several cards, each with its quiz.
+- **Quiz what you teach.** Quiz each learn card's idea on the next card or the one after. Build rejects a lesson that ends on a learn card, since nothing would ask about it.
+- **Every part you name gets a card.** An option, flag, hook, or function the learner will use gets its own learn card and quiz. A sentence inside another card does not teach it; give it a card, in the next lesson if this one is full.
+- **Recall over recognition.** `mcq`, `fill`, `blanks` and `order` ask the learner to recognise an answer; `type` and `write` ask them to produce one. After an `mcq` introduces a command, name, or expression, ask for it again as a `type` card, so most lessons hold a `type` or `write` card. Close each unit on a `write` card that produces something real: a function, a script, a config block, or a few sentences explaining a design choice.
+- **Picture** every concept that is spatial, a flow, or numeric: a diagram, chart, or illustration in a `learn` card, or in a quiz `q` that asks the learner to read it. Draw it from the patterns in [`visuals.md`](visuals.md).
+- Make wrong options plausible: a real neighbouring file, a real but wrong function. `why` says why the right answer is right, in one or two sentences.
+- **Depth.** Teach each area at the level of real names: the actual file, the function, its arguments and return value, who calls it, and what breaks when it changes. A lesson that only names an area has not taught it yet. Point to real paths, so the learner can open the code next.
+
 ## Lesson files
 
 A lesson file holds a unit's lessons, in course order, and is named by the unit id, such as `lessons/u1.md`:
@@ -298,13 +310,3 @@ highlight.js colours every code sample, command, and code answer field, live as 
 - any highlight.js name, such as `python`, `sql`, or `yaml`
 
 Give every shell fence the language `shell`, and every fence in another language than the course's its own. A language the page does not bundle goes in course.json's `languages`.
-
-## Writing the cards
-
-- **Bite.** One idea per card. A learn card fits on a phone screen without scrolling past the code sample.
-- **Picture** every concept that is spatial, a flow, or numeric: a diagram, chart, or illustration in a `learn` card, or in a quiz `q` that asks the learner to read it. Draw it from the patterns in [`visuals.md`](visuals.md).
-- Quiz each new concept within one or two cards of teaching it.
-- **Recall over recognition.** After an `mcq` introduces a command, ask for it again as a `type` card. Close each unit on a `write` card that produces something real: a function, a script, a config block, or a few sentences explaining a design choice.
-- Make wrong options plausible: a real neighbouring file, a real but wrong function. `why` says why the right answer is right, in one or two sentences.
-- **Depth.** Teach each area at the level of real names: the actual file, the function, its arguments and return value, who calls it, and what breaks when it changes. A lesson that only names an area has not taught it yet. Point to real paths, so the learner can open the code next.
-- A lesson holds 3–6 cards, so a bigger area gets more lessons rather than longer ones.
