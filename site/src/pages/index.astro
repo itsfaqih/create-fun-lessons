@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/Nav.astro'
+import Hero from '../components/Hero.astro'
+import HowItWorks from '../components/HowItWorks.astro'
+import CardTypes from '../components/CardTypes.astro'
+import Progress from '../components/Progress.astro'
+import Coverage from '../components/Coverage.astro'
+import Closing from '../components/Closing.astro'
+---
+<Base
+  title="create-fun-lessons"
+  description="An agent skill that turns a codebase, library or topic into a one-page HTML course: a lesson map, quick cards with instant feedback, hints, retries, overall progress, and a syllabus that proves full coverage."
+>
+  <Nav />
+  <main>
+    <Hero />
+    <HowItWorks />
+    <CardTypes />
+    <Progress />
+    <Coverage />
+  </main>
+  <Closing />
+</Base>

@@ -1,0 +1,27 @@
+---
+// A quiet browser window: traffic lights and a centred address pill.
+interface Props { url: string; class?: string }
+const { url, class: cls } = Astro.props
+---
+<div class:list={['bw', cls]}>
+  <div class="bw-bar">
+    <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="addr">{url}</span>
+  </div>
+  <div class="bw-body"><slot /></div>
+</div>
+
+<style is:global>
+  .bw { display: flex; flex-direction: column; background: var(--background); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-hero); }
+  .bw-bar { position: relative; flex: none; display: flex; align-items: center; height: 38px; padding: 0 14px; background: var(--muted); border-bottom: 1px solid var(--border); }
+  .bw-bar .lights { display: flex; gap: 8px; }
+  .bw-bar .lights i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 12%); }
+  .bw-bar .lights i:nth-child(2) { background: #febc2e; }
+  .bw-bar .lights i:nth-child(3) { background: #28c840; }
+  .bw-bar .addr {
+    position: absolute; left: 50%; top: 7px; translate: -50% 0; height: 24px; padding: 0 14px; display: grid; place-items: center;
+    border-radius: 7px; background: var(--background); color: var(--muted-foreground); font-size: 12.5px; white-space: nowrap;
+    box-shadow: 0 0 0 1px var(--border);
+  }
+  .bw-body { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+</style>

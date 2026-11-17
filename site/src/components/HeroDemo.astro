@@ -1,0 +1,154 @@
+---
+// Hero: a fill-the-blank card on a phone, answered with help. Beats: Hint
+// shows the authored hint; Hint again strikes out a wrong option; the learner
+// picks the right one and the blank fills in the code; Check turns the footer
+// green with "Right, with a hint". Plays once in view; the poster is the payoff.
+// Real strings: the question, the code, three options, the hint, the verdict.
+import P from './ProductIcon.astro'
+---
+<div class="well hero-well">
+  <div class="ss-stage cfl hero-stage" id="hero-demo" role="img" aria-label="A lesson card on a phone: the learner asks for two hints, picks ordersRouter to fill the blank in app.use('/orders', ____), and gets 'Right, with a hint'.">
+    <div class="phone">
+      <div class="screen">
+        <div class="panel">
+          <div class="kicker">Fill the blank</div>
+          <div class="q">Mount the router at <code>/orders</code>.</div>
+          <pre><code>app.<span class="f">use</span>(<span class="s">'/orders'</span>, <span class="blank"><span class="b-empty">&nbsp;</span><span class="b-fill">ordersRouter</span></span>)</code></pre>
+          <div class="options">
+            <div class="opt" data-target="opt-0"><span class="key">1</span><span class="label"><code>ordersRouter</code></span></div>
+            <div class="opt" data-target="opt-1"><span class="key">2</span><span class="label"><code>ordersRouter()</code></span></div>
+            <div class="opt" data-target="opt-2"><span class="key">3</span><span class="label"><code>'./routes/orders'</code></span></div>
+          </div>
+          <div class="collapse c-hint"><div><div class="hint-item">Routers are values. Pass the one you imported as it is.</div></div></div>
+          <div class="collapse c-hintbtn is-open">
+            <div>
+              <span class="btn hintbtn" data-variant="outline" data-size="sm" data-target="hint">
+                <P name="bulb" size={16} />
+                <span class="hb-label"><span class="l-hint">Hint</span><span class="l-none">No more hints</span></span>
+                <span class="left"><span class="roll"><span><span>2</span><span>1</span><span>0</span></span></span></span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="footer">
+          <div class="collapse c-fb">
+            <div>
+              <div class="fb">
+                <strong><P name="ok" size={22} /> Right, with a hint</strong>
+                <p><code>app.use</code> takes the router object itself.</p>
+              </div>
+            </div>
+          </div>
+          <span class="btn cta" data-target="cta"><span class="cta-l"><span class="l-check">Check</span><span class="l-cont">Continue</span></span></span>
+        </div>
+        <span class="home"></span>
+      </div>
+    </div>
+    <span class="touch" aria-hidden="true"></span>
+  </div>
+</div>
+
+<style is:global>
+  .hero-well { height: 600px; }
+  .hero-stage { position: absolute; inset: 0; overflow: hidden; }
+
+  /* The phone: cropped at the top, inside its content, so it loses status bar
+     and nav together; bezel, corners and home indicator below. */
+  .hero-stage .phone {
+    position: absolute; left: 50%; top: -40px; bottom: 40px; width: min(384px, 100% - 40px); translate: -50% 0;
+    padding: 0 11px 11px; border-radius: 0 0 58px 58px; background: #1d1d1f;
+    box-shadow: var(--shadow-hero), inset 0 0 0 1px rgb(255 255 255 / 10%);
+  }
+  .hero-stage .screen {
+    position: relative; height: 100%; display: flex; flex-direction: column; overflow: hidden;
+    background: var(--background); border-radius: 0 0 47px 47px;
+  }
+  .hero-stage .panel { flex: 1; padding: 64px 18px 0; min-height: 0; }
+  .hero-stage .q code { font-size: 0.82em; }
+  .hero-stage .options { margin-bottom: 0; }
+  .hero-stage .c-hint > div { padding-top: 12px; }
+  .hero-stage .c-hintbtn > div { padding-top: 14px; }
+  .hero-stage .footer { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 18px 34px; }
+  .hero-stage .c-fb .fb { padding-bottom: 12px; }
+  .hero-stage .home { position: absolute; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: var(--foreground); }
+
+  /* Labels that change share one cell and crossfade */
+  .hero-stage .hb-label, .hero-stage .cta-l { display: inline-grid; }
+  .hero-stage .hb-label > *, .hero-stage .cta-l > * { grid-area: 1 / 1; transition: opacity 0.2s; }
+  .hero-stage .hb-label { justify-items: start; overflow: hidden; transition: width 0.3s cubic-bezier(0.45, 0, 0.1, 1); }
+  .hero-stage .hb-label > * { white-space: nowrap; }
+  .hero-stage .l-none, .hero-stage .l-cont { opacity: 0; }
+  .hero-stage .hintbtn.is-out .l-hint { opacity: 0; }
+  .hero-stage .hintbtn.is-out .l-none { opacity: 1; }
+  .hero-stage .hintbtn.is-out { color: var(--muted-foreground); }
+  .hero-stage .hintbtn.is-out svg { color: var(--muted-foreground); }
+  .hero-stage .hintbtn .left { width: 20px; transition: opacity 0.2s, margin 0.3s cubic-bezier(0.45, 0, 0.1, 1), width 0.3s cubic-bezier(0.45, 0, 0.1, 1), padding 0.3s; overflow: hidden; }
+  .hero-stage .hintbtn.is-out .left { opacity: 0; width: 0; min-width: 0; padding: 0; margin-left: -6px; }
+  .hero-stage .roll > span { transform: translateY(calc(var(--i, 0) * -1lh)); }
+  .hero-stage .cta.is-off { opacity: 0.5; }
+  .hero-stage .cta.is-done .l-check { opacity: 0; }
+  .hero-stage .cta.is-done .l-cont { opacity: 1; }
+
+  .hero-stage .b-fill { opacity: 0; }
+  .hero-stage .blank.is-filled .b-fill { opacity: 1; }
+  .hero-stage .blank.is-filled { border-bottom-color: rgb(250 204 21 / 50%); }
+
+  @media (max-width: 560px) {
+    .hero-well { height: 620px; border-radius: 20px; }
+    .hero-stage .phone { width: calc(100% - 32px); }
+    .hero-stage .panel { padding: 60px 16px 0; }
+    .hero-stage pre { font-size: 12.5px; padding: 12px; }
+    .hero-stage .footer { padding: 14px 16px 34px; }
+  }
+</style>
+
+<script>
+  import { stage } from '../scripts/stage'
+  const root = document.getElementById('hero-demo')!
+  const $ = (sel: string) => root.querySelector<HTMLElement>(sel)!
+  stage(root, {
+    initial: { hints: 0, sel: null, graded: null },
+    poster: { hints: 2, sel: 0, graded: 'ok' },
+    render(_, d) {
+      const hints = Number(d.hints ?? 0)
+      const sel = d.sel !== undefined
+      const graded = d.graded === 'ok'
+      $('.c-hint').classList.toggle('is-open', hints >= 1)
+      $('[data-target="opt-2"]').classList.toggle('is-gone', hints >= 2)
+      const hb = $('.hintbtn')
+      hb.classList.toggle('is-out', hints >= 2)
+      const label = hb.querySelector<HTMLElement>(hints >= 2 ? '.l-none' : '.l-hint')!
+      hb.querySelector<HTMLElement>('.hb-label')!.style.width = `${label.offsetWidth}px`
+      hb.style.setProperty('--i', String(Math.min(hints, 2)))
+      hb.querySelectorAll('.roll > span > span').forEach((el, i) => el.classList.toggle('is-on', i === Math.min(hints, 2)))
+      $('.c-hintbtn').classList.toggle('is-open', !graded)
+      const opt = $('[data-target="opt-0"]')
+      opt.classList.toggle('is-sel', sel && !graded)
+      opt.classList.toggle('is-right', graded)
+      $('.blank').classList.toggle('is-filled', sel)
+      $('.cta').classList.toggle('is-off', !sel)
+      $('.cta').classList.toggle('is-done', graded)
+      $('.footer').classList.toggle('is-ok', graded)
+      $('.c-fb').classList.toggle('is-open', graded)
+    },
+    async script(a) {
+      await a.wait(1100)
+      a.mark('hint')
+      await a.tap('hint', 0.3, 0.55)
+      a.set({ hints: 1 })
+      await a.wait(1700)
+      a.mark('strike')
+      await a.tap('hint', 0.3, 0.55)
+      a.set({ hints: 2 })
+      await a.wait(1300)
+      a.mark('pick')
+      await a.tap('opt-0', 0.72, 0.55)
+      a.set({ sel: 0 })
+      await a.wait(900)
+      a.mark('check')
+      await a.tap('cta', 0.68, 0.5)
+      a.set({ graded: 'ok' })
+      await a.wait(1200)
+    },
+  })
+</script>

@@ -1,0 +1,40 @@
+---
+import MapDemo from './MapDemo.astro'
+const steps = [
+  ['Map the subject', 'The agent lists every part of the subject in <code>syllabus.md</code>: each app and module, the entry points, data, config and tooling.'],
+  ['Read each part', 'It studies every row to the depth a contributor needs, and traces each fact to a file or a URL.'],
+  ['Write the lessons', 'It orders the units from the basics to a capstone that plans a real change, three to six cards a lesson.'],
+  ['Check, then open', 'The checker has to print OK. You get one HTML page that runs in a browser and saves progress on the device.'],
+]
+---
+<section id="how" class="wrap">
+  <div class="section-head">
+    <p class="eyebrow">How it works</p>
+    <h2>One prompt makes the whole course.</h2>
+  </div>
+  <div class="how">
+    <ol>
+      {steps.map(([title, body], i) => (
+        <li>
+          <span class="num">{i + 1}</span>
+          <div><h3>{title}</h3><p set:html={body} /></div>
+        </li>
+      ))}
+    </ol>
+    <MapDemo />
+  </div>
+</section>
+
+<style>
+  .how { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 640px); gap: clamp(40px, 6vw, 88px); align-items: start; }
+  ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+  li { display: grid; grid-template-columns: 44px 1fr; gap: 16px; padding: 22px 0; border-top: 1px solid var(--rule); }
+  li:first-child { border-top: 0; padding-top: 4px; }
+  .num {
+    display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+    font-family: var(--display); font-weight: 600; font-size: 17px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--rule);
+  }
+  h3 { margin: 5px 0 6px; }
+  li p { color: var(--ink-2); font-size: 16px; }
+  @media (max-width: 960px) { .how { grid-template-columns: minmax(0, 1fr); } }
+</style>

@@ -1,0 +1,25 @@
+---
+import Icon from './Icon.astro'
+---
+<header class="nav wrap">
+  <a class="mark" href="#top">create-fun-lessons</a>
+  <nav aria-label="Sections">
+    <a href="#how">How it works</a>
+    <a href="#cards">Cards</a>
+    <a href="#coverage">Coverage</a>
+  </nav>
+  <a class="gh" href="https://github.com/itsfaqih/create-fun-lessons"><Icon name="github" size={18} /><span>GitHub</span></a>
+</header>
+
+<style>
+  .nav { display: flex; align-items: center; gap: 32px; height: 72px; }
+  .mark { font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: -0.02em; text-decoration: none; }
+  nav { display: flex; gap: 28px; margin-left: auto; }
+  nav a, .gh { font-size: 15px; color: var(--ink-2); text-decoration: none; transition: color 0.15s; }
+  nav a:hover, .gh:hover { color: var(--ink); }
+  .gh { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--rule); color: var(--ink); background: var(--surface); }
+  @media (max-width: 720px) {
+    nav { display: none; }
+    .gh { margin-left: auto; }
+  }
+</style>

@@ -1,0 +1,31 @@
+---
+import DoneDemo from './DoneDemo.astro'
+const points = [
+  ['Misses come back', 'A card you get wrong returns at the end of the lesson, so every lesson ends with every card answered right.'],
+  ['Course progress', 'The map shows how many lessons of the course are done, and each finished lesson moves the bar forward.'],
+  ['Saved as you go', 'Progress saves on the device after every card, even mid-lesson. A progress code moves it to another browser.'],
+]
+---
+<section id="progress" class="wrap">
+  <div class="split">
+    <div class="side">
+      <div class="section-head">
+        <p class="eyebrow">Progress</p>
+        <h2>Small wins, and a reason to come back tomorrow.</h2>
+      </div>
+      <dl>
+        {points.map(([t, d]) => (<div><dt>{t}</dt><dd>{d}</dd></div>))}
+      </dl>
+    </div>
+    <DoneDemo />
+  </div>
+</section>
+
+<style>
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 640px); gap: clamp(40px, 6vw, 88px); align-items: center; }
+  .section-head { margin-bottom: 28px; }
+  dl { margin: 0; display: grid; gap: 20px; }
+  dt { font-family: var(--display); font-weight: 600; font-size: 19px; letter-spacing: -0.015em; }
+  dd { margin: 4px 0 0; color: var(--ink-2); font-size: 16px; }
+  @media (max-width: 960px) { .split { grid-template-columns: minmax(0, 1fr); } }
+</style>
