@@ -77,8 +77,9 @@ def run(slugs):
         print(slug, 'exit', code, flush=True)
 
 
-CHECKER = re.compile(r'check\.mjs|lessons\.mjs\s+(check|build)\b')
+CHECKER = re.compile(r'\bnode\s+(--\S+\s+)*\S*(?<![\w-])(check\.mjs|lessons\.mjs\s+(check|build)\b)')
 SCRIPT_EXT = re.compile(r'\.(mjs|js|cjs|py|sh)$')
+SCRIPT_REDIRECT = re.compile(r"(cat\s*>|>)\s*\S+\.(mjs|js|cjs|py|sh)\b(?!on)")
 
 
 def result_text(block):
@@ -92,13 +93,13 @@ def failure_kinds(text):
     kinds = set()
     for line in text.splitlines():
         l = line.lower()
-        if not l.strip().startswith(('-', 'lessons/', 'syllabus', 'lesson ', 'unit ', 'course', 'script', 'content')) and ':' not in l:
+        if not re.match(r'\s*(- |\S*lessons/\S+\.md:\d+:|\S*course\.json|syllabus\.md|script does not parse|content block|course content|no inline)', l):
             continue
         if 'syllabus' in l or 'in no row' in l or '--repo' in l:
             kinds.add('syllabus')
         elif 'does not parse' in l or 'throws' in l or 'unexpected token' in l or 'never closed' in l:
             kinds.add('parse')
-        elif 'column' in l or 'too wide' in l or 'wide' in l:
+        elif re.search(r' columns; \d+ fit ', l):
             kinds.add('width')
         elif re.search(r'(card|lesson|unit|course|glossary|lang|storagekey)', l):
             kinds.add('field')
@@ -125,15 +126,15 @@ def measure(slug, arm, task):
     checks = []
     for uid, u in uses.items():
         cmd = u['input'].get('command', '') if u['name'] in ('Bash', 'Monitor') else ''
-        if not CHECKER.search(cmd) or re.match(r'\s*(cat|sed|head|grep|less|rg)\b', cmd):
+        if not CHECKER.search(cmd):
             continue
         r = results.get(uid, {'text': '', 'error': True})
         ok = bool(re.search(r'^\s*OK:', r['text'], re.M)) and not re.search(r'problem\(s\)', r['text'])
-        checks.append({'ok': ok, 'kinds': [] if ok else failure_kinds(r['text']), 'cmd': cmd[:200], 'background': bool(u['input'].get('run_in_background'))})
+        checks.append({'ok': ok, 'kinds': [] if ok else failure_kinds(r['text']), 'cmd': cmd[:200], 'out': r['text'][:400], 'background': bool(u['input'].get('run_in_background'))})
     written = sorted({u['input'].get('file_path', '') for u in uses.values() if u['name'] == 'Write'})
     helpers = [p for p in written if SCRIPT_EXT.search(p)]
     bash_scripts = [u['input'].get('command', '')[:120] for u in uses.values()
-                    if u['name'] == 'Bash' and re.search(r"cat\s*>\s*\S+\.(mjs|js|py|sh)|<<\s*'?\w+'?\s*>\s*\S+\.(mjs|js|py|sh)", u['input'].get('command', ''))]
+                    if u['name'] == 'Bash' and SCRIPT_REDIRECT.search(u['input'].get('command', ''))]
     reads = [u['input'].get('file_path', '') for u in uses.values() if u['name'] == 'Read']
     outside = [p for p in reads if p and not p.startswith(str(WORK / slug))]
     mu = (result or {}).get('modelUsage', {})

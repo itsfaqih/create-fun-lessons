@@ -48,7 +48,8 @@ if (arm === 'new' && existsSync(join(course, 'course.json'))) {
   const tmp = mkdtempSync(join(tmpdir(), 'kyc-'))
   cpSync(course, tmp, { recursive: true })
   const b = run('node', [join(ws, 'skills/create-fun-lessons/scripts/lessons.mjs'), 'build', tmp])
-  g.freshBuild = { ok: b.ok, matchesPage: b.ok && readFileSync(join(tmp, 'index.html'), 'utf8') === html }
+  g.freshBuild = { ok: b.ok, matchesPage: b.ok && readFileSync(join(tmp, 'index.html'), 'utf8') === html,
+    sourceFillBroken: /exactly one ____/.test(b.out), sourceWidth: / columns; \d+ fit /.test(b.out) }
   rmSync(tmp, { recursive: true, force: true })
 }
 
@@ -83,8 +84,8 @@ if (task === 'revise' && data && seedPage) {
     insertedCards: inserted && added.includes(inserted.id) ? inserted.cards.length : 0,
     seedIdsKept: seedIds.every(id => nowIds.includes(id)),
     storageKeyKept: data.COURSE.storageKey === seed.COURSE.storageKey,
-    fillFixed: brokenFill.length === 0,
-    widthFixed: !wide,
+    fillFixed: brokenFill.length === 0 && !g.freshBuild?.sourceFillBroken,
+    widthFixed: !wide && !g.freshBuild?.sourceWidth,
     newLessonInSyllabus: added.length === 1 && new RegExp(`\\b${added[0]}\\b`).test(syllabus ?? ''),
     collateralLessons: changed,
     addedId: added[0] ?? null,
