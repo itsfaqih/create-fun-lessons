@@ -514,15 +514,17 @@ function highlight(root){
   });
 }
 /* Answer field markup: a plain field for text, a highlighted editor for code. */
+/* An answer field without a lang is prose, matching the sample answer. */
+const entryLang=c=>langOf(c.lang||'text');
 function field(c){
-  const lang=langOf(c.lang), multi=c.t==='write', cls=lang?'code':'';
+  const lang=entryLang(c), multi=c.t==='write', cls=lang?'code':'';
   const attrs=`id="entry" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="${!lang&&multi}" aria-label="Your answer"`;
   const mirror=lang?'<pre aria-hidden="true"><code></code></pre>':'';
   if(multi) return `<div class="wbox ${cls}" id="entrybox">${mirror}<textarea ${attrs} rows="${lang?8:6}" ${lang?'wrap="off"':''}>${esc(c.starter||'')}</textarea></div>`;
   return `<label class="entry ${cls}" id="entrybox">${c.lang==='shell'?'<span class="prompt">$</span>':''}<span class="ed">${mirror}<input ${attrs}></span></label>`;
 }
 function wireField(c){
-  const en=document.getElementById('entry'), lang=langOf(c.lang), mirror=document.querySelector('#entrybox pre code');
+  const en=document.getElementById('entry'), lang=entryLang(c), mirror=document.querySelector('#entrybox pre code');
   if(!mirror) return en;
   const pre=mirror.parentElement;
   const sync=()=>{ mirror.innerHTML=hlHTML(en.value,lang)+'\n'; pre.scrollTop=en.scrollTop; pre.scrollLeft=en.scrollLeft; };
@@ -661,7 +663,7 @@ function renderCard(){
   if(c.t==='type'||c.t==='write'){
     const en=wireField(c), start=c.starter||'';
     en.oninput=()=>{ cta.disabled=!en.value.trim()||en.value===start; };
-    if(c.t==='write') en.onkeydown=e=>{ if(e.key==='Tab'&&!e.shiftKey&&langOf(c.lang)&&!en.readOnly){ e.preventDefault(); en.setRangeText('  ',en.selectionStart,en.selectionEnd,'end'); en.dispatchEvent(new Event('input')); } };
+    if(c.t==='write') en.onkeydown=e=>{ if(e.key==='Tab'&&!e.shiftKey&&entryLang(c)&&!en.readOnly){ e.preventDefault(); en.setRangeText('  ',en.selectionStart,en.selectionEnd,'end'); en.dispatchEvent(new Event('input')); } };
   }
   cta.onclick=()=> L.phase==='answer' ? check(c) : L.phase==='review' ? grade(c,[...app.querySelectorAll('.rubric input')].every(x=>x.checked)) : next(c);
 }

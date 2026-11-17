@@ -241,7 +241,7 @@ hint:
 why: A function hands its result back with `return`; without it the call yields `undefined`.
 ````
 
-For work too open to match by text: code, a script, a config block, or an essay. The `rubric` is the acceptance criteria, listed under "Your answer should" before the learner writes. After Check the learner sees `model`, the sample answer, and ticks each criterion their answer meets: all ticked counts as right, anything less sends the card to the retry queue. Write 2–4 criteria, each a yes-or-no requirement observable in the answer ("Calls `await` on the fetch"). `starter` prefills the field, such as a function signature. A `write` card always needs a `hint`. For an essay, give `lang: text` and write `model` on one line or in a plain fence.
+For work too open to match by text: code, a script, a config block, or an essay. The `rubric` is the acceptance criteria, listed under "Your answer should" before the learner writes. After Check the learner sees `model`, the sample answer, and ticks each criterion their answer meets: all ticked counts as right, anything less sends the card to the retry queue. Write 2–4 criteria, each a yes-or-no requirement observable in the answer ("Calls `await` on the fetch"). `starter` prefills the field, such as a function signature. A `write` card always needs a `hint`. For an essay, leave out `lang` (or give `lang: text`) and write `model` on one line or in a plain fence; for code, give the fence its language.
 
 ## Hints
 

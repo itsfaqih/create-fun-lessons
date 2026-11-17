@@ -74,9 +74,7 @@ export const CARD_TYPES = {
     },
   },
   write: {
-    // The engine's answer editor colours code unless lang is 'text'; the
-    // sample answer is a <pre> only when lang is set and not 'text'.
-    fields: { q, lang, starter: plain({ shows: c => c.lang === 'text' ? null : 'editor' }), model: plain({ required: true, about: 'the sample answer', shows: c => isText(c) ? null : 'pre' }), rubric: html({ list: 'list', required: true, min: 2, max: 4, about: 'criteria' }), hint, why },
+    fields: { q, lang, starter: plain({ shows: c => isText(c) ? null : 'editor' }), model: plain({ required: true, about: 'the sample answer', shows: c => isText(c) ? null : 'pre' }), rubric: html({ list: 'list', required: true, min: 2, max: 4, about: 'criteria' }), hint, why },
     needsHint: () => true,
   },
 }
