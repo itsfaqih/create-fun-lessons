@@ -27,7 +27,7 @@ export function loadPage(html) {
 }
 
 export function trackedDirs(repo) {
-  return [...new Set(execFileSync('git', ['-C', repo, 'ls-files'], { encoding: 'utf8' }).split('\n').filter(f => f.includes('/')).map(f => f.split('/')[0]))]
+  return [...new Set(execFileSync('git', ['-C', repo, 'ls-files'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).split('\n').filter(f => f.includes('/')).map(f => f.split('/')[0]))]
 }
 
 // Every page-level problem, as the lines check.mjs prints, plus the summary

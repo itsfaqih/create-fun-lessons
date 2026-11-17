@@ -346,10 +346,10 @@ const UNITS = [
   lessons:[
   { id:'u1l1', title:'Card types', recap:'learn teaches; mcq, fill, blanks and order check.', cards:[
     {t:'learn', h:'A learn card', body:`<p>Body is HTML. Use <code>code</code>, lists, and the helpers below.</p>
-      <div class="flow"><div class="step">Step one<small>detail</small></div><div class="arrow">↓</div><div class="step">Step two</div></div>
-      <div class="where">📄 <code>path/to/file.ts</code></div><div class="tip">A highlighted tip.</div>
-      <pre><code>const x = <span class="hl">highlighted</span>('text', 42)</code></pre>
-      <pre><code class="language-shell">git commit -m "first" \\
+<div class="flow"><div class="step">Step one<small>detail</small></div><div class="arrow">↓</div><div class="step">Step two</div></div>
+<div class="where">📄 <code>path/to/file.ts</code></div><div class="tip">A highlighted tip.</div>
+<pre><code>const x = <span class="hl">highlighted</span>('text', 42)</code></pre>
+<pre><code class="language-shell">git commit -m "first" \\
   &amp;&amp; <span class="hl">git push --force-with-lease</span></code></pre>`},
     {t:'mcq', q:'Which card asks a multiple-choice question?', o:['<code>learn</code>','<code>mcq</code>','<code>order</code>'], a:1, why:'<code>mcq</code> shows options; <code>a</code> is the index of the right one.'},
     {t:'fill', q:'Fill the blank.', code:`const answer = ____`, o:['42','"forty-two"'], a:0, hint:'The answer is a number, not a string.', why:'The blank is four underscores in <code>code</code>.'},
@@ -360,66 +360,66 @@ const UNITS = [
   ]},
   { id:'u1l2', title:'Visuals', recap:'Draw what is spatial, a flow, or numeric: diagrams, charts and illustrations.', cards:[
     {t:'learn', h:'A flow diagram', body:`<p>Draw a branch as a diagram; a straight pipeline fits the <code>.flow</code> helper.</p>
-      <figure class="viz"><svg viewBox="0 0 320 248" role="img" aria-label="A request checks the cache. A hit returns the cached copy. A miss queries the database, saves the row to the cache, then returns it.">
-        <rect class="box" x="100" y="4" width="120" height="36" rx="8"/><text x="160" y="22" dy=".35em" text-anchor="middle">Request in</text>
-        <path class="edge" d="M160 40V62"/>
-        <path class="box hi" d="M160 64 216 92 160 120 104 92z"/><text x="160" y="92" dy=".35em" text-anchor="middle">In cache?</text>
-        <path class="edge" d="M104 92H60V140"/><text class="sub" x="80" y="84" text-anchor="middle">yes</text>
-        <path class="edge" d="M216 92H260V140"/><text class="sub" x="240" y="84" text-anchor="middle">no</text>
-        <rect class="box" x="4" y="142" width="112" height="36" rx="8"/><text x="60" y="160" dy=".35em" text-anchor="middle">Return cached</text>
-        <rect class="box" x="204" y="142" width="112" height="36" rx="8"/><text x="260" y="160" dy=".35em" text-anchor="middle">Query database</text>
-        <path class="edge" d="M260 178V204"/>
-        <rect class="box" x="204" y="206" width="112" height="36" rx="8"/><text x="260" y="224" dy=".35em" text-anchor="middle">Save to cache</text>
-        <path class="edge back" d="M204 224H60V180"/><text class="sub" x="132" y="216" text-anchor="middle">then return</text>
-      </svg><figcaption>A read-through cache: every miss fills it.</figcaption></figure>`},
+<figure class="viz"><svg viewBox="0 0 320 248" role="img" aria-label="A request checks the cache. A hit returns the cached copy. A miss queries the database, saves the row to the cache, then returns it.">
+  <rect class="box" x="100" y="4" width="120" height="36" rx="8"/><text x="160" y="22" dy=".35em" text-anchor="middle">Request in</text>
+  <path class="edge" d="M160 40V62"/>
+  <path class="box hi" d="M160 64 216 92 160 120 104 92z"/><text x="160" y="92" dy=".35em" text-anchor="middle">In cache?</text>
+  <path class="edge" d="M104 92H60V140"/><text class="sub" x="80" y="84" text-anchor="middle">yes</text>
+  <path class="edge" d="M216 92H260V140"/><text class="sub" x="240" y="84" text-anchor="middle">no</text>
+  <rect class="box" x="4" y="142" width="112" height="36" rx="8"/><text x="60" y="160" dy=".35em" text-anchor="middle">Return cached</text>
+  <rect class="box" x="204" y="142" width="112" height="36" rx="8"/><text x="260" y="160" dy=".35em" text-anchor="middle">Query database</text>
+  <path class="edge" d="M260 178V204"/>
+  <rect class="box" x="204" y="206" width="112" height="36" rx="8"/><text x="260" y="224" dy=".35em" text-anchor="middle">Save to cache</text>
+  <path class="edge back" d="M204 224H60V180"/><text class="sub" x="132" y="216" text-anchor="middle">then return</text>
+</svg><figcaption>A read-through cache: every miss fills it.</figcaption></figure>`},
     {t:'learn', h:'A sequence diagram', body:`<p>One column per actor, time running down. Dashed arrows are replies.</p>
-      <figure class="viz"><svg viewBox="0 0 320 206" role="img" aria-label="The browser sends GET /orders/42 to the server. The server queries the database, gets one row back, and replies 200 with JSON.">
-        <rect class="box" x="8" y="4" width="84" height="28" rx="6"/><text x="50" y="18" dy=".35em" text-anchor="middle">Browser</text>
-        <rect class="box hi" x="118" y="4" width="84" height="28" rx="6"/><text x="160" y="18" dy=".35em" text-anchor="middle">Server</text>
-        <rect class="box" x="228" y="4" width="84" height="28" rx="6"/><text x="270" y="18" dy=".35em" text-anchor="middle">Database</text>
-        <path class="life" d="M50 32V202M160 32V202M270 32V202"/>
-        <path class="edge" d="M50 64H158"/><text class="mono" x="105" y="56" text-anchor="middle">GET /orders/42</text>
-        <path class="edge" d="M160 104H268"/><text class="mono" x="215" y="96" text-anchor="middle">SELECT … 42</text>
-        <path class="edge back" d="M270 144H162"/><text class="mono" x="215" y="136" text-anchor="middle">1 row</text>
-        <path class="edge back" d="M160 184H52"/><text class="mono" x="105" y="176" text-anchor="middle">200 + JSON</text>
-      </svg><figcaption>One request, from click to response.</figcaption></figure>`},
+<figure class="viz"><svg viewBox="0 0 320 206" role="img" aria-label="The browser sends GET /orders/42 to the server. The server queries the database, gets one row back, and replies 200 with JSON.">
+  <rect class="box" x="8" y="4" width="84" height="28" rx="6"/><text x="50" y="18" dy=".35em" text-anchor="middle">Browser</text>
+  <rect class="box hi" x="118" y="4" width="84" height="28" rx="6"/><text x="160" y="18" dy=".35em" text-anchor="middle">Server</text>
+  <rect class="box" x="228" y="4" width="84" height="28" rx="6"/><text x="270" y="18" dy=".35em" text-anchor="middle">Database</text>
+  <path class="life" d="M50 32V202M160 32V202M270 32V202"/>
+  <path class="edge" d="M50 64H158"/><text class="mono" x="105" y="56" text-anchor="middle">GET /orders/42</text>
+  <path class="edge" d="M160 104H268"/><text class="mono" x="215" y="96" text-anchor="middle">SELECT … 42</text>
+  <path class="edge back" d="M270 144H162"/><text class="mono" x="215" y="136" text-anchor="middle">1 row</text>
+  <path class="edge back" d="M160 184H52"/><text class="mono" x="105" y="176" text-anchor="middle">200 + JSON</text>
+</svg><figcaption>One request, from click to response.</figcaption></figure>`},
     {t:'mcq', q:`Which part reads from Redis?
-      <figure class="viz"><svg viewBox="0 0 320 226" role="img" aria-label="The browser calls the router inside the api service. The router passes requests to the handlers. The handlers connect to Postgres and to Redis.">
-        <rect class="box" x="110" y="4" width="100" height="34" rx="8"/><text x="160" y="21" dy=".35em" text-anchor="middle">Browser</text>
-        <rect class="zone" x="16" y="56" width="288" height="96" rx="12"/><text class="sub" x="28" y="72">api service</text>
-        <path class="edge" d="M160 38V46H90V84"/>
-        <rect class="box" x="40" y="86" width="100" height="44" rx="8"/><text x="90" y="101" dy=".35em" text-anchor="middle">Router</text><text class="sub mono" x="90" y="117" dy=".35em" text-anchor="middle">routes.ts</text>
-        <path class="edge" d="M140 108H178"/>
-        <rect class="box" x="180" y="86" width="100" height="44" rx="8"/><text x="230" y="101" dy=".35em" text-anchor="middle">Handlers</text><text class="sub mono" x="230" y="117" dy=".35em" text-anchor="middle">orders.ts</text>
-        <path class="edge" d="M210 130V166H90V184"/><path class="edge" d="M250 130V184"/>
-        <rect class="box soft" x="40" y="186" width="100" height="34" rx="8"/><text x="90" y="203" dy=".35em" text-anchor="middle">Postgres</text>
-        <rect class="box soft" x="200" y="186" width="100" height="34" rx="8"/><text x="250" y="203" dy=".35em" text-anchor="middle">Redis</text>
-      </svg></figure>`, o:['Browser','Router','Handlers'], a:2, why:'Follow the arrows: only the handlers have an arrow into Redis. The router hands requests on and never touches storage.'},
+<figure class="viz"><svg viewBox="0 0 320 226" role="img" aria-label="The browser calls the router inside the api service. The router passes requests to the handlers. The handlers connect to Postgres and to Redis.">
+  <rect class="box" x="110" y="4" width="100" height="34" rx="8"/><text x="160" y="21" dy=".35em" text-anchor="middle">Browser</text>
+  <rect class="zone" x="16" y="56" width="288" height="96" rx="12"/><text class="sub" x="28" y="72">api service</text>
+  <path class="edge" d="M160 38V46H90V84"/>
+  <rect class="box" x="40" y="86" width="100" height="44" rx="8"/><text x="90" y="101" dy=".35em" text-anchor="middle">Router</text><text class="sub mono" x="90" y="117" dy=".35em" text-anchor="middle">routes.ts</text>
+  <path class="edge" d="M140 108H178"/>
+  <rect class="box" x="180" y="86" width="100" height="44" rx="8"/><text x="230" y="101" dy=".35em" text-anchor="middle">Handlers</text><text class="sub mono" x="230" y="117" dy=".35em" text-anchor="middle">orders.ts</text>
+  <path class="edge" d="M210 130V166H90V184"/><path class="edge" d="M250 130V184"/>
+  <rect class="box soft" x="40" y="186" width="100" height="34" rx="8"/><text x="90" y="203" dy=".35em" text-anchor="middle">Postgres</text>
+  <rect class="box soft" x="200" y="186" width="100" height="34" rx="8"/><text x="250" y="203" dy=".35em" text-anchor="middle">Redis</text>
+</svg></figure>`, o:['Browser','Router','Handlers'], a:2, why:'Follow the arrows: only the handlers have an arrow into Redis. The router hands requests on and never touches storage.'},
     {t:'learn', h:'A bar chart', body:`<p>Compare sizes with horizontal bars: the labels stay readable on a phone.</p>
-      <figure class="viz"><svg viewBox="0 0 320 140" role="img" aria-label="Bundle size by package: core 142 kB, ui 96 kB, cli 38 kB, docs 12 kB.">
-        <path class="axis" d="M76 4V136"/>
-        <text x="68" y="20" dy=".35em" text-anchor="end">core</text><rect class="fill" x="76" y="10" width="190" height="20" rx="3"/><text class="mono" x="272" y="20" dy=".35em">142 kB</text>
-        <text x="68" y="54" dy=".35em" text-anchor="end">ui</text><rect class="fill" x="76" y="44" width="128.5" height="20" rx="3"/><text class="mono" x="210.5" y="54" dy=".35em">96 kB</text>
-        <text x="68" y="88" dy=".35em" text-anchor="end">cli</text><rect class="fill alt" x="76" y="78" width="50.8" height="20" rx="3"/><text class="mono" x="132.8" y="88" dy=".35em">38 kB</text>
-        <text x="68" y="122" dy=".35em" text-anchor="end">docs</text><rect class="fill alt" x="76" y="112" width="16.1" height="20" rx="3"/><text class="mono" x="98.1" y="122" dy=".35em">12 kB</text>
-      </svg><figcaption>Bundle size by package. The two that ship to users are in colour.</figcaption></figure>`},
+<figure class="viz"><svg viewBox="0 0 320 140" role="img" aria-label="Bundle size by package: core 142 kB, ui 96 kB, cli 38 kB, docs 12 kB.">
+  <path class="axis" d="M76 4V136"/>
+  <text x="68" y="20" dy=".35em" text-anchor="end">core</text><rect class="fill" x="76" y="10" width="190" height="20" rx="3"/><text class="mono" x="272" y="20" dy=".35em">142 kB</text>
+  <text x="68" y="54" dy=".35em" text-anchor="end">ui</text><rect class="fill" x="76" y="44" width="128.5" height="20" rx="3"/><text class="mono" x="210.5" y="54" dy=".35em">96 kB</text>
+  <text x="68" y="88" dy=".35em" text-anchor="end">cli</text><rect class="fill alt" x="76" y="78" width="50.8" height="20" rx="3"/><text class="mono" x="132.8" y="88" dy=".35em">38 kB</text>
+  <text x="68" y="122" dy=".35em" text-anchor="end">docs</text><rect class="fill alt" x="76" y="112" width="16.1" height="20" rx="3"/><text class="mono" x="98.1" y="122" dy=".35em">12 kB</text>
+</svg><figcaption>Bundle size by package. The two that ship to users are in colour.</figcaption></figure>`},
     {t:'mcq', q:`Which release made p95 latency jump?
-      <figure class="viz"><svg viewBox="0 0 320 166" role="img" aria-label="p95 latency per release, in milliseconds: about 120 for v1 to v3, 240 at v4, 230 at v5, 130 at v6 and 115 at v7.">
-        <path class="grid" d="M36 12H308M36 54.7H308M36 97.3H308"/><path class="axis" d="M36 140H308"/>
-        <text class="sub" x="30" y="12" dy=".35em" text-anchor="end">300</text><text class="sub" x="30" y="54.7" dy=".35em" text-anchor="end">200</text><text class="sub" x="30" y="97.3" dy=".35em" text-anchor="end">100</text><text class="sub" x="30" y="140" dy=".35em" text-anchor="end">0</text>
-        <path class="area" d="M36 88.8L81.3 89.7 126.7 86.7 172 37.6 217.3 41.9 262.7 84.5 308 90.9V140H36z"/>
-        <path class="series" d="M36 88.8L81.3 89.7 126.7 86.7 172 37.6 217.3 41.9 262.7 84.5 308 90.9"/>
-        <text class="sub" x="36" y="156" text-anchor="middle">v1</text><text class="sub" x="81.3" y="156" text-anchor="middle">v2</text><text class="sub" x="126.7" y="156" text-anchor="middle">v3</text><text class="sub" x="172" y="156" text-anchor="middle">v4</text><text class="sub" x="217.3" y="156" text-anchor="middle">v5</text><text class="sub" x="262.7" y="156" text-anchor="middle">v6</text><text class="sub" x="308" y="156" text-anchor="middle">v7</text>
-      </svg><figcaption>p95 latency per release, ms</figcaption></figure>`, o:['v3','v4','v6'], a:1, why:'The line doubles between v3 and v4 and falls back at v6, so v4 brought the slowdown and v6 fixed it.'},
+<figure class="viz"><svg viewBox="0 0 320 166" role="img" aria-label="p95 latency per release, in milliseconds: about 120 for v1 to v3, 240 at v4, 230 at v5, 130 at v6 and 115 at v7.">
+  <path class="grid" d="M36 12H308M36 54.7H308M36 97.3H308"/><path class="axis" d="M36 140H308"/>
+  <text class="sub" x="30" y="12" dy=".35em" text-anchor="end">300</text><text class="sub" x="30" y="54.7" dy=".35em" text-anchor="end">200</text><text class="sub" x="30" y="97.3" dy=".35em" text-anchor="end">100</text><text class="sub" x="30" y="140" dy=".35em" text-anchor="end">0</text>
+  <path class="area" d="M36 88.8L81.3 89.7 126.7 86.7 172 37.6 217.3 41.9 262.7 84.5 308 90.9V140H36z"/>
+  <path class="series" d="M36 88.8L81.3 89.7 126.7 86.7 172 37.6 217.3 41.9 262.7 84.5 308 90.9"/>
+  <text class="sub" x="36" y="156" text-anchor="middle">v1</text><text class="sub" x="81.3" y="156" text-anchor="middle">v2</text><text class="sub" x="126.7" y="156" text-anchor="middle">v3</text><text class="sub" x="172" y="156" text-anchor="middle">v4</text><text class="sub" x="217.3" y="156" text-anchor="middle">v5</text><text class="sub" x="262.7" y="156" text-anchor="middle">v6</text><text class="sub" x="308" y="156" text-anchor="middle">v7</text>
+</svg><figcaption>p95 latency per release, ms</figcaption></figure>`, o:['v3','v4','v6'], a:1, why:'The line doubles between v3 and v4 and falls back at v6, so v4 brought the slowdown and v6 fixed it.'},
     {t:'learn', h:'An illustration', body:`<p>Picture a concept that has a shape. <code>slice(start, end)</code> copies from <code>start</code> up to, but not including, <code>end</code>.</p>
-      <figure class="viz"><svg viewBox="0 0 320 132" role="img" aria-label="An array of five letters, a to e, with indexes 0 to 4. slice(1, 3) starts at index 1 and stops before index 3, giving b and c.">
-        <text class="mono" x="88" y="10" dy=".35em" text-anchor="middle">start = 1</text><path class="edge hi" d="M88 20V40"/>
-        <text class="mono" x="184" y="10" dy=".35em" text-anchor="middle">end = 3</text><path class="edge" d="M184 20V40"/>
-        <rect class="box" x="40" y="44" width="48" height="40"/><rect class="box hi" x="88" y="44" width="48" height="40"/><rect class="box hi" x="136" y="44" width="48" height="40"/><rect class="box" x="184" y="44" width="48" height="40"/><rect class="box" x="232" y="44" width="48" height="40"/>
-        <text class="mono" x="64" y="64" dy=".35em" text-anchor="middle">'a'</text><text class="mono" x="112" y="64" dy=".35em" text-anchor="middle">'b'</text><text class="mono" x="160" y="64" dy=".35em" text-anchor="middle">'c'</text><text class="mono" x="208" y="64" dy=".35em" text-anchor="middle">'d'</text><text class="mono" x="256" y="64" dy=".35em" text-anchor="middle">'e'</text>
-        <text class="sub" x="64" y="98" dy=".35em" text-anchor="middle">0</text><text class="sub" x="112" y="98" dy=".35em" text-anchor="middle">1</text><text class="sub" x="160" y="98" dy=".35em" text-anchor="middle">2</text><text class="sub" x="208" y="98" dy=".35em" text-anchor="middle">3</text><text class="sub" x="256" y="98" dy=".35em" text-anchor="middle">4</text>
-        <text class="mono" x="136" y="122" dy=".35em" text-anchor="middle">→ ['b', 'c']</text>
-      </svg><figcaption><code>letters.slice(1, 3)</code></figcaption></figure>`},
+<figure class="viz"><svg viewBox="0 0 320 132" role="img" aria-label="An array of five letters, a to e, with indexes 0 to 4. slice(1, 3) starts at index 1 and stops before index 3, giving b and c.">
+  <text class="mono" x="88" y="10" dy=".35em" text-anchor="middle">start = 1</text><path class="edge hi" d="M88 20V40"/>
+  <text class="mono" x="184" y="10" dy=".35em" text-anchor="middle">end = 3</text><path class="edge" d="M184 20V40"/>
+  <rect class="box" x="40" y="44" width="48" height="40"/><rect class="box hi" x="88" y="44" width="48" height="40"/><rect class="box hi" x="136" y="44" width="48" height="40"/><rect class="box" x="184" y="44" width="48" height="40"/><rect class="box" x="232" y="44" width="48" height="40"/>
+  <text class="mono" x="64" y="64" dy=".35em" text-anchor="middle">'a'</text><text class="mono" x="112" y="64" dy=".35em" text-anchor="middle">'b'</text><text class="mono" x="160" y="64" dy=".35em" text-anchor="middle">'c'</text><text class="mono" x="208" y="64" dy=".35em" text-anchor="middle">'d'</text><text class="mono" x="256" y="64" dy=".35em" text-anchor="middle">'e'</text>
+  <text class="sub" x="64" y="98" dy=".35em" text-anchor="middle">0</text><text class="sub" x="112" y="98" dy=".35em" text-anchor="middle">1</text><text class="sub" x="160" y="98" dy=".35em" text-anchor="middle">2</text><text class="sub" x="208" y="98" dy=".35em" text-anchor="middle">3</text><text class="sub" x="256" y="98" dy=".35em" text-anchor="middle">4</text>
+  <text class="mono" x="136" y="122" dy=".35em" text-anchor="middle">→ ['b', 'c']</text>
+</svg><figcaption><code>letters.slice(1, 3)</code></figcaption></figure>`},
     {t:'blanks', q:'Complete the rule.', lang:'text', code:'slice(start, end) copies from index ____ up to, but not including, index ____.', answers:['start','end'], extra:['0','length'], why:'The copy begins at <code>start</code> and stops just before <code>end</code>, so <code>slice(1, 3)</code> holds two items.'},
   ]},
   ]
