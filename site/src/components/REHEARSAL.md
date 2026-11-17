@@ -22,7 +22,7 @@ The demos follow the stageshow skill's rules for framing, restraint and motion. 
   - the syllabus table at 390: a two-column compact layout
   - the written-answer tile at 390: the code is hidden, so the rubric shows
   - horizontal overflow at 390 from the install command
-- The strings match the engine in `skills/create-fun-lessons/template.html`: the kickers, "Right, with a hint", "Not quite", "You will see this one again at the end.", "Lesson complete", the done-screen tiles, "Remember", "Next lesson", and the Course tile (7 / 12 after this lesson, at 75% first try). The checker strings come from `scripts/check.mjs`.
+- The strings match the engine in `skills/create-fun-lessons/template.html`: the kickers, "Right, with a hint", "Not quite", "You will see this one again at the end.", "Lesson complete", the done-screen tiles, "Remember", "Next lesson", and the Course tile (7 / 12 after this lesson, at 75% first try). The build strings come from `scripts/lessons.mjs`.
 
 ## Known and accepted
 
