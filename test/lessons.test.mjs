@@ -1,10 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync, copyFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { setTimeout as sleep } from 'node:timers/promises'
 import { loadPage } from '../skills/create-fun-lessons/scripts/check.mjs'
 
 const SKILL = fileURLToPath(new URL('../skills/create-fun-lessons/', import.meta.url))
@@ -379,4 +380,58 @@ test('a lesson with no id in a unit file, and a listed id no lesson has, are rep
   const one = lessons(root, 'check', 'course', 'u1l1')
   assert.equal(one.code, 1)
   assert.match(one.out, /^1 problem\(s\):\ncourse\/lessons\/u1\.md:\d+: this file holds 2 lessons/)
+})
+
+const CHROME = [process.env.CHROME_PATH, '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(p => p && existsSync(p))
+
+// Headless Chrome driven over its DevTools protocol, with a 400px wide window
+// (the command line cannot make a headless window narrower than 500px).
+async function phone(fn) {
+  const profile = tmp()
+  const chrome = spawn(CHROME, ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--no-first-run', 'about:blank'], { stdio: 'ignore' })
+  try {
+    let port
+    for (let i = 0; i < 100 && !port; i++) { await sleep(100); if (existsSync(join(profile, 'DevToolsActivePort'))) port = read(profile, 'DevToolsActivePort').split('\n')[0] }
+    const page = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find(t => t.type === 'page')
+    const ws = new WebSocket(page.webSocketDebuggerUrl), waiting = new Map()
+    await new Promise(r => { ws.onopen = r })
+    ws.onmessage = e => { const m = JSON.parse(e.data); waiting.get(m.id)?.(m.result); waiting.delete(m.id) }
+    let id = 0
+    const send = (method, params = {}) => new Promise(r => { waiting.set(++id, r); ws.send(JSON.stringify({ id, method, params })) })
+    await send('Emulation.setDeviceMetricsOverride', { width: 400, height: 860, deviceScaleFactor: 1, mobile: false })
+    const until = async expr => {
+      for (let i = 0; i < 300; i++) {
+        const v = (await send('Runtime.evaluate', { expression: expr, returnByValue: true })).result?.value
+        if (v) return v
+        await sleep(100)
+      }
+      throw new Error(`timed out waiting for ${expr}`)
+    }
+    const selfcheck = async file => {
+      await send('Page.navigate', { url: `${pathToFileURL(file)}#selfcheck` })
+      return until("document.title.startsWith('Self-check') && document.getElementById('selfcheck')?.textContent")
+    }
+    const reload = async () => { await send('Page.reload'); return until("document.getElementById('resume')?.innerText") }
+    return await fn({ selfcheck, reload })
+  } finally { chrome.kill() }
+}
+
+test('index.html#selfcheck plays every card at 400px, names a card that sticks out, and leaves a lesson to resume', { skip: !CHROME && 'no Chrome found; set CHROME_PATH' }, async t => {
+  const { root, dir } = freshCourse()
+  assert.equal(lessons(root, 'build', 'course').code, 0)
+  const wide = join(root, 'wide')
+  mkdirSync(join(wide, 'lessons'), { recursive: true })
+  for (const f of ['course.json', 'syllabus.md']) copyFileSync(join(dir, f), join(wide, f))
+  writeFileSync(join(wide, 'lessons/u1.md'), read(dir, 'lessons/u1.md').replace('<div class="tip">A highlighted tip.</div>', '<div class="tip">A highlighted tip.</div><div style="width:600px">Too wide.</div>'))
+  assert.equal(lessons(root, 'build', 'wide').code, 0)
+  await phone(async ({ selfcheck, reload }) => {
+    const report = await selfcheck(join(dir, 'index.html'))
+    if (report.includes('highlight.js did not load')) return t.skip('highlight.js could not load from its CDN')
+    assert.match(report, /^Self-check PASS\nPlayed 14 cards in 2 lessons in a 400px window: 9 quiz cards answered wrong, then retried with 9 hints and answered right; 9 code blocks checked for colour\./, report)
+    assert.match(await reload(), /Continue where you left off\s+Card types\s+Card 2 of 7/)
+    const bad = await selfcheck(join(wide, 'index.html'))
+    assert.match(bad, /^Self-check FAIL: 2 problem\(s\)\n/, bad)
+    assert.match(bad, /\nthe page is wider than the window \(616px in 400px\): u1l1 card 1 \(learn\)\n/, bad)
+    assert.match(bad, /\ndiv "Too wide\." sticks out past the window \(16 to 616px of 400px\): u1l1 card 1 \(learn\)\n/, bad)
+  })
 })
