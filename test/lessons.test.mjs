@@ -328,6 +328,7 @@ test('every example in references/lessons.md builds', () => {
   const root = tmp(), dir = join(root, 'docs')
   mkdirSync(join(dir, 'lessons'), { recursive: true })
   const course = JSON.parse(blocks.find(b => b.info === 'json').text)
+  gitRepo(join(dir, course.repo), ['src/server.ts'])
   course.units[0].lessons.push('u1l3')
   writeFileSync(join(dir, 'course.json'), JSON.stringify(course))
   writeFileSync(join(dir, 'syllabus.md'), '| Area | Sources | Lessons |\n|---|---|---|\n| HTTP routing | `src/` | |\n| Request lifecycle | `src/` | |\n| Caching | `src/` | |\n')
@@ -404,6 +405,80 @@ test('a lesson with no id in a unit file, and a listed id no lesson has, are rep
   const one = lessons(root, 'check', 'course', 'u1l1')
   assert.equal(one.code, 1)
   assert.match(one.out, /^1 problem\(s\):\ncourse\/lessons\/u1\.md:\d+: this file holds 2 lessons/)
+})
+
+// A git repo with each file added, as `git ls-files` lists them.
+const gitRepo = (dir, files) => {
+  for (const f of files) { mkdirSync(join(dir, f, '..'), { recursive: true }); writeFileSync(join(dir, f), '') }
+  for (const args of [['init', '-q'], ['add', '.']]) assert.equal(spawnSync('git', args, { cwd: dir }).status, 0)
+}
+const courseJson = dir => JSON.parse(read(dir, 'course.json'))
+const setRepo = (dir, repo) => {
+  const { repo: _, ...json } = courseJson(dir)
+  writeFileSync(join(dir, 'course.json'), JSON.stringify(repo === undefined ? json : { ...json, repo }))
+}
+
+test('init beside one git repo names it in course.json, and build then needs its top-level directories in Sources', () => {
+  const root = tmp()
+  gitRepo(join(root, 'ky'), ['source/index.ts', 'test/main.ts', 'readme.md'])
+  const init = lessons(root, 'init', 'ky-course')
+  assert.equal(init.code, 0, init.out)
+  assert.match(init.out, /course\.json "repo": "\.\.\/ky"/)
+  assert.equal(courseJson(join(root, 'ky-course')).repo, '../ky')
+  const dir = join(root, 'ky-course')
+  for (const cmd of ['check', 'build']) {
+    const r = lessons(root, cmd, 'ky-course')
+    assert.equal(r.code, 1, r.out)
+    assert.match(r.out, /course\/syllabus\.md: top-level directory "source\/" of the repo "ky" appears in no Sources cell/)
+    assert.match(r.out, /"test\/" of the repo "ky"/)
+  }
+  assert.equal(existsSync(join(dir, 'index.html')), false)
+  edit(join(dir, 'syllabus.md'), '`template.html` | u1l1', '`source/index.ts`, `ky/test/` | u1l1')
+  const built = lessons(root, 'build', 'ky-course')
+  assert.equal(built.code, 0, built.out)
+  assert.equal(pageData(join(dir, 'index.html')).COURSE.repo, undefined)
+  gitRepo(join(root, 'other'), ['lib/a.ts'])
+  const flagged = lessons(root, 'build', 'ky-course', '--repo', 'other')
+  assert.equal(flagged.code, 1)
+  assert.match(flagged.out, /"lib\/" of the repo "other"/)
+})
+
+test('init in a folder inside a git repo names that repo', () => {
+  const root = tmp()
+  gitRepo(root, ['src/a.ts'])
+  mkdirSync(join(root, 'docs'))
+  const r = lessons(join(root, 'docs'), 'init', 'course')
+  assert.equal(r.code, 0, r.out)
+  assert.equal(courseJson(join(root, 'docs/course')).repo, '../..')
+})
+
+test('init with no git repo near sets repo to null, and the course builds as a topic course', () => {
+  const { root, dir } = freshCourse()
+  assert.equal(courseJson(dir).repo, null)
+  assert.equal(lessons(root, 'build', 'course').code, 0)
+})
+
+test('a course.json with no repo fails check and build, but not a check of some units, and init --repo picks one', () => {
+  const root = tmp()
+  gitRepo(join(root, 'a'), ['x/1'])
+  gitRepo(join(root, 'b'), ['y/1'])
+  const init = lessons(root, 'init', 'course')
+  assert.equal(init.code, 0, init.out)
+  assert.match(init.out, /no "repo" yet, as the working directory holds several git repos \(a, b\)/)
+  const dir = join(root, 'course')
+  assert.equal('repo' in courseJson(dir), false)
+  for (const cmd of ['check', 'build']) {
+    const r = lessons(root, cmd, 'course')
+    assert.equal(r.code, 1)
+    assert.match(r.out, /course\/course\.json: missing "repo"; set it to the git repo the course teaches, relative to the course folder \(such as "\.\.\/ky"\), or null for a library or topic course/)
+  }
+  assert.equal(lessons(root, 'check', 'course', 'u1').code, 0)
+  setRepo(dir, 'nowhere')
+  assert.match(lessons(root, 'build', 'course').out, /course\/course\.json: "repo" nowhere: cannot list tracked files in course\/nowhere/)
+  setRepo(dir, null)
+  assert.equal(lessons(root, 'build', 'course').code, 0)
+  assert.equal(lessons(root, 'init', 'picked', '--repo', 'b').code, 0)
+  assert.equal(courseJson(join(root, 'picked')).repo, '../b')
 })
 
 const CHROME = [process.env.CHROME_PATH, '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(p => p && existsSync(p))

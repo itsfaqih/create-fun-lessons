@@ -87,10 +87,10 @@ A course is a folder: `course.json`, `syllabus.md`, and one file per unit in `le
 ```sh
 node skills/create-fun-lessons/scripts/lessons.mjs init path/to/course
 node skills/create-fun-lessons/scripts/lessons.mjs check path/to/course u2
-node skills/create-fun-lessons/scripts/lessons.mjs build path/to/course --repo path/to/repo
+node skills/create-fun-lessons/scripts/lessons.mjs build path/to/course
 ```
 
-`init` starts a course folder from the sample, or with `--from <page.html>` imports a page built from the template. `check` with unit or lesson ids checks just those lessons. `build` checks the whole course and, when it is clean, writes the page and the syllabus's Lessons cells. It fails, and writes nothing, when:
+`init` starts a course folder from the sample, or with `--from <page.html>` imports a page built from the template. It records the git repo the course teaches as `repo` in `course.json`, relative to the course folder (the repo it finds, the one `--repo` names, or `null` for a library or topic course). `check` with unit or lesson ids checks just those lessons. `build` checks the whole course and, when it is clean, writes the page and the syllabus's Lessons cells. It fails, and writes nothing, when:
 
 - a lesson file does not follow the format, or a card is missing a required field, such as a lesson's recap, a card's explanation (`why`), or a hint on a card type that has no automatic hints
 - a line of code is too wide for a phone's code box
@@ -98,7 +98,7 @@ node skills/create-fun-lessons/scripts/lessons.mjs build path/to/course --repo p
 - a code language is one the page does not load
 - a lesson is not listed in `course.json`, a listed lesson is in no file, or two lessons share an id
 - a lesson's `covers` names no syllabus Area (the message names the closest), or a syllabus row is covered by no lesson and gives no skip reason
-- with `--repo`: any tracked top-level directory of the repo appears in no Sources cell
+- `course.json` has no `repo`, or a tracked top-level directory of that repo appears in no Sources cell (`--repo` names another repo for one run)
 
 On success it prints a summary such as `OK: 5 units, 18 lessons, 84 cards, 14 syllabus rows`. On failure it lists each problem at its file and line, such as `lessons/u2l1.md:14: mcq card 2: …`, and exits with a non-zero code. The lesson format is in `references/lessons.md`.
 

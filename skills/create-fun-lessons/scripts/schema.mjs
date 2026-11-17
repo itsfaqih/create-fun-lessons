@@ -307,10 +307,13 @@ export function checkCovers(rows, lessons, { full = true } = {}) {
   return { problems, ids }
 }
 
-export function checkRepoCoverage(rows, dirs) {
+// A Sources path starts at the repo root (`source/core/Ky.ts`) or at its
+// parent, under the repo folder's name (`ky/source/core/Ky.ts`).
+export function checkRepoCoverage(rows, dirs, name) {
   const paths = rows.flatMap(r => r.sources.split(/[\s,`'"()]+/)).map(p => p.replace(/^\.\//, '')).filter(Boolean)
+    .flatMap(p => name && p.startsWith(`${name}/`) ? [p, p.slice(name.length + 1)] : [p])
   return dirs.filter(d => !paths.some(p => p === d || p.startsWith(`${d}/`)))
-    .map(d => ({ syllabus: {}, msg: `top-level directory "${d}/" appears in no Sources cell` }))
+    .map(d => ({ syllabus: {}, msg: `top-level directory "${d}/" of the repo "${name}" appears in no Sources cell; name it in a row's Sources (a skip row counts)` }))
 }
 
 function closest(word, options) {

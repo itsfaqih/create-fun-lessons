@@ -1,20 +1,22 @@
 // Build a create-fun-lessons page from a course folder (course.json,
 // syllabus.md, lessons/*.md), check the folder, or create one.
 // The lesson file format is in references/lessons.md.
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'node:fs'
-import { basename, dirname, join, relative, resolve } from 'node:path'
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, realpathSync } from 'node:fs'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
+import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { CARD_TYPES, validateCourse, validateUnit, validateLesson, parseSyllabus, checkCovers, checkRepoCoverage, shownProblems, decode } from './schema.mjs'
 import { loadPage, checkPage, trackedDirs, summary } from './check.mjs'
 
 const TEMPLATE = fileURLToPath(new URL('../template.html', import.meta.url))
 const USAGE = `usage:
-  node lessons.mjs init <dir> [--from <page.html>]
+  node lessons.mjs init <dir> [--from <page.html>] [--repo <repo-dir>]
   node lessons.mjs check <dir> [<lesson-or-unit-id> ...] [--repo <repo-dir>]
   node lessons.mjs build <dir> [--repo <repo-dir>]`
 
 const LESSON_FIELDS = { id: { kind: 'plain' }, recap: { kind: 'html' }, covers: { kind: 'names' }, terms: { kind: 'terms' } }
 const LESSON_ID = /^\w[\w.-]*$/
+const REPO_RULE = 'the git repo the course teaches, relative to the course folder (such as "../ky"), or null for a library or topic course'
 
 
 const FENCE_OPEN = /^([ \t]*)(`{3,})([^`\s]*)[ \t]*$/
@@ -401,16 +403,17 @@ function readCourse(dir) {
   let json
   try { json = JSON.parse(readFileSync(file, 'utf8')) } catch (e) { return fatal(`not valid JSON: ${e.message}`) }
   if (!json || typeof json !== 'object' || Array.isArray(json)) return fatal('must be a JSON object')
-  const { units, languages = [], ...COURSE } = json
+  const { units, languages = [], repo, ...COURSE } = json
   const problems = []
   const at = msg => problems.push(`${rel(file)}: ${msg}`)
   if (!Array.isArray(units) || !units.length) return fatal('needs "units": [{ "id", "title", "blurb", "color", "dark", "lessons": [lesson ids] }]')
   if (!Array.isArray(languages) || !languages.every(l => typeof l === 'string' && /^[a-z0-9][\w-]*$/i.test(l))) at('"languages" must be a list of highlight.js language names, such as ["haskell"]')
+  if (repo !== undefined && repo !== null && (typeof repo !== 'string' || !repo.trim())) at(`"repo" ${REPO_RULE}`)
   units.forEach((u, ui) => {
     if (!Array.isArray(u?.lessons) || !u.lessons.every(id => typeof id === 'string' && LESSON_ID.test(id)))
       at(`unit ${ui + 1} (${u?.id ?? '?'}): "lessons" must list lesson ids, such as "u1l1"`)
   })
-  return { file, COURSE, units: units.map(u => ({ ...u, lessons: Array.isArray(u?.lessons) ? u.lessons.filter(id => typeof id === 'string') : [] })), languages: Array.isArray(languages) ? languages.filter(l => typeof l === 'string') : [], problems }
+  return { file, COURSE, repo, units: units.map(u => ({ ...u, lessons: Array.isArray(u?.lessons) ? u.lessons.filter(id => typeof id === 'string') : [] })), languages: Array.isArray(languages) ? languages.filter(l => typeof l === 'string') : [], problems }
 }
 
 // Every lesson in lessons/*.md, in file order, and the first lesson with each
@@ -489,6 +492,14 @@ function checkFolder(dir, { only, repo } = {}) {
       ...lessonIds.filter(id => !unitIdx.some(i => course.units[i].lessons.includes(id))).flatMap(id => validateLesson(lessons.get(id)?.lesson, opts))]
     : validateCourse(data, opts)
 
+  // The repo whose tracked top-level directories the syllabus must name:
+  // --repo, else course.json's "repo". A check of some lessons names none.
+  let repoDir = repo, repoSrc = `--repo ${repo}`
+  if (!repo && !only) {
+    if (course.repo === undefined) problems.push(`${rel(course.file)}: missing "repo"; set it to ${REPO_RULE}`)
+    else if (typeof course.repo === 'string' && course.repo.trim()) { repoDir = resolve(dir, course.repo); repoSrc = `${rel(course.file)}: "repo" ${course.repo}` }
+  }
+
   let syllabus = null, rows = [], ids = new Map()
   if (!existsSync(ctx.sylFile)) problems.push(`${rel(ctx.sylFile)}: missing; write the | Area | Sources | Lessons | table (see SKILL.md)`)
   else {
@@ -500,9 +511,9 @@ function checkFolder(dir, { only, repo } = {}) {
     const covers = checkCovers(rows, inOrder, { full: !only })
     ids = covers.ids
     found.push(...covers.problems)
-    if (repo) {
-      try { found.push(...checkRepoCoverage(rows, trackedDirs(repo))) }
-      catch (e) { problems.push(`--repo: cannot list tracked files in ${repo}: ${e.message.split('\n')[0]}`) }
+    if (repoDir) {
+      try { found.push(...checkRepoCoverage(rows, trackedDirs(repoDir), basename(resolve(repoDir)))) }
+      catch (e) { problems.push(`${repoSrc}: cannot list tracked files in ${rel(resolve(repoDir))}: ${e.message.split('\n')[0]}`) }
     }
   }
   const reported = p => p.shown || (p.card !== undefined && lessons.get(p.lesson)?.lines.cards[p.card]?.failed?.has(p.field))
@@ -538,7 +549,7 @@ function build(dir, { repo, write }) {
   const html = buildPage(r.data, r.course.languages)
   const syllabus = fillSyllabus(r.syllabus, r.rows, r.ids)
   let page
-  try { page = checkPage(html, syllabus, { repoDirs: repo ? trackedDirs(repo) : undefined }) }
+  try { page = checkPage(html, syllabus) }
   catch (e) { return { problems: [`${rel(join(dir, 'index.html'))} (built): ${e.message}`] } }
   if (page.problems.length) return { problems: page.problems.map(p => `${rel(join(dir, 'index.html'))} (built): ${p}`) }
   if (write) {
@@ -557,8 +568,23 @@ const SAMPLE_SYLLABUS = `| Area | Sources | Lessons |
 | Generated pages | \`index.html\` | skip: built by lessons.mjs from the lesson files |
 `
 
-function init(dir, from) {
+// The git repos a new course may teach: the one holding the course folder or
+// the working directory, else each repo directly inside the working directory.
+function findRepos(dir) {
+  const top = p => { try { return execFileSync('git', ['-C', p, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() } catch { return null } }
+  let at = resolve(dir)
+  while (!existsSync(at)) at = dirname(at)
+  const found = top(at) ?? top('.')
+  if (found) return [found]
+  return readdirSync('.', { withFileTypes: true })
+    .filter(e => e.isDirectory() && resolve(e.name) !== resolve(dir) && existsSync(join(e.name, '.git')))
+    .map(e => resolve(e.name))
+}
+
+function init(dir, from, repo) {
   if (existsSync(join(dir, 'course.json'))) throw new Error(`${rel(join(dir, 'course.json'))} already exists; edit the course there, or init a new folder`)
+  if (repo && !existsSync(repo)) throw new Error(`--repo ${repo}: no such folder`)
+  const repos = repo ? [resolve(repo)] : findRepos(dir)
   const page = from ?? TEMPLATE
   const sylPath = join(dirname(page), 'syllabus.md')
   const syllabus = from ? (existsSync(sylPath) ? readFileSync(sylPath, 'utf8') : '| Area | Sources | Lessons |\n|---|---|---|\n') : SAMPLE_SYLLABUS
@@ -575,7 +601,7 @@ function init(dir, from) {
     course.logoHtml = words.length > 1 ? `${words.slice(0, -1).join(' ')} <span>${words.at(-1)}</span>` : `<span>${course.title}</span>`
   }
   if (languages.length) course.languages = languages
-  course.units = UNITS.map(({ lessons, ...u }) => ({ ...u, lessons: lessons.map(l => l.id) }))
+  const units = UNITS.map(({ lessons, ...u }) => ({ ...u, lessons: lessons.map(l => l.id) }))
 
   // Each glossary term goes to the first lesson that mentions it, never
   // earlier than the term before it, so the built glossary keeps its order.
@@ -602,10 +628,12 @@ function init(dir, from) {
   }
   if (failed.length) throw new Error(`${failed.length} lesson(s) cannot be imported:\n- ${failed.join('\n- ')}`)
   mkdirSync(join(dir, 'lessons'), { recursive: true })
-  writeFileSync(join(dir, 'course.json'), JSON.stringify(course, null, 2) + '\n')
+  // Several candidate repos leave "repo" out, so build asks for it.
+  if (repos.length < 2) course.repo = repos.length ? relative(realpathSync(dir), realpathSync(repos[0])).split(sep).join('/') || '.' : null
+  writeFileSync(join(dir, 'course.json'), JSON.stringify({ ...course, units }, null, 2) + '\n')
   writeFileSync(join(dir, 'syllabus.md'), syllabus)
   for (const [id, text] of files) writeFileSync(join(dir, 'lessons', `${id}.md`), text)
-  return { lessons: lessons.length, files: files.size, syllabus: !from || existsSync(sylPath) }
+  return { lessons: lessons.length, files: files.size, syllabus: !from || existsSync(sylPath), repo: course.repo, repos }
 }
 
 
@@ -616,12 +644,15 @@ function main(argv) {
   const cmd = args.shift()
   const repo = flag('--repo'), from = flag('--from')
   const [dir, ...ids] = args
-  if (!dir || !['init', 'check', 'build'].includes(cmd) || (cmd !== 'check' && ids.length) || (from && cmd !== 'init') || (repo && cmd === 'init')) usage()
+  if (!dir || !['init', 'check', 'build'].includes(cmd) || (cmd !== 'check' && ids.length) || (from && cmd !== 'init')) usage()
   const fail = problems => { console.error(`${problems.length} problem(s):\n${problems.join('\n')}`); process.exit(1) }
   if (cmd === 'init') {
     try {
-      const r = init(dir, from)
+      const r = init(dir, from, repo)
       console.log(`OK: wrote ${rel(join(dir, 'course.json'))}, ${rel(join(dir, 'syllabus.md'))} and ${r.lessons} lesson(s) in ${r.files} unit file(s) in ${rel(join(dir, 'lessons'))}`)
+      console.log(r.repo ? `course.json "repo": "${r.repo}". Build fails on each tracked top-level directory of that repo missing from the syllabus Sources. Set "repo" to null if the course does not teach that repo.`
+        : r.repo === null ? 'course.json "repo": null, as no git repo is here. For a codebase course, set "repo" to the repo\'s folder, relative to the course folder.'
+          : `course.json has no "repo" yet, as the working directory holds several git repos (${r.repos.map(rel).join(', ')}). Set "repo" to ${REPO_RULE}; build fails until it is set.`)
       if (!r.syllabus) console.log(`No syllabus.md beside ${from}: write its rows, add a covers: line to each lesson, then build.`)
     } catch (e) { console.error(e.message); process.exit(1) }
     return

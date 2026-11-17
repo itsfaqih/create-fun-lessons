@@ -15,10 +15,10 @@ index.html         the page; build writes it, so never edit it
 node <skill-dir>/scripts/lessons.mjs init <course-dir>                   # start from the sample course
 node <skill-dir>/scripts/lessons.mjs init <course-dir> --from <page.html> # import a page built from template.html
 node <skill-dir>/scripts/lessons.mjs check <course-dir> u2                # check only these units (or lesson ids)
-node <skill-dir>/scripts/lessons.mjs build <course-dir> [--repo <repo-dir>]
+node <skill-dir>/scripts/lessons.mjs build <course-dir>
 ```
 
-`check` with unit or lesson ids checks those lessons and nothing course-wide, so writers working in parallel can each check their own units. It writes nothing. `build` checks the whole course, then writes `index.html` and fills each syllabus row's Lessons cell from the lessons' `covers`. It prints `OK: 5 units, 18 lessons, 84 cards, 14 syllabus rows`. On any problem it writes nothing, lists each problem as `lessons/u2.md:14: mcq card 2: <what is wrong>`, and exits non-zero. Building twice gives the same bytes. With `--repo`, build also fails on any tracked top-level directory of that repo missing from the syllabus Sources.
+`check` with unit or lesson ids checks those lessons and nothing course-wide, so writers working in parallel can each check their own units. It writes nothing. `build` checks the whole course, then writes `index.html` and fills each syllabus row's Lessons cell from the lessons' `covers`. It prints `OK: 5 units, 18 lessons, 84 cards, 14 syllabus rows`. On any problem it writes nothing, lists each problem as `lessons/u2.md:14: mcq card 2: <what is wrong>`, and exits non-zero. Building twice gives the same bytes. `check` and `build` with no ids also fail on any tracked top-level directory of the `repo` in `course.json` missing from the syllabus Sources. `--repo <repo-dir>` on any command names a different repo for that run, and `init --repo` writes it into `course.json`.
 
 ## course.json
 
@@ -32,6 +32,7 @@ node <skill-dir>/scripts/lessons.mjs build <course-dir> [--repo <repo-dir>]
   "homeUrl": "",
   "lang": "typescript",
   "languages": ["haskell"],
+  "repo": "../orders-api",
   "units": [
     { "id": "u1", "title": "Getting started", "blurb": "Install, run, and find your way around.",
       "color": "#1f9d6b", "dark": "#157a52", "lessons": ["u1l1", "u1l2"] }
@@ -44,6 +45,7 @@ node <skill-dir>/scripts/lessons.mjs build <course-dir> [--repo <repo-dir>]
 - `homeUrl` is the served home (optional; see SKILL.md, Steps).
 - `lang` is the course's main code language, or `text` for a course without code.
 - `languages` (optional) adds highlight.js languages the page does not bundle. Build loads each from the highlight.js CDN.
+- `repo` is the git repo a codebase course teaches, relative to the course folder, or `null` for a library or topic course. Build fails while it is missing. `init` writes it: the repo holding the course folder or the working directory, else the one repo directly inside the working directory, else `null`. When the working directory holds several repos, init leaves it out for you to set. A Sources path may start at the repo root (`src/routes/`) or at its parent, under the repo folder's name (`orders-api/src/routes/`). The page never contains it.
 - Each unit has its own `color`, readable under white text (it fills the unit dot, finished-lesson checks and the Start badge), and a darker `dark` for their borders. `lessons` lists the unit's lesson ids in order; each is the `id:` of a lesson in `lessons/`.
 
 Every unit needs a `write` card, ideally closing the unit.
