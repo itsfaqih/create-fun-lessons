@@ -3,6 +3,8 @@
   python3 harness.py setup <old|new> <build|revise>   prints the new run's slug
   python3 harness.py run <slug> [<slug> ...]          runs them in parallel, waits
   python3 harness.py metrics                          writes metrics.json for every finished run
+  python3 harness.py grade                            writes grades.json for every finished run
+  python3 harness.py arm <name> <commit>              registers a hill-climb arm (see HILLCLIMB.md)
 """
 import json, os, random, re, shutil, subprocess, sys, time
 from pathlib import Path
@@ -14,6 +16,17 @@ WORK = Path.home() / 'work-ky'
 KY_SRC = WORK / 'ky-src'
 KY_COMMIT = '3541888878c4d303a8bc2ad61815f4e048f55a5d'
 SKILL_COMMIT = {'old': 'c4f17c3', 'new': '566c86e'}
+ARMS = STATE / 'arms.json'
+
+
+def commit_of(arm):
+    """old and new are the eval's arms; a hill-climb arm maps to its candidate commit in arms.json."""
+    extra = json.loads(ARMS.read_text()) if ARMS.exists() else {}
+    return {**SKILL_COMMIT, **extra}[arm]
+
+
+def flow(arm):
+    return 'old' if arm == 'old' else 'new'
 MODEL, EFFORT = 'claude-opus-5-5', 'high'
 LIMIT_S = {'build': 90 * 60, 'revise': 40 * 60}
 RUNS = STATE / 'runs.tsv'
@@ -32,7 +45,7 @@ def registry():
 
 
 def skill_copy(arm, dest):
-    p =subprocess.run(['git', '-C', str(REPO), 'archive', SKILL_COMMIT[arm], 'skills/create-fun-lessons'], check=True, capture_output=True)
+    p =subprocess.run(['git', '-C', str(REPO), 'archive', commit_of(arm), 'skills/create-fun-lessons'], check=True, capture_output=True)
     dest.mkdir(parents=True, exist_ok=True)
     subprocess.run(['tar', '-x', '-C', str(dest)], input=p.stdout, check=True)
 
@@ -49,7 +62,7 @@ def setup(arm, task):
     sh('git', '-C', str(ws / 'ky'), 'checkout', '-q', KY_COMMIT)
     skill_copy(arm, ws)
     if task == 'revise':
-        seed = STATE / 'seed' / arm / 'ky-course'
+        seed = STATE / 'seed' / flow(arm) / 'ky-course'
         shutil.copytree(seed, ws / 'ky-course')
     (STATE / 'runs' / slug).mkdir(parents=True, exist_ok=True)
     with RUNS.open('a') as f:
@@ -202,10 +215,10 @@ def grade():
     for slug, r in registry().items():
         if not (STATE / 'runs' / slug / 'exit').exists():
             continue
-        args = ['vp', 'node', str(HERE / 'grade.mjs'), str(WORK / slug), r['arm'], r['task']]
+        args = ['vp', 'node', str(HERE / 'grade.mjs'), str(WORK / slug), flow(r['arm']), r['task']]
         if r['task'] == 'revise':
             args.append(str(STATE / 'seed' / 'clean.html'))
-        g = json.loads(sh(*args))
+        g = json.loads(sh(*args, env={**os.environ, 'GRADER_SKILL': str(STATE / 'grader/skills/create-fun-lessons')}))
         g['slug'] = slug
         if slug in quality:
             g['qualityByJudge'] = quality[slug]
@@ -218,4 +231,9 @@ def grade():
 
 if __name__ == '__main__':
     cmd, *rest = sys.argv[1:]
-    {'setup': lambda: setup(*rest), 'run': lambda: run(rest), 'metrics': metrics, 'grade': grade}[cmd]()
+    def add_arm(name, commit):
+        extra = json.loads(ARMS.read_text()) if ARMS.exists() else {}
+        extra[name] = sh('git', '-C', str(REPO), 'rev-parse', '--short', commit).strip()
+        ARMS.write_text(json.dumps(extra, indent=1))
+        print(name, extra[name])
+    {'arm': lambda: add_arm(*rest), 'setup': lambda: setup(*rest), 'run': lambda: run(rest), 'metrics': metrics, 'grade': grade}[cmd]()

@@ -7,7 +7,9 @@ import { tmpdir } from 'node:os'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
-const SKILL = fileURLToPath(new URL('../../skills/create-fun-lessons/', import.meta.url))
+// The grading checker is frozen at 2a69b9d (harness.py grade unpacks it), so a
+// hill-climb change to the checker never moves the grade of a finished run.
+const SKILL = process.env.GRADER_SKILL ?? fileURLToPath(new URL('../../skills/create-fun-lessons/', import.meta.url))
 const { loadPage, checkPage, trackedDirs } = await import(join(SKILL, 'scripts/check.mjs'))
 const [ws, arm, task, seedPage] = process.argv.slice(2)
 const course = join(ws, 'ky-course')
@@ -68,6 +70,7 @@ if (data) {
   g.garbledSpans = strings(data).filter(s => [...s.replace(/<pre[\s\S]*?<\/pre>/g, '').matchAll(/<code[^>]*>([\s\S]*?)<\/code>/g)]
     .some(m => m[1].includes('`'))).length
   g.leakedMarkers = strings(data).filter(s => /[«»]/.test(s)).length
+  g.doubleEscaped = strings(data).filter(s => /&amp;(lt|gt|amp|quot);/.test(s)).length
 }
 
 if (task === 'revise' && data && seedPage) {

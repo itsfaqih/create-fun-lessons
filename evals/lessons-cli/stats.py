@@ -1,8 +1,9 @@
 """Summarize metrics.json and grades.json per task and arm: median, range, exact Mann-Whitney p.
 
-  python3 stats.py   writes summary.json beside the run state and prints a table
+  python3 stats.py           old vs new, writes summary.json beside the run state and prints a table
+  python3 stats.py <A> <B>   any two arms, writes summary_<A>_<B>.json
 """
-import itertools, json, statistics
+import itertools, json, statistics, sys
 from pathlib import Path
 
 STATE = Path.home() / '.agents/state/pstack/create-fun-lessons/lessons-cli-eval'
@@ -45,11 +46,12 @@ METRICS = {
     'collateral_lessons': lambda m, g: len(g.get('revise', {}).get('collateralLessons', [])) if 'revise' in g else None,
     'garbled_spans': lambda m, g: g.get('garbledSpans'),
     'leaked_markers': lambda m, g: g.get('leakedMarkers'),
+    'double_escaped': lambda m, g: g.get('doubleEscaped'),
     'quality_mean': lambda m, g: g.get('quality'),
 }
 
 
-def main():
+def main(a='old', b='new'):
     ms = json.loads((STATE / 'metrics.json').read_text())
     gs = {g['slug']: g for g in json.loads((STATE / 'grades.json').read_text())}
     out = {}
@@ -59,22 +61,22 @@ def main():
             continue
         out[task] = {}
         for name, f in METRICS.items():
-            per = {arm: [f(m, gs.get(m['slug'], {})) for m in rows if m['arm'] == arm] for arm in ('old', 'new')}
+            per = {arm: [f(m, gs.get(m['slug'], {})) for m in rows if m['arm'] == arm] for arm in (a, b)}
             per = {k: [x for x in v if x is not None] for k, v in per.items()}
-            if not per['old'] or not per['new']:
+            if not per[a] or not per[b]:
                 continue
             out[task][name] = {
                 arm: {'values': v, 'median': statistics.median(v), 'min': min(v), 'max': max(v)} for arm, v in per.items()
             }
-            out[task][name]['p'] = round(mann_whitney_p(per['old'], per['new']), 3)
-            o, n = out[task][name]['old']['median'], out[task][name]['new']['median']
+            out[task][name]['p'] = round(mann_whitney_p(per[a], per[b]), 3)
+            o, n = out[task][name][a]['median'], out[task][name][b]['median']
             out[task][name]['ratio_new_over_old'] = round(n / o, 2) if o else None
-    (STATE / 'summary.json').write_text(json.dumps(out, indent=1))
+    (STATE / ('summary.json' if (a, b) == ('old', 'new') else f'summary_{a}_{b}.json')).write_text(json.dumps(out, indent=1))
     for task, t in out.items():
         print(f'== {task}')
         for name, s in t.items():
-            print(f"{name:26} old {s['old']['median']:>10} [{s['old']['min']}–{s['old']['max']}]  new {s['new']['median']:>10} [{s['new']['min']}–{s['new']['max']}]  p={s['p']}  new/old={s['ratio_new_over_old']}")
+            print(f"{name:26} {a} {s[a]['median']:>10} [{s[a]['min']}–{s[a]['max']}]  {b} {s[b]['median']:>10} [{s[b]['min']}–{s[b]['max']}]  p={s['p']}  {b}/{a}={s['ratio_new_over_old']}")
 
 
 if __name__ == '__main__':
-    main()
+    main(*sys.argv[1:3])
