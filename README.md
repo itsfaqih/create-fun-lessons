@@ -62,7 +62,7 @@ The agent then:
 4. **Checks** the page with `scripts/check.mjs` until it prints `OK`, then plays one lesson in a browser.
 5. **Delivers** the path to the page, and lists any skipped syllabus rows with their reasons.
 
-When the learner will use a phone, the agent can also serve the course folder on a URL the phone can reach, so progress saves there too.
+Progress saves in the browser, tied to the address the page is opened at, so the agent hands over one home address to use on every visit. On a desktop that is the page file. For a phone, the agent serves the course folder on a fixed port at a stable address the phone can reach, and gives you the command to restart the server after a reboot.
 
 ## Full coverage with `syllabus.md` and `check.mjs`
 
