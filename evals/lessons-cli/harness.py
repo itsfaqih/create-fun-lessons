@@ -402,7 +402,7 @@ def pinned(subject):
     return dest
 
 
-def judge(packet, arms, subject=DEFAULT_SUBJECT, labels_from=None, run_judges=True):
+def judge(packet, arms, subject=DEFAULT_SUBJECT, labels_from=None, run_judges=True, unmarked=False):
     reg = registry()
     if labels_file(packet).exists() or labels_from:
         labels = read_labels(packet if labels_file(packet).exists() else labels_from)
@@ -425,9 +425,10 @@ def judge(packet, arms, subject=DEFAULT_SUBJECT, labels_from=None, run_judges=Tr
         page = find_page(workspace(slug, reg) / subj.course)
         if not page:
             sys.exit(f'{slug}: no course page in {workspace(slug, reg) / subj.course}')
-        md = sh('vp', 'node', str(HERE / 'dump.mjs'), str(page), env={**os.environ, 'GRADER_SKILL': str(GRADER)})
+        md = sh('vp', 'node', str(HERE / 'dump.mjs'), str(page), env={**os.environ, 'GRADER_SKILL': str(GRADER), 'WIDE_MARKS': 'off' if unmarked else 'on'})
         (review / 'courses' / f'course-{letter}.md').write_text(md)
-    shutil.copy(HERE / subj.rubric, review / 'rubric.md')
+    rubric = (HERE / subj.rubric).read_text()
+    (review / 'rubric.md').write_text(re.sub(r' A code line marked .*? counts against craft\.', '', rubric) if unmarked else rubric)
     link = review / subj.folder
     if not link.is_symlink():
         link.symlink_to(pinned(subj))
@@ -524,9 +525,10 @@ if __name__ == '__main__':
     p.add_argument('--labels-from', help="reuse an earlier packet's letters and courses, dumped again")
     p.add_argument('--subject', default=DEFAULT_SUBJECT, choices=sorted(SUBJECTS))
     p.add_argument('--no-judge', action='store_true', help='write the packet only')
+    p.add_argument('--unmarked', action='store_true', help='leave wide code lines unmarked and drop the rubric sentence about them')
     p = sub.add_parser('gap'); p.add_argument('packet')
     p = sub.add_parser('cards'); p.add_argument('arms', nargs='+')
     a = ap.parse_args()
     {'setup': lambda: setup(a.arm, a.task, a.subject), 'run': lambda: run(a.slugs), 'restore': lambda: restore(a.slugs), 'metrics': metrics, 'grade': grade,
      'arm': lambda: add_arm(a.name, a.commit, *([a.model] if a.model else [])),
-     'judge': lambda: judge(a.packet, a.arms, a.subject, a.labels_from, not a.no_judge), 'gap': lambda: gap(a.packet), 'cards': lambda: cards(a.arms)}[a.cmd]()
+     'judge': lambda: judge(a.packet, a.arms, a.subject, a.labels_from, not a.no_judge, a.unmarked), 'gap': lambda: gap(a.packet), 'cards': lambda: cards(a.arms)}[a.cmd]()

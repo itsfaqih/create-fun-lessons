@@ -1,7 +1,7 @@
 // Render a course page's content as plain markdown, the same for every
 // authoring flow, so a judge cannot tell how the course was written.
 // Usage: node dump.mjs <page.html> [<lesson-id>]   (one lesson only, with its neighbours named)
-// GRADER_SKILL picks the page loader.
+// GRADER_SKILL picks the page loader; WIDE_MARKS=off leaves wide lines unmarked.
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -24,7 +24,7 @@ const width = (line, blankCols) => {
 const markWide = (code, surface, { blankCols = 0, measure = l => l } = {}) => surface && code ? code.split('\n').map(line => {
   const w = width(measure(line), blankCols)
   const out = line.replaceAll(HL, '')
-  return w > COLUMNS[surface] ? `${out}  ← ${w} columns: scrolls sideways on a phone` : out
+  return w > COLUMNS[surface] && process.env.WIDE_MARKS !== 'off' ? `${out}  ← ${w} columns: scrolls sideways on a phone` : out
 }).join('\n') : code
 const isText = c => (c.lang || 'text') === 'text'
 const blankColumns = c => Math.max(9, ...[].concat((c.t === 'fill' ? c.o : [...(c.answers ?? []), ...(c.extra ?? [])]) ?? []).map(x => String(x).length + 2))
