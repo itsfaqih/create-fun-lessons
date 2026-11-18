@@ -106,6 +106,9 @@ why: `getOrder` reads the order and sends it back as JSON.
 q: Name the handler that serves `GET /orders/:id`.
 accept:
 - getOrder
+hint:
+- Handlers are named after what they do to an order.
+- Open `src/routes.ts` and find the `/orders/:id` line.
 why: `src/routes.ts` maps that path to `getOrder`.
 ````
 
@@ -272,7 +275,7 @@ hint:
 why: `-l` is long format and `-a` includes dotfiles; flags combine in any order.
 ```
 
-A one-line answer, checked automatically. It passes when, with whitespace trimmed and collapsed (and a leading `$` dropped for `shell`), it equals any literal in `accept` or matches any entry written as `/regex/flags`. The first `accept` entry is a literal, shown as the answer on a miss. List every real variant: reordered flags, `--long` forms, optional quotes. Anchor regexes with `^…$`. `code` is optional plain-text context above the field. Above the field the page states the expected form, then the matching rule ("One command. Spacing and a leading `$` are ignored; capitals count."). `expect` (HTML) replaces the expected form. It describes the answer's form and what the match ignores beyond spacing, such as "One command, flags in any order." or "A method name, without the parentheses.", and never the answer itself. Build rejects an `expect` that contains an answer `accept` takes.
+A one-line answer, checked automatically. It passes when, with whitespace trimmed and collapsed (and a leading `$` dropped for `shell`), it equals any literal in `accept` or matches any entry written as `/regex/flags`. The first `accept` entry is a literal, shown as the answer on a miss. List every real variant: reordered flags, `--long` forms, optional quotes. Anchor regexes with `^…$`. Give at least two hints. `code` is optional plain-text context above the field. Above the field the page states the expected form, then the matching rule ("One command. Spacing and a leading `$` are ignored; capitals count."). `expect` (HTML) replaces the expected form. It describes the answer's form and what the match ignores beyond spacing, such as "One command, flags in any order." or "A method name, without the parentheses.", and never the answer itself. Build rejects an `expect` that contains an answer `accept` takes.
 
 ### write
 
@@ -300,11 +303,11 @@ hint:
 why: A function hands its result back with `return`; without it the call yields `undefined`.
 ````
 
-For work too open to match by text: code, a script, a config block, or an essay. The `rubric` is the acceptance criteria, listed under "Your answer should" before the learner writes. After Check the learner sees `model`, the sample answer, and ticks each criterion their answer meets: all ticked counts as right, anything less sends the card to the retry queue. Write 2–4 criteria, each a yes-or-no requirement observable in the answer ("Calls `await` on the fetch"). `starter` prefills the field, such as a function signature. A `write` card always needs a `hint`. For an essay, leave out `lang` (or give `lang: text`) and write `model` on one line or in a plain fence; for code, give the fence its language.
+For work too open to match by text: code, a script, a config block, or an essay. The `rubric` is the acceptance criteria, listed under "Your answer should" before the learner writes. After Check the learner sees `model`, the sample answer, and ticks each criterion their answer meets: all ticked counts as right, anything less sends the card to the retry queue. Write 2–4 criteria, each a yes-or-no requirement observable in the answer ("Calls `await` on the fetch"). `starter` prefills the field, such as a function signature. A `write` card needs at least two hints. For an essay, leave out `lang` (or give `lang: text`) and write `model` on one line or in a plain fence; for code, give the fence its language.
 
 ## Hints
 
-Every quiz card has a Hint button. Each tap reveals the next step: the card's own `hint` first, then automatic help: `mcq` and `fill` strike out wrong options until one remains, `order` places the next item, `blanks` fills the next blank with its right chip, `type` reveals how the answer starts. A right answer after a hint passes without the first-try bonus. Order hints from gentle to specific, each narrowing the search: the concept, then the file, then the part to change. Build names the cards that need an authored `hint`.
+Every quiz card has a Hint button. Each tap reveals the next step: the card's own `hint` first, then automatic help: `mcq` and `fill` strike out wrong options until one remains, `order` places the next item, `blanks` fills the next blank with its right chip, `type` reveals how the answer starts. A right answer after a hint passes without the first-try bonus. Order hints from gentle to specific, each narrowing the search: the concept, then the file, then the part to change. Build names the cards that need an authored `hint`, and rejects a `type` or `write` card with fewer than two hints, because their automatic help adds no idea.
 
 ## Syntax highlighting
 

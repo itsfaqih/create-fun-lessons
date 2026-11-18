@@ -145,6 +145,11 @@ const broken = [
     edit(f, 'expect: One command, flags in any order.', 'expect: One command, such as `LS  -la`.')
     return [f, lineOf(f, 'expect: One command, such as'), /type card 5: expect shows "ls -la", an answer accept takes, so the learner reads the answer before typing it; describe its form and what the match ignores instead/]
   }],
+  ['a type card with one hint', dir => {
+    const f = join(dir, 'lessons/u1.md')
+    edit(f, '\n- Combine two flags: one for long format, one for all files.', '')
+    return [f, lineOf(f, 'expect: One command, flags in any order.') + 1, /type card 5: hint needs 2\+ hints as a list, gentle to specific/]
+  }],
   ['a lesson of 7 cards', dir => {
     const f = join(dir, 'lessons/u1.md')
     edit(f, '## order', '## learn: One more\n<p>One more.</p>\n\n## order')
@@ -298,9 +303,9 @@ test('code with backticks, ${, <T> and a shell line continuation comes through v
     '# Tricky code', 'recap: Code survives the lesson format.', 'covers: Card types', '',
     '## learn: Generics', '<p>`id<T>` keeps the type.</p>', '```ts', ts, '```', '',
     '## type', 'q: Run the image once.', 'code:', '```shell', sh, '```',
-    'accept:', '- docker run --rm "$IMAGE"', 'expect: One command.', 'why: `--rm` removes it after.', '',
+    'accept:', '- docker run --rm "$IMAGE"', 'expect: One command.', 'hint:', '- Start the container with docker run.', '- Add the flag that removes it on exit.', 'why: `--rm` removes it after.', '',
     '## write', 'q: Write `id`.', 'starter:', '````ts', 'const s = `${a}`', '````', 'model:', '````ts', ts, '````',
-    'rubric:', '- Takes `<T>`', '- Returns ``x`${y}`` or `x`', 'hint: It returns its argument.', 'why: Done.', '',
+    'rubric:', '- Takes `<T>`', '- Returns ``x`${y}`` or `x`', 'hint:', '- It returns a string.', '- Wrap the argument in a template.', 'why: Done.', '',
   ].join('\n'))
   edit(join(dir, 'course.json'), '"u1l2"', '"u1l2", "u1l3"')
   const r = lessons(root, 'build', 'course')

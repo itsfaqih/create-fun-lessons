@@ -31,6 +31,8 @@ const plain = o => ({ kind: 'plain', ...o })
 const q = html({ required: true })
 const why = html({ required: true })
 const hint = html({ list: 'maybe' })
+// Only a type or write card's own hints narrow an open answer; the automatic help adds no idea.
+const hints = html({ list: 'maybe', min: 2, about: 'hints as a list, gentle to specific: the idea first, then where to look or how the answer is built' })
 const lang = { kind: 'lang' }
 const a = { kind: 'index' }
 const isText = c => (c.lang || 'text') === 'text'
@@ -65,7 +67,7 @@ export const CARD_TYPES = {
     check(c, err) { if (Array.isArray(c.items) && new Set(c.items).size !== c.items.length) err('items must be distinct', 'items') },
   },
   type: {
-    fields: { q, lang, code: plain({ shows: () => 'pre' }), accept: plain({ list: 'list', required: true, min: 1, about: 'answers' }), expect: html(), hint, why },
+    fields: { q, lang, code: plain({ shows: () => 'pre' }), accept: plain({ list: 'list', required: true, min: 1, about: 'answers' }), expect: html(), hint: hints, why },
     check(c, err) {
       if (!Array.isArray(c.accept) || !c.accept.length) return
       const regex = x => typeof x === 'string' && x.match(/^\/(.*)\/([a-z]*)$/s)
@@ -82,8 +84,7 @@ export const CARD_TYPES = {
     },
   },
   write: {
-    fields: { q, lang, starter: plain({ shows: c => isText(c) ? null : 'editor' }), model: plain({ required: true, about: 'the sample answer', shows: c => isText(c) ? null : 'pre' }), rubric: html({ list: 'list', required: true, min: 2, max: 4, about: 'criteria' }), hint, why },
-    needsHint: () => true,
+    fields: { q, lang, starter: plain({ shows: c => isText(c) ? null : 'editor' }), model: plain({ required: true, about: 'the sample answer', shows: c => isText(c) ? null : 'pre' }), rubric: html({ list: 'list', required: true, min: 2, max: 4, about: 'criteria' }), hint: hints, why },
   },
 }
 
@@ -158,6 +159,7 @@ function validateCard(c, err, languages) {
       if (f.list === 'choices' && (!Number.isInteger(c.a) || c.a < 0 || c.a >= v.length)) err(`a=${c.a} is not an index into ${name}`, name)
     } else if (f.list === 'maybe') {
       if (v !== undefined && !(str(v) || (Array.isArray(v) && v.length && v.every(str)))) { err(`${name} must be a string or an array of strings`, name); continue }
+      if ([].concat(v ?? []).length < (f.min ?? 0)) { err(`${name} needs ${count} ${f.about}`, name); continue }
     } else if (v === undefined) {
       if (f.required) err(`missing ${name}${f.about ? ` (${f.about})` : ''}`, name)
       continue
