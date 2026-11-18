@@ -23,7 +23,7 @@ The course takes the learner from zero to contributor: by the last unit they can
    repomix <repo> --style markdown --include "<source dirs>,README*,package.json" -o <temp-dir>/pack.md
    ```
 
-   Use `npx repomix` where `repomix` is not installed, and keep the pack outside the course folder. It prints the pack's token count. Over about 150k tokens, run it again with `--compress`, which keeps signatures and doc comments and drops function bodies. Read the pack in a few large parts, and open a source file on its own only for what the pack leaves out. Where Repomix cannot run, read the files directly.
+   Run `repomix` itself first, since it may already be installed; only if the shell reports it not found, use `npx repomix`. Keep the pack outside the course folder. It prints the pack's token count. Over about 150k tokens, run it again with `--compress`, which keeps signatures and doc comments and drops function bodies. Read the pack in a few large parts, and open a source file on its own only for what the pack leaves out. Where Repomix cannot run, read the files directly.
 
    Study every row to the depth a contributor needs: what it is for; its key files and the main types, functions, and commands in them; how it connects to its neighbours (who calls it, what it calls, what data goes in and out); how it is configured and tested; its conventions and gotchas. Trace every fact to a path or URL. For a large subject, research rows in parallel with subagents where available, each returning notes for its rows. Done when every row has its sources and an answer to each of those questions.
 3. **Outline.** Turn the syllabus into a journey, in this order:
