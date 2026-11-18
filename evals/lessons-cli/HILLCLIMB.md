@@ -99,3 +99,30 @@ Question: where do h6's tokens go, and which of four changes cuts them or closes
 - h13 cost 1.68× h6's wall time for a gap inside noise.
 - One h14 course (oak-65) fails the frozen checker only because its Sources start with `ky/`, a form SKILL.md allows and `build` accepts. That is a grader artifact.
 - Decision: the final arm is **h10**. Building on Sonnet halves list cost with a weaker low tail; that is the user's model choice, not a skill default.
+
+## Fair judging, checker rules and a second subject (2026-11-19)
+
+Question: do the judges' complaints about h10 come from the courses or from the dump, and do checker rules for the defects they name close the gap? Each arm ran 5 ky builds on claude-opus-5-5 at high effort, and each packet is judged blind by Opus and Sonnet.
+
+The dump now marks each code line too wide for a phone, the grader accepts Sources under `ky/`, and `harness.py cards` counts card defects. With those changes, h10's own 10 courses judged again (h10w) gave h10 4.64 and old 4.38, p 0.079. The first pass had given 4.6 vs 4.9, p 0.048. The dump and the judge invocation both changed, so the reversal is one pass, not a proof.
+
+| Arm | Change | Quality, arm vs old | List cost, median | Expect leaks | Lessons outside 3–6 | Decision |
+|---|---|---|---|---|---|---|
+| h15 | `build` rejects an `expect` that shows an accepted answer and a lesson outside 3–6 cards; `selfcheck` warns on a learn card taller than 400x860, fails on page errors, and exits 1, not 3, on a timeout or a lost browser | 4.68 vs 3.88, p 0.008 | $2.67 (old $3.36, h10 $2.51) | 0 (h10 8) | 0 (h10 1) | keep |
+| h16 | h15 + Research: take behaviour from the code, teach a rule file as rules | 4.76 vs 4.00, p 0.008 | $2.59 | 0 | 0 | keep, final arm |
+
+- Every h15 and h16 course passes the frozen checker, and none has a wide line.
+- h15 against h16 in one packet: 4.44 vs 4.44, p 1.0. Accuracy sits at 5 in 19 of 20 scores, so the Research sentence has no measurable effect on ky. It stays because it costs one sentence, and one h16 course teaches the code's behaviour for `searchParams: null` (sent as `'null'`), while one h15 course (fern-49) states, from ky's AGENTS.md, that `null` throws. The judges flagged neither.
+- Old scores move between packets (3.88, 4.00, 4.38). Read each gap within its own packet only.
+- `restore` replays a run's logged writes, edits and commands into a deleted workspace. A regrade of 100 restored runs matches the saved grades in 95. oak-65 now passes, as expected. teak-14 and larch-44 have no page after replay, and revise runs ivy-98 and birch-93 replay with different lessons. Their saved grades are kept and marked `restoreMismatch`.
+
+Second subject, commander 15.1.0 (5 old and 5 h16 builds, interleaved, then one blind packet):
+
+| Arm | Quality | List cost, median | Tool calls, median | Wall, median | Frozen checker |
+|---|---|---|---|---|---|
+| old | 4.26 | $3.87 | 54 | 798 s | 0/5 pass, 61 to 87 wide lines each |
+| h16 | 4.62, p 0.024 | $2.94, 0.76× | 41 | 532 s | 5/5 pass, 0 wide lines |
+
+- Both judges found accuracy level across all ten and named the wide-line marks as the main separator. The marks show a real phone defect, but this gap is mostly that one defect. Depth and coverage were close.
+- The ky result carries over: h16 is cheaper than old and scores higher on a library it was never tuned on.
+- Decision: the final arm is **h16** (41bea1a).
