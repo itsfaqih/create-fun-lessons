@@ -65,3 +65,19 @@ Final arm: **h6** (c5914ce). The branch head after the two reverts has the same 
 - Quality gap: three blind passes put the old arm at 4.7 to 4.8 and the CLI arm at 4.1 to 4.5 (h6 4.4, p 0.15; h7 4.1, p 0.016; h8 4.5, p 0.23).
 - H7 (card-writing rules in SKILL.md, 5–6 cards, each option its own card) grew courses to 99 cards and scored lower. H8 (only the "lesson ends on a learn card" rule) cost 1.28× h6's tokens with quality inside judge noise. Both reverted; two failures in a row met the stop predicate.
 - The CLI writers write about 0.7× the old arm's output tokens. Guidance that adds cards raises cost faster than it raises the judges' scores, so parity on quality at the old arm's cost was not reached.
+
+## Repomix (2026-11-18)
+
+Question: does packing the repo with Repomix in one call, instead of reading files, make a build cheaper or a course better? Repomix 1.19.0 was vetted first (29k stars, MIT, no install scripts, network only for `--remote`), installed pinned with scripts off, and put on the runs' PATH.
+
+| Arm | What the skill said | Runs that packed | Input tokens vs h6 | List cost vs h6 |
+|---|---|---|---|---|
+| h9 | Pack with Repomix, mid-paragraph in Research | 0/5 | 0.94×, p 0.22 | 0.92× |
+| h9b | Pack as Research's first command block | 1/5 | 0.94×, p 0.84 | 1.10× |
+| h9c | Run the installed `repomix` before `npx` | 4/5 | 0.96×, p 0.84 | 1.06× |
+
+- h9 changed no behaviour, so its 0.94× is the noise floor between identical arms.
+- In h9b, 4 of 5 agents reached for a download (`npx`/`vp dlx repomix`); the auto-mode classifier denied each one, so no unvetted code ran.
+- Where Repomix ran, the pack was about 54k to 68k tokens, read in 3 to 10 parts. Tool calls stayed at 37 to 41 against h6's 38: the agents already batch many files per `cat`, so a pack saves no turns. Cache writes rose 1.17× (p 0.008).
+- Quality, blind (Opus and Sonnet judges, h9c vs old): 4.5 vs 4.7, p 0.34. The four courses built from a pack scored 4.2 to 4.5, level with h6's 4.4; the one h9c run that was denied Repomix scored 5.0.
+- Decision: revert all three. Repomix earns no place in the skill; the final arm stays h6.
