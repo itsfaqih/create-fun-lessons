@@ -11,7 +11,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
-STATE = Path.home() / '.agents/state/pstack/create-fun-lessons/lessons-cli-eval'
+STATE = Path(os.environ.get('LESSONS_EVAL_STATE', Path.home() / '.local/state/create-fun-lessons/lessons-cli-eval'))
 WORK = Path.home() / 'work-ky'
 KY_SRC = WORK / 'ky-src'
 KY_COMMIT = '3541888878c4d303a8bc2ad61815f4e048f55a5d'

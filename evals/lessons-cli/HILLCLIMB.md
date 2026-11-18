@@ -38,13 +38,13 @@ Each later hypothesis is chosen from the previous iteration's tool-call breakdow
 
 ## Runs and budget
 
-- Provider `claudeAgent_claude_faqih` (Claude subscription), model `claude-opus-5-5`, effort `high`, the same headless command as PLAN.md. Code edits go to one `pstack:poteto-agent` per iteration on the same model and effort (`hillclimb: opus-high` in model routing).
+- Claude subscription, model `claude-opus-5-5`, effort `high`, the same headless command as PLAN.md. Code edits go to one subagent per iteration on the same model and effort.
 - 5 build runs per iteration, run 5 at a time after checking `uptime`. About 22 list dollars and 12 minutes per iteration (measured on the eval's new arm).
 - Budget about 8 iterations plus 5 revise runs and 2 judge runs, about 200 list dollars. List dollars are an API list-price size, not money spent. If one iteration's builds average above 40 each, pause and ask.
 
 ## Files
 
-- `<state>` is `~/.agents/state/pstack/create-fun-lessons/lessons-cli-eval/`.
+- `<state>` is `$LESSONS_EVAL_STATE`, by default `~/.local/state/create-fun-lessons/lessons-cli-eval/`.
 - `<state>/arms.json` maps each hill-climb arm to its commit.
 - `<state>/hillclimb/decision.tsv` is the decision log, kept out of the tree.
 - `python3 stats.py <A> <B>` compares two arms.

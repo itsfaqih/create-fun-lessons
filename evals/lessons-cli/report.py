@@ -2,10 +2,10 @@
 
   python3 report.py <out.html>
 """
-import html, json, statistics, sys
+import html, json, os, statistics, sys
 from pathlib import Path
 
-STATE = Path.home() / '.agents/state/pstack/create-fun-lessons/lessons-cli-eval'
+STATE = Path(os.environ.get('LESSONS_EVAL_STATE', Path.home() / '.local/state/create-fun-lessons/lessons-cli-eval'))
 HERE = Path(__file__).resolve().parent
 
 LABEL = {

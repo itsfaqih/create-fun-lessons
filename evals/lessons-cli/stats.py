@@ -3,10 +3,10 @@
   python3 stats.py           old vs new, writes summary.json beside the run state and prints a table
   python3 stats.py <A> <B>   any two arms, writes summary_<A>_<B>.json
 """
-import itertools, json, statistics, sys
+import itertools, json, os, statistics, sys
 from pathlib import Path
 
-STATE = Path.home() / '.agents/state/pstack/create-fun-lessons/lessons-cli-eval'
+STATE = Path(os.environ.get('LESSONS_EVAL_STATE', Path.home() / '.local/state/create-fun-lessons/lessons-cli-eval'))
 
 
 def mann_whitney_p(a, b):

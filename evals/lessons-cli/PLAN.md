@@ -21,7 +21,7 @@ The old arm's checker predates two rules the new one has: the code-width limit (
 
 ## Workspaces
 
-Each run gets `~/work-ky/<random slug>/` holding `ky/` (a clone at the pinned commit) and `skills/create-fun-lessons/` (the arm's skill). The slug, paths and prompt carry no arm name and none of the words the Eval playbook bans. Both arms put the skill at the same relative path, so the prompt is byte-identical across arms. The arm-to-slug map lives only in `~/.agents/state/pstack/create-fun-lessons/lessons-cli-eval/runs.tsv`.
+Each run gets `~/work-ky/<random slug>/` holding `ky/` (a clone at the pinned commit) and `skills/create-fun-lessons/` (the arm's skill). The slug, paths and prompt carry no arm name and none of the words the Eval playbook bans. Both arms put the skill at the same relative path, so the prompt is byte-identical across arms. The arm-to-slug map lives only in `<state>/runs.tsv (`$LESSONS_EVAL_STATE`, by default `~/.local/state/create-fun-lessons/lessons-cli-eval/`)`.
 
 ## Tasks
 
@@ -36,7 +36,7 @@ Each run gets `~/work-ky/<random slug>/` holding `ky/` (a clone at the pinned co
 
 ## Runs
 
-- Provider `claudeAgent_claude_faqih` (Claude subscription), model `claude-opus-5-5`, effort `high`, resolved with `agent-setup.py resolve --family Claude --role 'feature, refactoring' --allowed-model claude-opus-5-5`.
+- Claude subscription, model `claude-opus-5-5`, effort `high`.
 - Headless `claude -p --model claude-opus-5-5 --effort high --permission-mode auto --disallowedTools Skill --strict-mcp-config --output-format stream-json --verbose`. User settings and hooks stay on (the classifier refused a run that dropped them), the same for both arms. `Skill` is disallowed so the user-level install of the current skill can't be invoked; reads outside the workspace are checked in the transcripts.
 - **5 runs per arm per task, 20 candidate runs.** Why 5: with an exact two-sided Mann–Whitney test, 5 vs 5 reaches p = 0.008 when the arms separate completely, 4 vs 4 only 0.029, 3 vs 3 never below 0.1. Agent token use varies run to run by tens of percent, so 5 per arm can show a large effect (about 1.5× or more) and cannot show a small one. The report says which.
 - Concurrency: 5 runs at a time (10 CPUs; load was 4.2 at planning), each wave interleaved old/new so time-of-day and API latency hit both arms alike. Wall limit 90 minutes per build run, 40 per revise run.
@@ -62,7 +62,7 @@ From the final files, `grade.mjs`:
 
 ## Prior evidence (not a result)
 
-The tanstack-ai 19-unit old-flow build (session 4cba39f8, 30 minutes, 14 subagents, about 760 tool calls, 85M cache-read tokens) wrote its own assembler (`assemble.py`), a subagent schema brief, and a code-width measurer. Of its 34 checker runs, 4 failed, each a different kind: syllabus "in no row" (19 of 24 error lines, but one run, before any rows existed), a JS parse error from an unescaped backtick, a regex-looking `type` answer, and a fill with two blanks. The costliest work was rewrapping 266 wide code lines with 5 extra agents. So this eval classifies every checker failure by kind (syllabus, parse/escaping, field rule, width), counts helper scripts, and reports the final common-checker result twice: all rules, and all rules except code width, since the old arm's checker cannot see width at all.
+An earlier real 19-unit old-flow build on another codebase (30 minutes, 14 subagents, about 760 tool calls, 85M cache-read tokens) wrote its own assembler (`assemble.py`), a subagent schema brief, and a code-width measurer. Of its 34 checker runs, 4 failed, each a different kind: syllabus "in no row" (19 of 24 error lines, but one run, before any rows existed), a JS parse error from an unescaped backtick, a regex-looking `type` answer, and a fill with two blanks. The costliest work was rewrapping 266 wide code lines with 5 extra agents. So this eval classifies every checker failure by kind (syllabus, parse/escaping, field rule, width), counts helper scripts, and reports the final common-checker result twice: all rules, and all rules except code width, since the old arm's checker cannot see width at all.
 
 ## Reading the numbers
 
