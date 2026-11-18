@@ -137,3 +137,17 @@ Unmarked check (`judge --unmarked --labels-from`): the same 10 courses per subje
 - Without the marks, the h16 lead disappears on ky and reverses on commander. Every point of h16's lead came from the wide lines.
 - Where h16 loses: coverage (Opus 4.4 vs 5.0 on both subjects), depth, and Sonnet's coherence on commander (3.8 vs 4.6). The judges name the misses. Courses skip contributing and typings or give them one line. They end on a test-writing card, not a planned change to the library. Type cards carry a single hint where the rubric wants hints that go from gentle to specific.
 - Corrected conclusion: h16 is the final arm for cost (0.76× old) and phone fit (0 wide lines against 34 to 87). It does not beat the hand-written flow on content. The next hypothesis should target coverage of contributing and typings, the capstone, and two-step hints.
+
+## Hints and the capstone (2026-11-19)
+
+Question: do the gaps the unmarked judges named close when build enforces them? h17 = h16 + build rejects a `type` or `write` card with fewer than two hints, + the Outline step's Done criterion asks a codebase course for a contributing lesson and a closing capstone `write` card that plans one real change. 5 commander builds, judged unmarked.
+
+| Packet | Score | p |
+|---|---|---|
+| h17 vs old | 4.24 vs 4.28 | 0.60 |
+| h17 vs h16 | 4.68 vs 4.36 | 0.079 |
+
+- Craft moved most in the direct packet: Sonnet 3.6 to 4.6, Opus 4.2 to 4.8. Coverage barely moved (Opus 4.2 to 4.4, Sonnet level), so the capstone criterion did less than the hint rule.
+- The same 5 old courses scored 4.72 in c1u and 4.28 in c2u. Compare scores only inside one packet.
+- All 5 h17 courses pass the frozen checker with 0 leaks and 0 wide lines. Median list cost $2.77, against h16 $2.94 and old $3.87.
+- Decision: keep h17 (2fdfd04). It beats h16 at p ≤ 0.1 at no higher cost, and it reaches parity with the hand-written flow on content while keeping the cost and phone-fit gains.
