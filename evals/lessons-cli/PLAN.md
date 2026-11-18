@@ -19,6 +19,8 @@ The old arm's checker predates two rules the new one has: the code-width limit (
 
 `ky` (github.com/sindresorhus/ky) at 3541888878c4. About 4.9k lines in `source/`, plus `test/`, `test-d/`, `media/`, `.github/`. Small enough to finish in one session, big enough for 3–4 units and 10+ lessons, so the old flow's single growing JS block and hand-kept syllabus have room to drift.
 
+Second subject (added 2026-11-19): Commander.js (github.com/tj/commander.js) at v15.1.0, a5a7dc084d4d. About 4.2k lines in `lib/` and `index.js`, 1.1k in `typings/index.d.ts`, 133 files in `tests/`, GitHub Actions CI. `harness.py setup <arm> build --subject commander` builds in `~/work-commander/<slug>/` from `prompts/build-commander.md`, and its judges read `rubric-commander.md`. Subjects are records in `harness.py` `SUBJECTS`; ky stays the default, and runs.tsv rows without a fourth column are ky. Each workspace clone sets `core.quotePath false`, because Commander tracks non-ASCII paths under `docs/zh-CN/`, and with quoted paths the checkers' `trackedDirs` reads a top-level directory named `"docs`.
+
 ## Workspaces
 
 Each run gets `~/work-ky/<random slug>/` holding `ky/` (a clone at the pinned commit) and `skills/create-fun-lessons/` (the arm's skill). The slug, paths and prompt carry no arm name and none of the words the Eval playbook bans. Both arms put the skill at the same relative path, so the prompt is byte-identical across arms. The arm-to-slug map lives only in `<state>/runs.tsv (`$LESSONS_EVAL_STATE`, by default `~/.local/state/create-fun-lessons/lessons-cli-eval/`)`.

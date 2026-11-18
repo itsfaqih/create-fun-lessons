@@ -1,6 +1,8 @@
 // Grade one finished run's course with the current checker, and for a
 // revise run, assert the three requested changes against the seed.
 // Usage: node grade.mjs <workspace> <old|new> <build|revise> [<seed-page.html>]
+// SUBJECT_FOLDER and SUBJECT_COURSE name the repo and course folders in the
+// workspace (default ky and ky-course).
 import { readFileSync, existsSync, readdirSync, mkdtempSync, cpSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -12,7 +14,25 @@ import { fileURLToPath } from 'node:url'
 const SKILL = process.env.GRADER_SKILL ?? fileURLToPath(new URL('../../skills/create-fun-lessons/', import.meta.url))
 const { loadPage, checkPage, trackedDirs } = await import(join(SKILL, 'scripts/check.mjs'))
 const [ws, arm, task, seedPage] = process.argv.slice(2)
-const course = join(ws, 'ky-course')
+const repoName = process.env.SUBJECT_FOLDER ?? 'ky'
+const repo = join(ws, repoName)
+const course = join(ws, process.env.SUBJECT_COURSE ?? 'ky-course')
+
+// SKILL.md lets a Sources path start at the repo's parent, under the repo
+// folder's name (ky/source/). The frozen checker reads only root-relative
+// paths, so each such token also gets its root-relative form, as the current
+// checker does.
+function withRootRelativeSources(syllabus, name) {
+  if (syllabus === null) return null
+  const escaped = name.replace(/[.*+?^$()|[\]\\{}]/g, '\\$&')
+  const prefixed = new RegExp(`^(\\./)?${escaped}/(.+)`)
+  return syllabus.split('\n').map(line => {
+    if (!line.trim().startsWith('|')) return line
+    const cells = line.split('|')
+    if (cells.length > 3) cells[2] = cells[2].replace(/[^\s,`'"()]+/g, t => t.replace(prefixed, (m, dot, rest) => `${m} ${rest}`))
+    return cells.join('|')
+  }).join('\n')
+}
 
 function findPage(dir) {
   if (!existsSync(dir)) return null
@@ -38,19 +58,19 @@ const syllabus = existsSync(sylPath) ? readFileSync(sylPath, 'utf8') : null
 let data
 try {
   data = loadPage(html).data
-  const { problems, counts } = checkPage(html, syllabus, { repoDirs: trackedDirs(join(ws, 'ky')) })
+  const { problems, counts } = checkPage(html, withRootRelativeSources(syllabus, repoName), { repoDirs: trackedDirs(repo) })
   g.common = { ok: problems.length === 0, problems: problems.length, width: problems.filter(isWidth).length,
     widthLines: problems.filter(isWidth), okIgnoringWidth: problems.filter(p => !isWidth(p)).length === 0, other: problems.filter(p => !isWidth(p)).slice(0, 20), counts }
 } catch (e) { g.common = { ok: false, okIgnoringWidth: false, problems: 1, fatal: e.message } }
 
 const ownChecker = join(ws, 'skills/create-fun-lessons/scripts/check.mjs')
-const own = run('node', [ownChecker, page, '--repo', join(ws, 'ky')])
+const own = run('node', [ownChecker, page, '--repo', repo])
 g.own = { ok: own.ok, tail: own.out.trim().split('\n').slice(0, 6) }
 
 if (arm === 'new' && existsSync(join(course, 'course.json'))) {
   const tmp = mkdtempSync(join(tmpdir(), 'kyc-'))
   cpSync(course, tmp, { recursive: true })
-  const b = run('node', [join(ws, 'skills/create-fun-lessons/scripts/lessons.mjs'), 'build', tmp, '--repo', join(ws, 'ky')])
+  const b = run('node', [join(ws, 'skills/create-fun-lessons/scripts/lessons.mjs'), 'build', tmp, '--repo', repo])
   g.freshBuild = { ok: b.ok, matchesPage: b.ok && readFileSync(join(tmp, 'index.html'), 'utf8') === html,
     sourceFillBroken: /exactly one ____/.test(b.out),
     sourceWidth: seedPage ? b.out.split('\n').some(l => / columns; \d+ fit /.test(l) && l.includes(`${targets0(seedPage).wideLesson}.md`)) : / columns; \d+ fit /.test(b.out) }
@@ -70,6 +90,28 @@ if (data) {
   g.garbledSpans = strings(data).filter(s => [...s.replace(/<pre[\s\S]*?<\/pre>/g, '').matchAll(/<code[^>]*>([\s\S]*?)<\/code>/g)]
     .some(m => m[1].includes('`'))).length
   g.leakedMarkers = strings(data).filter(s => /[«»]/.test(s)).length
+  // Card-craft defects the judges read as craft: a type card's expect that
+  // gives away an accepted answer, lesson length, learn cards in a row, a
+  // lesson ending on a learn card, and how many quiz cards carry a hint.
+  const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
+  const shown = h => String(h ?? '').replace(/<[^>]*>/g, '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) =>
+    e[0] === '#' ? String.fromCodePoint(/^#x/i.test(e) ? parseInt(e.slice(2), 16) : +e.slice(1)) : ENTITIES[e.toLowerCase()] ?? m)
+  // The same rule as the current skill's schema.mjs type check, which the frozen grader predates.
+  const squash = s => String(s).replace(/\s+/g, ' ').trim().toLowerCase()
+  const literals = c => [].concat(c.accept ?? []).filter(a => !/^\/.*\/[a-z]*$/s.test(a)).map(squash).filter(a => a.length >= 3)
+  const typeCards = cards.filter(c => c.t === 'type')
+  const learnRun = l => l.cards.reduce(([run, max], c) => c.t === 'learn' ? [run + 1, Math.max(max, run + 1)] : [0, max], [0, 0])[1]
+  const quiz = cards.filter(c => c.t !== 'learn')
+  const hinted = quiz.filter(c => [].concat(c.hint ?? []).some(h => String(h).trim())).length
+  g.cards = {
+    typeCards: typeCards.length,
+    expectLeaks: typeCards.filter(c => literals(c).some(a => squash(shown(c.expect)).includes(a))).length,
+    lessonsOutside3to6: lessons.filter(l => l.cards.length < 3 || l.cards.length > 6).length,
+    maxLearnRun: Math.max(0, ...lessons.map(learnRun)),
+    lessonsEndingOnLearn: lessons.filter(l => l.cards.at(-1)?.t === 'learn').length,
+    quizCards: quiz.length, hinted, hintRate: quiz.length ? Math.round(hinted / quiz.length * 100) / 100 : null,
+    wideLines: g.common?.width ?? null,
+  }
   g.doubleEscaped = strings(data).filter(s => /&amp;(lt|gt|amp|quot);/.test(s)).length
 }
 

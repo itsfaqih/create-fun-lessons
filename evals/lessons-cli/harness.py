@@ -1,20 +1,61 @@
-"""Set up, run, and measure candidate runs for the lessons.mjs eval (see PLAN.md).
+"""Set up, run, measure, and judge candidate runs for the lessons.mjs eval (see PLAN.md).
 
-  python3 harness.py setup <old|new> <build|revise>   prints the new run's slug
+  python3 harness.py setup <arm> <build|revise> [--subject <name>]   prints the new run's slug
   python3 harness.py run <slug> [<slug> ...]          runs them in parallel, waits
+  python3 harness.py restore <slug> [<slug> ...]      rebuilds deleted workspaces by replaying their logs
   python3 harness.py metrics                          writes metrics.json for every finished run
   python3 harness.py grade                            writes grades.json for every finished run
   python3 harness.py arm <name> <commit> [<model>]    registers a hill-climb arm (see HILLCLIMB.md)
+  python3 harness.py judge <packet> <armA> <armB> [--subject <name>]   blind packet of both arms' 5 builds, then both judges
+  python3 harness.py judge <packet> --labels-from <earlier packet>   the same courses, dumped again
+  python3 harness.py gap <packet>                     each course's mean score, each arm's, and the p
+  python3 harness.py cards <arm> [<arm> ...]          card-defect counts per build run from grades.json
 """
-import json, os, random, re, shutil, subprocess, sys, time
+import argparse, json, os, random, re, shlex, shutil, statistics, subprocess, sys, time
+from dataclasses import dataclass
 from pathlib import Path
+
+from stats import mann_whitney_p
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 STATE = Path(os.environ.get('LESSONS_EVAL_STATE', Path.home() / '.local/state/create-fun-lessons/lessons-cli-eval'))
-WORK = Path.home() / 'work-ky'
-KY_SRC = WORK / 'ky-src'
-KY_COMMIT = '3541888878c4d303a8bc2ad61815f4e048f55a5d'
+
+
+@dataclass(frozen=True)
+class Subject:
+    """A codebase the courses teach. Each run's workspace is <work>/<slug>/ holding <folder>/ (a clone of
+    <src> at <commit>) and, once built, <course>/. A judge packet is <work>/<packet>-review/."""
+    name: str
+    repo_url: str
+    src: Path
+    commit: str
+    folder: str
+    course: str
+    prompts: dict
+    rubric: str
+    about: str
+    sources: str
+
+    @property
+    def work(self):
+        return self.src.parent
+
+
+SUBJECTS = {s.name: s for s in (
+    Subject('ky', 'https://github.com/sindresorhus/ky', Path.home() / 'work-ky/ky-src',
+            '3541888878c4d303a8bc2ad61815f4e048f55a5d', 'ky', 'ky-course',
+            {'build': 'build.md', 'revise': 'revise.md'}, 'rubric.md', 'the ky HTTP client', '`source/`, `readme.md`'),
+    # v15.1.0: lib/ and index.js 4.2k lines, typings 1.1k, 133 test files, GitHub Actions CI.
+    Subject('commander', 'https://github.com/tj/commander.js', Path.home() / 'work-commander/commander-src',
+            'a5a7dc084d4d2b7932e85ca049c5204e50a2c721', 'commander', 'commander-course',
+            {'build': 'build-commander.md'}, 'rubric-commander.md', 'the commander.js command-line parser',
+            '`lib/`, `index.js`, `Readme.md`'),
+)}
+DEFAULT_SUBJECT = 'ky'
+JUDGES = {'opus': 'claude-opus-5-5', 'sonnet': 'claude-sonnet-5-5'}
+CRITERIA = ('accuracy', 'coverage', 'depth', 'craft', 'coherence')
+GRADER = STATE / 'grader/skills/create-fun-lessons'
 SKILL_COMMIT = {'old': 'c4f17c3', 'new': '566c86e'}
 ARMS = STATE / 'arms.json'
 
@@ -34,7 +75,9 @@ def commit_of(arm):
 def flow(arm):
     return 'old' if arm == 'old' else 'new'
 MODEL, EFFORT = 'claude-opus-5-5', 'high'
-LIMIT_S = {'build': 90 * 60, 'revise': 40 * 60}
+LIMIT_S = {'build': 90 * 60, 'revise': 40 * 60, 'judge': 90 * 60}
+CLAUDE_FLAGS = ['--effort', EFFORT, '--permission-mode', 'auto', '--disallowedTools', 'Skill', '--strict-mcp-config',
+                '--max-budget-usd', '60', '--output-format', 'stream-json', '--verbose']
 RUNS = STATE / 'runs.tsv'
 WORDS = 'ash birch cedar elm fern hazel ivy juniper larch maple oak pine rowan sage teak willow'.split()
 
@@ -44,10 +87,33 @@ def sh(*args, **kw):
 
 
 def registry():
+    """slug -> arm, task and Subject. runs.tsv rows from before the second subject have no fourth column: ky."""
     if not RUNS.exists():
         return {}
     rows = [l.split('\t') for l in RUNS.read_text().splitlines() if l.strip()]
-    return {r[0]: {'arm': r[1], 'task': r[2]} for r in rows}
+    return {r[0]: {'arm': r[1], 'task': r[2], 'subject': SUBJECTS[r[3] if len(r) > 3 else DEFAULT_SUBJECT]} for r in rows}
+
+
+def workspace(slug, reg=None):
+    return (reg or registry())[slug]['subject'].work / slug
+
+
+def ensure_src(subject):
+    """Clone the subject once into its local source folder; every workspace clones from there."""
+    if not subject.src.exists():
+        subject.src.parent.mkdir(parents=True, exist_ok=True)
+        sh('git', 'clone', '-q', subject.repo_url, str(subject.src))
+    if subprocess.run(['git', '-C', str(subject.src), 'cat-file', '-e', f'{subject.commit}^{{commit}}'], capture_output=True).returncode:
+        sh('git', '-C', str(subject.src), 'fetch', '-q', 'origin')
+
+
+def checkout(subject, dest):
+    ensure_src(subject)
+    sh('git', 'clone', '-q', str(subject.src), str(dest))
+    sh('git', '-C', str(dest), 'checkout', '-q', subject.commit)
+    # Without this, git ls-files quotes non-ASCII paths ("docs/zh-CN/...), and the checkers' trackedDirs
+    # reads a top-level directory named "docs that no Sources cell can name. A no-op for ky.
+    sh('git', '-C', str(dest), 'config', 'core.quotePath', 'false')
 
 
 def skill_copy(arm, dest):
@@ -56,24 +122,73 @@ def skill_copy(arm, dest):
     subprocess.run(['tar', '-x', '-C', str(dest)], input=p.stdout, check=True)
 
 
-def setup(arm, task):
+def populate(ws, arm, task, subj):
+    """A run's starting workspace: the subject at its commit, the arm's skill, and for a revise run the seed course."""
+    ws.mkdir(parents=True)
+    checkout(subj, ws / subj.folder)
+    skill_copy(arm, ws)
+    if task == 'revise':
+        shutil.copytree(STATE / 'seed' / flow(arm) / subj.course, ws / subj.course)
+
+
+def setup(arm, task, subject=DEFAULT_SUBJECT):
+    subj = SUBJECTS[subject]
+    if task not in subj.prompts:
+        sys.exit(f'{subject} has no {task} prompt')
+    commit_of(arm)
     taken = registry()
     while True:
         slug = f'{random.choice(WORDS)}-{random.randint(10, 99)}'
-        if slug not in taken and not (WORK / slug).exists():
+        if slug not in taken and not (subj.work / slug).exists():
             break
-    ws = WORK / slug
-    ws.mkdir(parents=True)
-    sh('git', 'clone', '-q', str(KY_SRC), str(ws / 'ky'))
-    sh('git', '-C', str(ws / 'ky'), 'checkout', '-q', KY_COMMIT)
-    skill_copy(arm, ws)
-    if task == 'revise':
-        seed = STATE / 'seed' / flow(arm) / 'ky-course'
-        shutil.copytree(seed, ws / 'ky-course')
+    populate(subj.work / slug, arm, task, subj)
     (STATE / 'runs' / slug).mkdir(parents=True, exist_ok=True)
     with RUNS.open('a') as f:
-        f.write(f'{slug}\t{arm}\t{task}\n')
+        f.write(f'{slug}\t{arm}\t{task}' + ('' if subject == DEFAULT_SUBJECT else f'\t{subject}') + '\n')
     print(slug)
+
+
+def restore(slugs):
+    """Rebuild deleted workspaces at their old paths: clone the subject, copy the arm's skill, then replay the run's
+    Write, Edit and Bash calls in log order, carrying the shell's working directory between Bash calls.
+    Check a restored run by regrading it: its grade should match runs/<slug>/grade.json."""
+    reg = registry()
+    for slug in slugs:
+        r, ws = reg[slug], workspace(slug, reg)
+        if ws.exists():
+            sys.exit(f'{ws} exists')
+        populate(ws, r['arm'], r['task'], r['subject'])
+        cwd, cwd_file, n = ws, ws / '.restore-cwd', 0
+        for line in (STATE / 'runs' / slug / 'log.jsonl').open():
+            o = json.loads(line)
+            for b in o.get('message', {}).get('content', []) if o.get('type') == 'assistant' else []:
+                i = b.get('input', {}) if b.get('type') == 'tool_use' else None
+                if i is None:
+                    continue
+                if b['name'] == 'Write':
+                    Path(i['file_path']).parent.mkdir(parents=True, exist_ok=True)
+                    Path(i['file_path']).write_text(i['content'])
+                elif b['name'] in ('Edit', 'MultiEdit'):
+                    f = Path(i['file_path'])
+                    text = f.read_text() if f.exists() else ''
+                    for e in i.get('edits', [i]):
+                        if e['old_string'] in text:
+                            text = text.replace(e['old_string'], e['new_string'], -1 if e.get('replace_all') else 1)
+                    f.write_text(text)
+                elif b['name'] == 'Bash':
+                    cwd_file.unlink(missing_ok=True)
+                    script = f'cd {shlex.quote(str(cwd))}\n{i["command"]}\nstatus=$?; pwd > {shlex.quote(str(cwd_file))}; exit $status'
+                    ok = subprocess.run(['bash', '-c', script], stdin=subprocess.DEVNULL, capture_output=True, timeout=300).returncode == 0
+                    # Claude Code keeps a cd only from a command that succeeded and only inside the working
+                    # directory; otherwise the next command starts where this one did, or back in the workspace.
+                    if ok and cwd_file.exists():
+                        moved = Path(cwd_file.read_text().strip())
+                        cwd = moved if moved.is_relative_to(ws) else ws
+                else:
+                    continue
+                n += 1
+        cwd_file.unlink(missing_ok=True)
+        print(slug, 'replayed', n, 'calls into', ws)
 
 
 def run(slugs):
@@ -82,12 +197,10 @@ def run(slugs):
     for slug in slugs:
         task = reg[slug]['task']
         out = STATE / 'runs' / slug
-        prompt = (HERE / 'prompts' / f'{task}.md').read_text()
-        cmd = ['timeout', str(LIMIT_S[task]), 'claude', '-p', prompt, '--model', arm_spec(reg[slug]['arm'])[1], '--effort', EFFORT,
-               '--permission-mode', 'auto', '--disallowedTools', 'Skill', '--strict-mcp-config',
-               '--max-budget-usd', '60', '--output-format', 'stream-json', '--verbose']
+        prompt = (HERE / 'prompts' / reg[slug]['subject'].prompts[task]).read_text()
+        cmd = ['timeout', str(LIMIT_S[task]), 'claude', '-p', prompt, '--model', arm_spec(reg[slug]['arm'])[1], *CLAUDE_FLAGS]
         (out / 'started').write_text(str(time.time()))
-        procs.append((slug, subprocess.Popen(cmd, cwd=WORK / slug, stdout=(out / 'log.jsonl').open('w'),
+        procs.append((slug, subprocess.Popen(cmd, cwd=workspace(slug, reg), stdout=(out / 'log.jsonl').open('w'),
                                              stderr=(out / 'stderr.txt').open('w'), stdin=subprocess.DEVNULL)))
         time.sleep(5)
     for slug, p in procs:
@@ -132,7 +245,7 @@ def failure_kinds(text):
     return sorted(kinds)
 
 
-def measure(slug, arm, task):
+def measure(slug, arm, task, subject):
     out = STATE / 'runs' / slug
     events = [json.loads(l) for l in (out / 'log.jsonl').read_text().splitlines() if l.startswith('{')]
     result = next((e for e in reversed(events) if e.get('type') == 'result'), None)
@@ -162,14 +275,14 @@ def measure(slug, arm, task):
     bash_scripts = [u['input'].get('command', '')[:120] for u in uses.values()
                     if u['name'] == 'Bash' and SCRIPT_REDIRECT.search(u['input'].get('command', ''))]
     reads = [u['input'].get('file_path', '') for u in uses.values() if u['name'] == 'Read']
-    outside = [p for p in reads if p and not p.startswith(str(WORK / slug))]
+    outside = [p for p in reads if p and not p.startswith(str(subject.work / slug))]
     mu = (result or {}).get('modelUsage', {})
     tok = {k: sum(m.get(k, 0) for m in mu.values()) for k in ('inputTokens', 'outputTokens', 'cacheReadInputTokens', 'cacheCreationInputTokens')}
     names = {}
     for u in uses.values():
         names[u['name']] = names.get(u['name'], 0) + 1
     m = {
-        'slug': slug, 'arm': arm, 'task': task,
+        'slug': slug, 'arm': arm, 'task': task, 'subject': subject.name,
         'exit': (out / 'exit').read_text().strip() if (out / 'exit').exists() else None,
         'subtype': (result or {}).get('subtype'), 'is_error': (result or {}).get('is_error'),
         'wall_s': round((result or {}).get('duration_ms', 0) / 1000),
@@ -191,7 +304,7 @@ def metrics():
     allm = []
     for slug, r in registry().items():
         if (STATE / 'runs' / slug / 'exit').exists():
-            allm.append(measure(slug, r['arm'], r['task']))
+            allm.append(measure(slug, r['arm'], r['task'], r['subject']))
     (STATE / 'metrics.json').write_text(json.dumps(allm, indent=1))
     for m in allm:
         print(m['slug'], m['arm'], m['task'], m['subtype'], 'wall', m['wall_s'], 'tools', m['tool_calls'],
@@ -202,14 +315,13 @@ def judge_quality():
     """Mean rubric score per run slug, averaged over every judge file in judges/."""
     per = {}
     for task, section in (('build', 'courses'), ('revise', 'lessons')):
-        labels_file = STATE / f'judge_labels_{task}.json'
-        if not labels_file.exists():
+        if not labels_file(task).exists():
             continue
-        labels = json.loads(labels_file.read_text())
+        labels = read_labels(task)
         for jf in sorted((STATE / 'judges').glob('*.json')):
             scores = json.loads(jf.read_text())[section]
             for label, s in scores.items():
-                slug = labels[label]['slug'] if isinstance(labels[label], dict) else labels[label]
+                slug = labels[label]
                 vals = [v for k, v in s.items() if k != 'reasons']
                 per.setdefault(slug, {})[jf.stem] = sum(vals) / len(vals)
     return per
@@ -217,14 +329,22 @@ def judge_quality():
 
 def grade():
     quality = judge_quality()
-    gs = []
-    for slug, r in registry().items():
+    gs, kept = [], []
+    reg = registry()
+    for slug, r in reg.items():
         if not (STATE / 'runs' / slug / 'exit').exists():
             continue
-        args = ['vp', 'node', str(HERE / 'grade.mjs'), str(WORK / slug), flow(r['arm']), r['task']]
+        subj, ws = r['subject'], workspace(slug, reg)
+        if not ws.exists():
+            # A deleted workspace keeps its last grade rather than becoming "no course page".
+            kept.append(slug)
+            if (STATE / 'runs' / slug / 'grade.json').exists():
+                gs.append(json.loads((STATE / 'runs' / slug / 'grade.json').read_text()))
+            continue
+        args = ['vp', 'node', str(HERE / 'grade.mjs'), str(ws), flow(r['arm']), r['task']]
         if r['task'] == 'revise':
             args.append(str(STATE / 'seed' / 'clean.html'))
-        g = json.loads(sh(*args, env={**os.environ, 'GRADER_SKILL': str(STATE / 'grader/skills/create-fun-lessons')}))
+        g = json.loads(sh(*args, env={**os.environ, 'GRADER_SKILL': str(GRADER), 'SUBJECT_FOLDER': subj.folder, 'SUBJECT_COURSE': subj.course}))
         g['slug'] = slug
         if slug in quality:
             g['qualityByJudge'] = quality[slug]
@@ -232,14 +352,189 @@ def grade():
         (STATE / 'runs' / slug / 'grade.json').write_text(json.dumps(g, indent=1))
         gs.append(g)
     (STATE / 'grades.json').write_text(json.dumps(gs, indent=1))
-    print(len(gs), 'graded,', sum('quality' in g for g in gs), 'with judge scores')
+    print(len(gs) - len(kept), 'graded,', sum('quality' in g for g in gs), 'with judge scores')
+    if kept:
+        print(len(kept), 'workspaces missing, last grade kept:', ' '.join(kept))
+
+
+def find_page(course_dir):
+    """The course page grade.mjs grades: index.html, else any page with a content block."""
+    pages = [p for p in sorted(course_dir.glob('*.html')) if '===== COURSE CONTENT' in p.read_text()] if course_dir.exists() else []
+    return next((p for p in pages if p.name == 'index.html'), pages[0] if pages else None)
+
+
+def labels_file(packet):
+    return STATE / f'judge_labels_{packet}.json'
+
+
+def read_labels(packet):
+    """Blind letter -> slug. The revise packet stores {slug, arm} per letter."""
+    raw = json.loads(labels_file(packet).read_text())
+    return {k: v['slug'] if isinstance(v, dict) else v for k, v in raw.items()}
+
+
+def unscored(path, letters):
+    """The letters a judge file lacks a full integer score for; empty when it is complete."""
+    try:
+        scores = json.loads(path.read_text())['courses']
+        return [l for l in letters if l not in scores or any(not isinstance(scores[l].get(c), int) for c in CRITERIA)]
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+        return [f'unreadable: {e}']
+
+
+def judge_files(packet, subject, letters):
+    """Judge name -> its complete score file: the copy in the state folder, else the packet's own."""
+    out = {}
+    for j in JUDGES:
+        for f in (STATE / 'hillclimb' / f'judge-{packet}-{j}.json', subject.work / f'{packet}-review' / f'judge-{j}.json'):
+            if f.exists() and not unscored(f, letters):
+                out[j] = f
+                break
+    return out
+
+
+def panel(arm, subject, reg):
+    """The arm's first 5 finished build runs on the subject, in launch order."""
+    slugs = [s for s, r in reg.items() if r['arm'] == arm and r['task'] == 'build' and r['subject'] == subject
+             and (STATE / 'runs' / s / 'exit').exists()][:5]
+    if len(slugs) < 5:
+        sys.exit(f'{arm} has {len(slugs)} finished {subject.name} builds; a packet needs 5')
+    return slugs
+
+
+def pinned(subject):
+    """A clean checkout at the pinned commit, for judges to check facts against."""
+    dest = subject.work / f'{subject.folder}-pinned'
+    if not dest.exists():
+        checkout(subject, dest)
+    return dest
+
+
+def judge(packet, arms, subject=DEFAULT_SUBJECT, labels_from=None, run_judges=True):
+    reg = registry()
+    if labels_file(packet).exists() or labels_from:
+        labels = read_labels(packet if labels_file(packet).exists() else labels_from)
+        subjects = {reg[s]['subject'].name for s in labels.values()}
+        if len(subjects) != 1:
+            sys.exit(f'a packet holds one subject; these labels span {sorted(subjects)}')
+        subj = SUBJECTS[subjects.pop()]
+    else:
+        if len(arms) != 2:
+            sys.exit('name two arms, or --labels-from an earlier packet')
+        subj = SUBJECTS[subject]
+        slugs = [s for a in arms for s in panel(a, subj, reg)]
+        random.SystemRandom().shuffle(slugs)
+        labels = {chr(ord('A') + i): s for i, s in enumerate(slugs)}
+    labels_file(packet).write_text(json.dumps(labels, indent=1))
+
+    review = subj.work / f'{packet}-review'
+    (review / 'courses').mkdir(parents=True, exist_ok=True)
+    for letter, slug in labels.items():
+        page = find_page(workspace(slug, reg) / subj.course)
+        if not page:
+            sys.exit(f'{slug}: no course page in {workspace(slug, reg) / subj.course}')
+        md = sh('vp', 'node', str(HERE / 'dump.mjs'), str(page), env={**os.environ, 'GRADER_SKILL': str(GRADER)})
+        (review / 'courses' / f'course-{letter}.md').write_text(md)
+    shutil.copy(HERE / subj.rubric, review / 'rubric.md')
+    link = review / subj.folder
+    if not link.is_symlink():
+        link.symlink_to(pinned(subj))
+    print(f'{review}: {len(labels)} courses, labels in {labels_file(packet)}')
+    if not run_judges:
+        return
+
+    template = (HERE / 'prompts' / 'judge.md').read_text()
+    letters = sorted(labels)
+    have = judge_files(packet, subj, letters)
+    procs = []
+    for j, model in JUDGES.items():
+        if j in have:
+            print(j, 'already scored', have[j])
+            continue
+        prompt = template.format(n=len(letters), about=subj.about, review=review, first=letters[0], last=letters[-1],
+                                 folder=subj.folder, sources=subj.sources, out=f'judge-{j}.json')
+        cmd = ['timeout', str(LIMIT_S['judge']), 'claude', '-p', prompt, '--model', model, *CLAUDE_FLAGS]
+        procs.append((j, subprocess.Popen(cmd, cwd=review, stdout=(review / f'judge-{j}.log.jsonl').open('w'),
+                                          stderr=(review / f'judge-{j}.stderr.txt').open('w'), stdin=subprocess.DEVNULL)))
+    for j, p in procs:
+        code = p.wait()
+        out = review / f'judge-{j}.json'
+        missing = unscored(out, letters)
+        if missing:
+            print(j, 'exit', code, 'incomplete:', missing, flush=True)
+            continue
+        (STATE / 'hillclimb').mkdir(exist_ok=True)
+        shutil.copy(out, STATE / 'hillclimb' / f'judge-{packet}-{j}.json')
+        print(j, 'exit', code, 'scored', len(letters), 'courses', flush=True)
+    gap(packet)
+
+
+def gap(packet):
+    reg = registry()
+    labels = read_labels(packet)
+    subj = reg[next(iter(labels.values()))]['subject']
+    files = judge_files(packet, subj, sorted(labels))
+    if not files:
+        sys.exit(f'no complete judge files for {packet}')
+    scores = {j: json.loads(f.read_text())['courses'] for j, f in files.items()}
+    per_arm = {}
+    print(f'{packet}: judges {", ".join(f"{j} {f}" for j, f in files.items())}')
+    print('course  arm     slug         ' + '  '.join(f'{j:>6}' for j in files) + '    mean')
+    for letter, slug in sorted(labels.items()):
+        by = {j: statistics.mean([s[letter][c] for c in CRITERIA]) for j, s in scores.items()}
+        m = statistics.mean(list(by.values()))
+        arm = reg[slug]['arm']
+        per_arm.setdefault(arm, []).append(m)
+        print(f'{letter:6}  {arm:6}  {slug:11}  ' + '  '.join(f'{by[j]:6.2f}' for j in files) + f'  {m:6.2f}')
+    for arm, xs in per_arm.items():
+        print(f'{arm:6} n {len(xs)}  mean {statistics.mean(xs):.2f}  median {statistics.median(xs):.2f}')
+    if len(per_arm) == 2:
+        a, b = per_arm.values()
+        print(f'Mann-Whitney exact two-sided p = {mann_whitney_p(a, b):.3f}')
+
+
+def cards(arms):
+    reg = registry()
+    gs = [g for g in json.loads((STATE / 'grades.json').read_text()) if g['slug'] in reg and reg[g['slug']]['task'] == 'build']
+    keys = ('typeCards', 'expectLeaks', 'lessonsOutside3to6', 'maxLearnRun', 'lessonsEndingOnLearn', 'hintRate', 'wideLines')
+    print(f'{"arm":6} {"slug":11} ' + ' '.join(f'{k:>20}' for k in keys))
+    for arm in arms:
+        rows = [g for g in gs if reg[g['slug']]['arm'] == arm]
+        for g in rows:
+            c = g.get('cards') or {}
+            print(f'{arm:6} {g["slug"]:11} ' + ' '.join(f'{str(c.get(k, "-")):>20}' for k in keys))
+        cs = [g['cards'] for g in rows if g.get('cards')]
+        if cs:
+            print(f'{arm:6} {"total":11} {sum(c["typeCards"] for c in cs):>20} {sum(c["expectLeaks"] for c in cs):>20} '
+                  f'{sum(c["lessonsOutside3to6"] for c in cs):>20} {max(c["maxLearnRun"] for c in cs):>20} '
+                  f'{sum(c["lessonsEndingOnLearn"] for c in cs):>20} '
+                  f'{round(sum(c["hinted"] for c in cs) / max(1, sum(c["quizCards"] for c in cs)), 2):>20} '
+                  f'{"%d-%d" % (min(c["wideLines"] or 0 for c in cs), max(c["wideLines"] or 0 for c in cs)):>20}')
+
+
+def add_arm(name, commit, *model):
+    extra = json.loads(ARMS.read_text()) if ARMS.exists() else {}
+    extra[name] = ' '.join([sh('git', '-C', str(REPO), 'rev-parse', '--short', commit).strip(), *model])
+    ARMS.write_text(json.dumps(extra, indent=1))
+    print(name, extra[name])
 
 
 if __name__ == '__main__':
-    cmd, *rest = sys.argv[1:]
-    def add_arm(name, commit, *model):
-        extra = json.loads(ARMS.read_text()) if ARMS.exists() else {}
-        extra[name] = ' '.join([sh('git', '-C', str(REPO), 'rev-parse', '--short', commit).strip(), *model])
-        ARMS.write_text(json.dumps(extra, indent=1))
-        print(name, extra[name])
-    {'arm': lambda: add_arm(*rest), 'setup': lambda: setup(*rest), 'run': lambda: run(rest), 'metrics': metrics, 'grade': grade}[cmd]()
+    ap = argparse.ArgumentParser()
+    sub = ap.add_subparsers(dest='cmd', required=True)
+    p = sub.add_parser('setup'); p.add_argument('arm'); p.add_argument('task', choices=['build', 'revise'])
+    p.add_argument('--subject', default=DEFAULT_SUBJECT, choices=sorted(SUBJECTS))
+    p = sub.add_parser('run'); p.add_argument('slugs', nargs='+')
+    p = sub.add_parser('restore'); p.add_argument('slugs', nargs='+')
+    sub.add_parser('metrics'); sub.add_parser('grade')
+    p = sub.add_parser('arm'); p.add_argument('name'); p.add_argument('commit'); p.add_argument('model', nargs='?')
+    p = sub.add_parser('judge'); p.add_argument('packet'); p.add_argument('arms', nargs='*')
+    p.add_argument('--labels-from', help="reuse an earlier packet's letters and courses, dumped again")
+    p.add_argument('--subject', default=DEFAULT_SUBJECT, choices=sorted(SUBJECTS))
+    p.add_argument('--no-judge', action='store_true', help='write the packet only')
+    p = sub.add_parser('gap'); p.add_argument('packet')
+    p = sub.add_parser('cards'); p.add_argument('arms', nargs='+')
+    a = ap.parse_args()
+    {'setup': lambda: setup(a.arm, a.task, a.subject), 'run': lambda: run(a.slugs), 'restore': lambda: restore(a.slugs), 'metrics': metrics, 'grade': grade,
+     'arm': lambda: add_arm(a.name, a.commit, *([a.model] if a.model else [])),
+     'judge': lambda: judge(a.packet, a.arms, a.subject, a.labels_from, not a.no_judge), 'gap': lambda: gap(a.packet), 'cards': lambda: cards(a.arms)}[a.cmd]()

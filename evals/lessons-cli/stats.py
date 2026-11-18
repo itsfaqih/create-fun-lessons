@@ -2,6 +2,7 @@
 
   python3 stats.py           old vs new, writes summary.json beside the run state and prints a table
   python3 stats.py <A> <B>   any two arms, writes summary_<A>_<B>.json
+  python3 stats.py <A> <B> <subject>   the runs on another subject (default ky), writes summary_<A>_<B>_<subject>.json
 """
 import itertools, json, os, statistics, sys
 from pathlib import Path
@@ -51,8 +52,8 @@ METRICS = {
 }
 
 
-def main(a='old', b='new'):
-    ms = json.loads((STATE / 'metrics.json').read_text())
+def main(a='old', b='new', subject='ky'):
+    ms = [m for m in json.loads((STATE / 'metrics.json').read_text()) if m.get('subject', 'ky') == subject]
     gs = {g['slug']: g for g in json.loads((STATE / 'grades.json').read_text())}
     out = {}
     for task in ('build', 'revise'):
@@ -71,7 +72,8 @@ def main(a='old', b='new'):
             out[task][name]['p'] = round(mann_whitney_p(per[a], per[b]), 3)
             o, n = out[task][name][a]['median'], out[task][name][b]['median']
             out[task][name]['ratio_new_over_old'] = round(n / o, 2) if o else None
-    (STATE / ('summary.json' if (a, b) == ('old', 'new') else f'summary_{a}_{b}.json')).write_text(json.dumps(out, indent=1))
+    name = 'summary' if (a, b) == ('old', 'new') else f'summary_{a}_{b}'
+    (STATE / f"{name}{'' if subject == 'ky' else '_' + subject}.json").write_text(json.dumps(out, indent=1))
     for task, t in out.items():
         print(f'== {task}')
         for name, s in t.items():
@@ -79,4 +81,4 @@ def main(a='old', b='new'):
 
 
 if __name__ == '__main__':
-    main(*sys.argv[1:3])
+    main(*sys.argv[1:4])

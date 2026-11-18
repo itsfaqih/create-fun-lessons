@@ -1,14 +1,39 @@
 // Render a course page's content as plain markdown, the same for every
 // authoring flow, so a judge cannot tell how the course was written.
 // Usage: node dump.mjs <page.html> [<lesson-id>]   (one lesson only, with its neighbours named)
+// A code line too wide for a phone gets a suffix saying so, since a fence
+// shows the judge no screen width. GRADER_SKILL picks the page loader
+// (harness.py passes the frozen grader's).
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const SKILL = fileURLToPath(new URL('../../skills/create-fun-lessons/', import.meta.url))
+const SKILL = process.env.GRADER_SKILL ?? fileURLToPath(new URL('../../skills/create-fun-lessons/', import.meta.url))
 const { loadPage } = await import(join(SKILL, 'scripts/check.mjs'))
 const [page, only] = process.argv.slice(2)
 const { COURSE, UNITS, GLOSSARY } = loadPage(readFileSync(page, 'utf8')).data
+
+// Copied from skills/create-fun-lessons/scripts/schema.mjs (CODE_COLUMNS,
+// checkWidth, blankColumns) rather than imported, so a skill edit mid-run
+// cannot change a dump.
+const COLUMNS = { pre: 41, editor: 36 }
+const HL = '\u0001'
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
+const decode = s => s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) =>
+  e[0] === '#' ? String.fromCodePoint(/^#x/i.test(e) ? parseInt(e.slice(2), 16) : +e.slice(1)) : ENTITIES[e.toLowerCase()] ?? m)
+const width = (line, blankCols) => {
+  let shown = blankCols ? line.split('____').join('x'.repeat(blankCols)) : line
+  shown = shown.replace(/[^\t]*\t/g, s => s.slice(0, -1).padEnd(Math.ceil(s.length / 8) * 8))
+  return [...shown].length
+}
+// `measure` turns a line into the text the checker measures (HL marks a highlighted span).
+const markWide = (code, surface, { blankCols = 0, measure = l => l } = {}) => surface && code ? code.split('\n').map(line => {
+  const w = width(measure(line), blankCols)
+  const out = line.replaceAll(HL, '')
+  return w > COLUMNS[surface] ? `${out}  ← ${w} columns: scrolls sideways on a phone` : out
+}).join('\n') : code
+const isText = c => (c.lang || 'text') === 'text'
+const blankColumns = c => Math.max(9, ...[].concat((c.t === 'fill' ? c.o : [...(c.answers ?? []), ...(c.extra ?? [])]) ?? []).map(x => String(x).length + 2))
 
 const text = h => String(h ?? '')
   .replace(/<figure[^>]*>[\s\S]*?<\/figure>/g, f => {
@@ -17,7 +42,7 @@ const text = h => String(h ?? '')
     const shapes = (f.match(/<(rect|path|circle|line|text|polygon|ellipse)\b/g) ?? []).length
     return `\n[figure, ${shapes} SVG elements: ${label}${cap ? ` | caption: ${cap}` : ''}]\n`
   })
-  .replace(/<pre><code[^>]*>([\s\S]*?)<\/code><\/pre>/g, (_, c) => `\n\`\`\`\n${c.replace(/<[^>]+>/g, '')}\n\`\`\`\n`)
+  .replace(/<pre><code[^>]*>([\s\S]*?)<\/code><\/pre>/g, (_, c) => `\n\`\`\`\n${markWide(c.replace(/<span class="hl">/g, HL).replace(/<[^>]+>/g, ''), 'pre', { measure: decode })}\n\`\`\`\n`)
   .replace(/<code>([\s\S]*?)<\/code>/g, '`$1`')
   .replace(/<br\s*\/?>/g, '\n').replace(/<\/(p|div|li|tr|h\d)>/g, '\n').replace(/<(td|th)[^>]*>/g, ' | ')
   .replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&')
@@ -32,11 +57,11 @@ function card(c, i) {
   switch (c.t) {
     case 'learn': return `${head}**${text(c.h)}**\n\n${text(c.body)}\n`
     case 'mcq': return `${head}q: ${text(c.q)}\n${c.o.map((o, j) => `  ${j === c.a ? '[x]' : '[ ]'} ${text(o)}`).join('\n')}\n${hint}${why}`
-    case 'fill': return `${head}q: ${text(c.q)}\n${fence('code', c.code)}${c.o.map((o, j) => `  ${j === c.a ? '[x]' : '[ ]'} ${o}`).join('\n')}\n${hint}${why}`
-    case 'blanks': return `${head}q: ${text(c.q)}\n${fence('code', c.code)}answers: ${c.answers.join(' | ')}\nextra: ${(c.extra ?? []).join(' | ')}\n${hint}${why}`
+    case 'fill': return `${head}q: ${text(c.q)}\n${fence('code', markWide(c.code, 'pre', { blankCols: blankColumns(c) }))}${c.o.map((o, j) => `  ${j === c.a ? '[x]' : '[ ]'} ${o}`).join('\n')}\n${hint}${why}`
+    case 'blanks': return `${head}q: ${text(c.q)}\n${fence('code', markWide(c.code, c.lang === 'text' ? null : 'pre', { blankCols: blankColumns(c) }))}answers: ${c.answers.join(' | ')}\nextra: ${(c.extra ?? []).join(' | ')}\n${hint}${why}`
     case 'order': return `${head}q: ${text(c.q)}\nitems (correct order):\n${c.items.map(x => `  - ${x}`).join('\n')}\n${hint}${why}`
-    case 'type': return `${head}q: ${text(c.q)}\n${fence('code', c.code)}${c.expect ? `expect: ${text(c.expect)}\n` : ''}accept: ${c.accept.join(' || ')}\n${hint}${why}`
-    case 'write': return `${head}q: ${text(c.q)}\n${fence('starter', c.starter)}${fence('model', c.model)}${list('rubric', c.rubric)}${hint}${why}`
+    case 'type': return `${head}q: ${text(c.q)}\n${fence('code', c.code && markWide(c.code, 'pre'))}${c.expect ? `expect: ${text(c.expect)}\n` : ''}accept: ${c.accept.join(' || ')}\n${hint}${why}`
+    case 'write': return `${head}q: ${text(c.q)}\n${fence('starter', c.starter && markWide(c.starter, isText(c) ? null : 'editor'))}${fence('model', markWide(c.model, isText(c) ? null : 'pre'))}${list('rubric', c.rubric)}${hint}${why}`
     default: return `${head}${JSON.stringify(c)}\n`
   }
 }
