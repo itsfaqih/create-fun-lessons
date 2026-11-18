@@ -81,7 +81,9 @@ def run(slugs):
                '--permission-mode', 'auto', '--disallowedTools', 'Skill', '--strict-mcp-config',
                '--max-budget-usd', '60', '--output-format', 'stream-json', '--verbose']
         (out / 'started').write_text(str(time.time()))
-        procs.append((slug, subprocess.Popen(cmd, cwd=WORK / slug, stdout=(out / 'log.jsonl').open('w'),
+        # The vetted, pinned Repomix (HILLCLIMB.md, H9) is on PATH for every run; arms whose skill never names it ignore it.
+        env = {**os.environ, 'PATH': f"{WORK / 'tools/repomix/node_modules/.bin'}:{os.environ['PATH']}"}
+        procs.append((slug, subprocess.Popen(cmd, cwd=WORK / slug, env=env, stdout=(out / 'log.jsonl').open('w'),
                                              stderr=(out / 'stderr.txt').open('w'), stdin=subprocess.DEVNULL)))
         time.sleep(5)
     for slug, p in procs:
