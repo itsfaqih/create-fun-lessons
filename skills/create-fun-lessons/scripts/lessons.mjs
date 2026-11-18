@@ -496,7 +496,7 @@ function checkFolder(dir, { only, repo } = {}) {
 
   // The repo whose tracked top-level directories the syllabus must name:
   // --repo, else course.json's "repo". A check of some lessons names none.
-  let repoDir = repo, repoSrc = `--repo ${repo}`
+  let repoDir = !only && repo, repoSrc = `--repo ${repo}`
   if (!repo && !only) {
     if (course.repo === undefined) problems.push(`${rel(course.file)}: missing "repo"; set it to ${REPO_RULE}`)
     else if (typeof course.repo === 'string' && course.repo.trim()) { repoDir = resolve(dir, course.repo); repoSrc = `${rel(course.file)}: "repo" ${course.repo}` }

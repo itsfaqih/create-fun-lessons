@@ -347,7 +347,7 @@ const UNITS = [
   id:'u1', title:'Using this template', blurb:'Every card type and visual, once.',
   color:'#1f9d6b', dark:'#157a52',
   lessons:[
-  { id:'u1l1', title:'Card types', recap:'learn teaches; mcq, fill, blanks and order check.', cards:[
+  { id:'u1l1', title:'Card types', recap:'learn teaches; mcq, fill and order check; type and write ask for the answer itself.', cards:[
     {t:'learn', h:'A learn card', body:`<p>Body is HTML. Use <code>code</code>, lists, and the helpers below.</p>
 <div class="flow"><div class="step">Step one<small>detail</small></div><div class="arrow">↓</div><div class="step">Step two</div></div>
 <div class="where">📄 <code>path/to/file.ts</code></div><div class="tip">A highlighted tip.</div>
@@ -356,7 +356,6 @@ const UNITS = [
   &amp;&amp; <span class="hl">git push --force-with-lease</span></code></pre>`},
     {t:'mcq', q:'Which card asks a multiple-choice question?', o:['<code>learn</code>','<code>mcq</code>','<code>order</code>'], a:1, why:'<code>mcq</code> shows options; <code>a</code> is the index of the right one.'},
     {t:'fill', q:'Fill the blank.', code:`const answer = ____`, o:['42','"forty-two"'], a:0, hint:'The answer is a number, not a string.', why:'The blank is four underscores in <code>code</code>.'},
-    {t:'blanks', q:'Keep only the even numbers.', code:`nums.____(n => n % 2 ____ 0)`, answers:['filter','==='], extra:['map','='], why:'<code>filter</code> keeps the items its test passes; <code>===</code> compares, where <code>=</code> would assign.'},
     {t:'order', q:'Put these in order.', items:['First','Second','Third','Fourth'], why:'Write <code>items</code> in the correct order; the page shuffles them.'},
     {t:'type', q:'List every file, hidden ones included, in long format.', lang:'shell', accept:['ls -la','ls -al','/^ls -l -a$|^ls -a -l$/'], expect:'One command, flags in any order.', hint:['The command that lists files is <code>ls</code>.','Combine two flags: one for long format, one for all files.'], why:'<code>-l</code> is long format and <code>-a</code> includes dotfiles; flags combine in any order.'},
     {t:'write', q:'Write <code>double(n)</code>, which returns twice its argument.', lang:'code', starter:'function double(n) {\n  \n}', model:'function double(n) {\n  return n * 2\n}', rubric:['Returns a value with <code>return</code>','Multiplies <code>n</code> by 2 (or adds it to itself)'], hint:['A function hands back its result with one keyword.','<code>return n * 2</code> is one way; there are others.'], why:'A function hands its result back with <code>return</code>; without it the call yields <code>undefined</code>.'},
@@ -414,7 +413,7 @@ const UNITS = [
   <path class="series" d="M36 88.8L81.3 89.7 126.7 86.7 172 37.6 217.3 41.9 262.7 84.5 308 90.9"/>
   <text class="sub" x="36" y="156" text-anchor="middle">v1</text><text class="sub" x="81.3" y="156" text-anchor="middle">v2</text><text class="sub" x="126.7" y="156" text-anchor="middle">v3</text><text class="sub" x="172" y="156" text-anchor="middle">v4</text><text class="sub" x="217.3" y="156" text-anchor="middle">v5</text><text class="sub" x="262.7" y="156" text-anchor="middle">v6</text><text class="sub" x="308" y="156" text-anchor="middle">v7</text>
 </svg><figcaption>p95 latency per release, ms</figcaption></figure>`, o:['v3','v4','v6'], a:1, why:'The line doubles between v3 and v4 and falls back at v6, so v4 brought the slowdown and v6 fixed it.'},
-    {t:'learn', h:'An illustration', body:`<p>Picture a concept that has a shape. <code>slice(start, end)</code> copies from <code>start</code> up to, but not including, <code>end</code>.</p>
+    {t:'blanks', q:`An illustration pictures a concept that has a shape. Complete the rule this one shows.
 <figure class="viz"><svg viewBox="0 0 320 132" role="img" aria-label="An array of five letters, a to e, with indexes 0 to 4. slice(1, 3) starts at index 1 and stops before index 3, giving b and c.">
   <text class="mono" x="88" y="10" dy=".35em" text-anchor="middle">start = 1</text><path class="edge hi" d="M88 20V40"/>
   <text class="mono" x="184" y="10" dy=".35em" text-anchor="middle">end = 3</text><path class="edge" d="M184 20V40"/>
@@ -422,8 +421,7 @@ const UNITS = [
   <text class="mono" x="64" y="64" dy=".35em" text-anchor="middle">'a'</text><text class="mono" x="112" y="64" dy=".35em" text-anchor="middle">'b'</text><text class="mono" x="160" y="64" dy=".35em" text-anchor="middle">'c'</text><text class="mono" x="208" y="64" dy=".35em" text-anchor="middle">'d'</text><text class="mono" x="256" y="64" dy=".35em" text-anchor="middle">'e'</text>
   <text class="sub" x="64" y="98" dy=".35em" text-anchor="middle">0</text><text class="sub" x="112" y="98" dy=".35em" text-anchor="middle">1</text><text class="sub" x="160" y="98" dy=".35em" text-anchor="middle">2</text><text class="sub" x="208" y="98" dy=".35em" text-anchor="middle">3</text><text class="sub" x="256" y="98" dy=".35em" text-anchor="middle">4</text>
   <text class="mono" x="136" y="122" dy=".35em" text-anchor="middle">→ ['b', 'c']</text>
-</svg><figcaption><code>letters.slice(1, 3)</code></figcaption></figure>`},
-    {t:'blanks', q:'Complete the rule.', lang:'text', code:'slice(start, end) copies from index ____ up to, but not including, index ____.', answers:['start','end'], extra:['0','length'], why:'The copy begins at <code>start</code> and stops just before <code>end</code>, so <code>slice(1, 3)</code> holds two items.'},
+</svg><figcaption><code>letters.slice(1, 3)</code></figcaption></figure>`, lang:'text', code:'slice(start, end) copies from index ____ up to, but not including, index ____.', answers:['start','end'], extra:['0','length'], why:'The copy begins at <code>start</code> and stops just before <code>end</code>, so <code>slice(1, 3)</code> holds two items.'},
   ]},
   ]
 },

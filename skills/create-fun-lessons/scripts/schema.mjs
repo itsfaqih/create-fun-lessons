@@ -68,11 +68,17 @@ export const CARD_TYPES = {
     fields: { q, lang, code: plain({ shows: () => 'pre' }), accept: plain({ list: 'list', required: true, min: 1, about: 'answers' }), expect: html(), hint, why },
     check(c, err) {
       if (!Array.isArray(c.accept) || !c.accept.length) return
-      if (/^\/.*\/[a-z]*$/s.test(c.accept[0])) err('accept[0] must be a literal; it is shown as the answer', 'accept')
+      const regex = x => typeof x === 'string' && x.match(/^\/(.*)\/([a-z]*)$/s)
+      if (regex(c.accept[0])) err('accept[0] must be a literal; it is shown as the answer', 'accept')
       for (const x of c.accept) {
-        const m = typeof x === 'string' && x.match(/^\/(.*)\/([a-z]*)$/s)
+        const m = regex(x)
         if (m) try { new RegExp(m[1], m[2]) } catch (e) { err(`bad regex ${x}: ${e.message}`, 'accept') }
       }
+      if (typeof c.expect !== 'string') return
+      const squash = s => s.replace(/\s+/g, ' ').trim().toLowerCase()
+      const shown = squash(decode(c.expect.replace(/<[^>]*>/g, '')))
+      const leak = c.accept.find(x => typeof x === 'string' && !regex(x) && squash(x).length >= 3 && shown.includes(squash(x)))
+      if (leak) err(`expect shows "${leak}", an answer accept takes, so the learner reads the answer before typing it; describe its form and what the match ignores instead, such as "One command, flags in any order." or "A method name, without the parentheses."`, 'expect')
     },
   },
   write: {
@@ -126,6 +132,8 @@ export function validateLesson(l, { languages = [] } = {}) {
   for (const k of ['title', 'recap']) if (!str(l?.[k])) err(`missing ${k}`)
   if (typeof l?.recap === 'string') for (const p of shownProblems(l.recap)) problems.push({ lesson, field: 'recap', msg: p.msg, shown: true })
   if (!Array.isArray(l?.cards) || !l.cards.length) { err('no cards'); return problems }
+  const n = l.cards.length
+  if (n < 3 || n > 6) err(`the lesson has ${n} card${n === 1 ? '' : 's'}; a lesson holds 3–6, so ${n > 6 ? 'split it into two lessons, or move a card to the lesson before or after it' : 'add a card, or move one here from the lesson before or after it'}`)
   if (!l.cards.some(c => c?.t !== 'learn')) err('needs at least one quiz card (any type but learn)')
   l.cards.forEach((c, card) => validateCard(c ?? {}, (msg, field, find, shown) => problems.push({ lesson, card, t: c?.t, field, find, msg, ...(shown && { shown }) }), languages))
   return problems

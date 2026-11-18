@@ -49,7 +49,7 @@ test('init then build gives a page that check.mjs passes', () => {
   assert.equal(init.code, 0, init.out)
   const built = lessons(root, 'build', 'my-course')
   assert.equal(built.code, 0, built.out)
-  assert.match(built.out, /^OK: 1 units, 2 lessons, 14 cards, \d+ syllabus rows/)
+  assert.match(built.out, /^OK: 1 units, 2 lessons, 12 cards, \d+ syllabus rows/)
   const checked = run(root, CHECK, 'my-course/index.html')
   assert.equal(checked.code, 0, checked.out)
   assert.match(checked.out, /^OK: /)
@@ -98,7 +98,7 @@ const broken = [
   ['an unknown field', dir => {
     const f = join(dir, 'lessons/u1.md')
     edit(f, 'items:\n', 'answer: First\nitems:\n')
-    return [f, lineOf(f, 'answer: First'), /order card 5: unknown field "answer" in a order card; its fields are q, items, hint, why/]
+    return [f, lineOf(f, 'answer: First'), /order card 4: unknown field "answer" in a order card; its fields are q, items, hint, why/]
   }],
   ['covers naming no Area', dir => {
     const f = join(dir, 'lessons/u1.md')
@@ -139,6 +139,22 @@ const broken = [
     const f = join(dir, 'lessons/u1.md')
     edit(f, 'Use `code`, lists', 'Use `code, lists')
     return [f, lineOf(f, 'Use `code, lists'), /learn card 1: the learner sees a stray backtick: a `code` span ends at the next run of the same number of backticks on its line/]
+  }],
+  ['an expect that shows an accepted answer', dir => {
+    const f = join(dir, 'lessons/u1.md')
+    edit(f, 'expect: One command, flags in any order.', 'expect: One command, such as `LS  -la`.')
+    return [f, lineOf(f, 'expect: One command, such as'), /type card 5: expect shows "ls -la", an answer accept takes, so the learner reads the answer before typing it; describe its form and what the match ignores instead/]
+  }],
+  ['a lesson of 7 cards', dir => {
+    const f = join(dir, 'lessons/u1.md')
+    edit(f, '## order', '## learn: One more\n<p>One more.</p>\n\n## order')
+    return [f, lineOf(f, '# Card types'), /the lesson has 7 cards; a lesson holds 3–6, so split it into two lessons, or move a card to the lesson before or after it/]
+  }],
+  ['a lesson of 1 card', dir => {
+    const f = join(dir, 'lessons/u1l3.md')
+    writeFileSync(f, STRAY)
+    edit(join(dir, 'course.json'), '"u1l2"', '"u1l2", "u1l3"')
+    return [f, 1, /the lesson has 1 card; a lesson holds 3–6, so add a card, or move one here from the lesson before or after it/]
   }],
   ['an entity escaped twice', dir => {
     const f = join(dir, 'lessons/u1.md')
@@ -181,6 +197,7 @@ test('backtick spans and «…» highlights render as the author meant', () => {
     '<p>Call `.json&lt;User&gt;()` once, or ``a`b`` for a backtick.</p>',
     '```ts', 'const total = «items.reduce(', '  (sum, x) => sum + x, 0)»', '```', '',
     '## mcq', 'q: Which one starts the query?', 'o:', '- [ ] `/`', '- [x] `?`', '- [ ] `#`', 'why: `?` starts it; `/` is the root.', '',
+    '## learn: Next', '<p>Next.</p>', '',
   ].join('\n'))
   edit(join(dir, 'course.json'), '"u1l2"', '"u1l2", "u1l3"')
   const r = lessons(root, 'build', 'course')
@@ -228,7 +245,7 @@ test('check with ids validates only those lessons and units', () => {
   writeFileSync(join(dir, 'lessons/stray.md'), STRAY)
   const one = lessons(root, 'check', 'course', 'u1l1')
   assert.equal(one.code, 0, one.out)
-  assert.match(one.out, /^OK: 1 lessons, 7 cards \(u1l1\)/)
+  assert.match(one.out, /^OK: 1 lessons, 6 cards \(u1l1\)/)
   const other = lessons(root, 'check', 'course', 'u1l2')
   assert.equal(other.code, 1)
   assert.match(other.out, new RegExp(`^1 problem\\(s\\):\ncourse/lessons/u1\\.md:${lineOf(join(dir, 'lessons/u1.md'), '- [ ] v3')}: mcq card 5: mark exactly one o item`))
@@ -312,7 +329,7 @@ test('a copy of the template with its own storageKey passes check.mjs', () => {
   writeFileSync(join(root, 'syllabus.md'), TWO_ROWS)
   const r = run(root, CHECK, 'index.html')
   assert.equal(r.code, 0, r.out)
-  assert.match(r.out, /^OK: 1 units, 2 lessons, 14 cards, 2 syllabus rows/)
+  assert.match(r.out, /^OK: 1 units, 2 lessons, 12 cards, 2 syllabus rows/)
 })
 
 test('every example in references/lessons.md builds', () => {
@@ -329,16 +346,18 @@ test('every example in references/lessons.md builds', () => {
   mkdirSync(join(dir, 'lessons'), { recursive: true })
   const course = JSON.parse(blocks.find(b => b.info === 'json').text)
   gitRepo(join(dir, course.repo), ['src/server.ts'])
-  course.units[0].lessons.push('u1l3')
+  course.units[0].lessons.push('u1l3', 'u1l4')
   writeFileSync(join(dir, 'course.json'), JSON.stringify(course))
   writeFileSync(join(dir, 'syllabus.md'), '| Area | Sources | Lessons |\n|---|---|---|\n| HTTP routing | `src/` | |\n| Request lifecycle | `src/` | |\n| Caching | `src/` | |\n')
   writeFileSync(join(dir, 'lessons/u1.md'), md.find(t => t.startsWith('# ')))
-  writeFileSync(join(dir, 'lessons/u1l3.md'), ['# Every card', 'recap: One of each.', 'covers: Caching', '', ...md.filter(t => t.startsWith('## '))].join('\n'))
+  const examples = md.filter(t => t.startsWith('## ')), half = Math.ceil(examples.length / 2)
+  const lesson = (id, cards) => [`# Cards from ${id}`, `id: ${id}`, 'recap: Card examples.', 'covers: Caching', '', ...cards].join('\n')
+  writeFileSync(join(dir, 'lessons/u2.md'), [lesson('u1l3', examples.slice(0, half)), lesson('u1l4', examples.slice(half))].join('\n'))
   const r = lessons(root, 'build', 'docs')
   assert.equal(r.code, 0, r.out)
   const { UNITS } = pageData(join(dir, 'index.html'))
-  assert.deepEqual(UNITS[0].lessons.map(l => l.id), ['u1l1', 'u1l2', 'u1l3'])
-  const cards = UNITS[0].lessons[2].cards.map(c => c.t)
+  assert.deepEqual(UNITS[0].lessons.map(l => l.id), ['u1l1', 'u1l2', 'u1l3', 'u1l4'])
+  const cards = UNITS[0].lessons.slice(2).flatMap(l => l.cards.map(c => c.t))
   assert.deepEqual([...new Set(cards)].sort(), ['blanks', 'fill', 'learn', 'mcq', 'order', 'type', 'write'])
 })
 
@@ -359,7 +378,7 @@ test('a folder of one file per lesson, named by id, builds the lessons it always
   splitUnit(dir)
   assert.doesNotMatch(read(dir, 'lessons/u1l1.md') + read(dir, 'lessons/u1l2.md'), /^id:/m)
   const one = lessons(root, 'check', 'course', 'u1l2')
-  assert.match(one.out, /^OK: 1 lessons, 7 cards \(u1l2\)/)
+  assert.match(one.out, /^OK: 1 lessons, 6 cards \(u1l2\)/)
   assert.equal(lessons(root, 'build', 'course').code, 0)
   assert.deepEqual(pageData(join(dir, 'index.html')).UNITS, pageData(TEMPLATE).UNITS)
 })
@@ -368,7 +387,7 @@ test('a lesson inserted mid-unit leaves every other id and its progress key alon
   const { root, dir } = freshCourse()
   assert.equal(lessons(root, 'build', 'course').code, 0)
   const before = pageData(join(dir, 'index.html')).UNITS[0].lessons
-  edit(join(dir, 'lessons/u1.md'), '\n# Visuals\n', '\n# Between\nid: u1n\nrecap: Inserted.\ncovers: Card types\n\n## learn: New\n<p>New.</p>\n\n## mcq\nq: New?\no:\n- [x] Yes\n- [ ] No\nhint: Yes.\nwhy: It is new.\n\n# Visuals\n')
+  edit(join(dir, 'lessons/u1.md'), '\n# Visuals\n', '\n# Between\nid: u1n\nrecap: Inserted.\ncovers: Card types\n\n## learn: New\n<p>New.</p>\n\n## mcq\nq: New?\no:\n- [x] Yes\n- [ ] No\nhint: Yes.\nwhy: It is new.\n\n## learn: Next\n<p>Next.</p>\n\n# Visuals\n')
   edit(join(dir, 'course.json'), '"u1l1",', '"u1l1", "u1n",')
   const r = lessons(root, 'build', 'course')
   assert.equal(r.code, 0, r.out)
@@ -443,6 +462,17 @@ test('init beside one git repo names it in course.json, and build then needs its
   assert.match(flagged.out, /"lib\/" of the repo "other"/)
 })
 
+test('a repo with non-ASCII paths builds once Sources name its directories', () => {
+  const root = tmp()
+  gitRepo(join(root, 'cli'), ['lib/a.js', 'docs/zh-CN/选项.md'])
+  assert.equal(lessons(root, 'init', 'course').code, 0)
+  const dir = join(root, 'course')
+  assert.match(lessons(root, 'build', 'course').out, /top-level directory "docs\/" of the repo "cli" appears in no Sources cell/)
+  edit(join(dir, 'syllabus.md'), '`template.html` | u1l1', '`lib/`, `docs/` | u1l1')
+  const built = lessons(root, 'build', 'course')
+  assert.equal(built.code, 0, built.out)
+})
+
 test('init in a folder inside a git repo names that repo', () => {
   const root = tmp()
   gitRepo(root, ['src/a.ts'])
@@ -481,6 +511,18 @@ test('a course.json with no repo fails check and build, but not a check of some 
   assert.equal(courseJson(join(root, 'picked')).repo, '../b')
 })
 
+test('a check of some units skips the repo coverage rule, even with --repo', () => {
+  const { root, dir } = freshCourse()
+  gitRepo(join(root, 'other'), ['lib/a.ts'])
+  const some = lessons(root, 'check', 'course', 'u1', '--repo', 'other')
+  assert.equal(some.code, 0, some.out)
+  assert.match(some.out, /^OK: 2 lessons, 12 cards \(u1\)/)
+  const all = lessons(root, 'check', 'course', '--repo', 'other')
+  assert.equal(all.code, 1)
+  assert.match(all.out, /course\/syllabus\.md: top-level directory "lib\/" of the repo "other" appears in no Sources cell/)
+  assert.equal(existsSync(join(dir, 'index.html')), false)
+})
+
 const CHROME = findChrome()
 
 test('index.html#selfcheck plays every card at 400px, names a card that sticks out, and leaves a lesson to resume', { skip: !CHROME && 'no Chrome found; set CHROME_PATH' }, async t => {
@@ -493,12 +535,12 @@ test('index.html#selfcheck plays every card at 400px, names a card that sticks o
   assert.equal(lessons(root, 'build', 'wide').code, 0)
   const good = await selfcheck(join(dir, 'index.html'))
   if (good.report.includes('highlight.js did not load')) return t.skip('highlight.js could not load from its CDN')
-  assert.match(good.report, /^Self-check PASS\nPlayed 14 cards in 2 lessons in a 400px window: 9 quiz cards answered wrong, then retried with 9 hints and answered right; 9 code blocks checked for colour\./, good.report)
-  assert.match(good.resume, /Continue where you left off\s+Card types\s+Card 2 of 7/)
+  assert.match(good.report, /^Self-check PASS\nPlayed 12 cards in 2 lessons in a 400px window: 8 quiz cards answered wrong, then retried with 8 hints and answered right; 6 code blocks checked for colour\./, good.report)
+  assert.match(good.resume, /Continue where you left off\s+Card types\s+Card 2 of 6/)
   assert.ok(resumeMatches(good.report, good.resume))
   const r = lessons(root, 'selfcheck', 'course')
   assert.equal(r.code, 0, r.out)
-  assert.match(r.out, /^Self-check PASS\n[\s\S]*\nAfter a reload, the map's resume card reads: Continue where you left off Card types Card 2 of 7\nResume OK\.\n$/)
+  assert.match(r.out, /^Self-check PASS\n[\s\S]*\nAfter a reload, the map's resume card reads: Continue where you left off Card types Card 2 of 6\nResume OK\.\n$/)
   const bad = await selfcheck(join(wide, 'index.html'))
   assert.match(bad.report, /^Self-check FAIL: 2 problem\(s\)\n/, bad.report)
   assert.match(bad.report, /\nthe page is wider than the window \(616px in 400px\): u1l1 card 1 \(learn\)\n/, bad.report)

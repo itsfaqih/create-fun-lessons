@@ -77,6 +77,15 @@ o:
 - [ ] `src/db.ts`
 why: `src/routes.ts` maps each path to its handler; the server only starts listening.
 
+## fill
+q: Fill the blank so the route serves `GET` requests.
+code: router.____(path, getOrder)
+o:
+- [x] get
+- [ ] post
+- [ ] delete
+why: `router.get` matches `GET`; `post` and `delete` match other methods.
+
 # Handlers
 id: u1l2
 recap: A handler turns one request into one response.
@@ -84,6 +93,14 @@ covers: Request lifecycle
 
 ## learn: One handler per route
 <p>`getOrder` reads the order and sends it back as JSON.</p>
+
+## mcq
+q: What does `getOrder` send back?
+o:
+- [ ] The database row as it is stored
+- [x] The order as JSON
+- [ ] A redirect to the order page
+why: `getOrder` reads the order and sends it back as JSON.
 
 ## type
 q: Name the handler that serves `GET /orders/:id`.
@@ -255,7 +272,7 @@ hint:
 why: `-l` is long format and `-a` includes dotfiles; flags combine in any order.
 ```
 
-A one-line answer, checked automatically. It passes when, with whitespace trimmed and collapsed (and a leading `$` dropped for `shell`), it equals any literal in `accept` or matches any entry written as `/regex/flags`. The first `accept` entry is a literal, shown as the answer on a miss. List every real variant: reordered flags, `--long` forms, optional quotes. Anchor regexes with `^…$`. `code` is optional plain-text context above the field. Above the field the page states the expected form, then the matching rule ("One command. Spacing and a leading `$` are ignored; capitals count."). `expect` (HTML) replaces the expected form; name every variant `accept` allows.
+A one-line answer, checked automatically. It passes when, with whitespace trimmed and collapsed (and a leading `$` dropped for `shell`), it equals any literal in `accept` or matches any entry written as `/regex/flags`. The first `accept` entry is a literal, shown as the answer on a miss. List every real variant: reordered flags, `--long` forms, optional quotes. Anchor regexes with `^…$`. `code` is optional plain-text context above the field. Above the field the page states the expected form, then the matching rule ("One command. Spacing and a leading `$` are ignored; capitals count."). `expect` (HTML) replaces the expected form. It describes the answer's form and what the match ignores beyond spacing, such as "One command, flags in any order." or "A method name, without the parentheses.", and never the answer itself. Build rejects an `expect` that contains an answer `accept` takes.
 
 ### write
 
@@ -307,4 +324,4 @@ Give every shell fence the language `shell`, and every fence in another language
 - **Recall over recognition.** After an `mcq` introduces a command, ask for it again as a `type` card. Close each unit on a `write` card that produces something real: a function, a script, a config block, or a few sentences explaining a design choice.
 - Make wrong options plausible: a real neighbouring file, a real but wrong function. `why` says why the right answer is right, in one or two sentences.
 - **Depth.** Teach each area at the level of real names: the actual file, the function, its arguments and return value, who calls it, and what breaks when it changes. A lesson that only names an area has not taught it yet. Point to real paths, so the learner can open the code next.
-- A lesson holds 3–6 cards, so a bigger area gets more lessons rather than longer ones.
+- A lesson holds 3–6 cards, so a bigger area gets more lessons rather than longer ones. Build rejects a lesson with fewer or more.
