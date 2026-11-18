@@ -48,3 +48,20 @@ Each later hypothesis is chosen from the previous iteration's tool-call breakdow
 - `<state>/arms.json` maps each hill-climb arm to its commit.
 - `<state>/hillclimb/decision.tsv` is the decision log, kept out of the tree.
 - `python3 stats.py <A> <B>` compares two arms.
+
+## Results (2026-11-18)
+
+Final arm: **h6** (c5914ce). The branch head after the two reverts has the same skill tree.
+
+| Measure, median of 5 builds | old | h6 | h6 / old | p |
+|---|---|---|---|---|
+| Input tokens, cache included | 4.84M | 4.36M | 0.90× | 0.84 |
+| List cost per build | 3.36 | 2.85 | 0.85× | 0.032 |
+| Output tokens | 57k | 39k | 0.68× | 0.008 |
+| Revise input tokens | 4.4M | 1.46M | 0.33× | 0.008 |
+
+- The primary target (≤ 4.84M) holds from h3 on: baseline 8.88M to 4.36M, −51%.
+- Guardrails hold except quality: 0 real defects, 5/5 frozen-checker pass, every run passes `#selfcheck`, revise 5/5 done.
+- Quality gap: three blind passes put the old arm at 4.7 to 4.8 and the CLI arm at 4.1 to 4.5 (h6 4.4, p 0.15; h7 4.1, p 0.016; h8 4.5, p 0.23).
+- H7 (card-writing rules in SKILL.md, 5–6 cards, each option its own card) grew courses to 99 cards and scored lower. H8 (only the "lesson ends on a learn card" rule) cost 1.28× h6's tokens with quality inside judge noise. Both reverted; two failures in a row met the stop predicate.
+- The CLI writers write about 0.7× the old arm's output tokens. Guidance that adds cards raises cost faster than it raises the judges' scores, so parity on quality at the old arm's cost was not reached.
