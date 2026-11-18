@@ -11,7 +11,7 @@
   python3 harness.py gap <packet>                     each course's mean score, each arm's, and the p
   python3 harness.py cards <arm> [<arm> ...]          card-defect counts per build run from grades.json
 """
-import argparse, json, os, random, re, shlex, shutil, statistics, subprocess, sys, time
+import argparse, json, os, random, re, shlex, shutil, signal, statistics, subprocess, sys, time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -170,7 +170,14 @@ def restore(slugs):
                 elif b['name'] == 'Bash':
                     cwd_file.unlink(missing_ok=True)
                     script = f'cd {shlex.quote(str(cwd))}\n{i["command"]}\nstatus=$?; pwd > {shlex.quote(str(cwd_file))}; exit $status'
-                    ok = subprocess.run(['bash', '-c', script], stdin=subprocess.DEVNULL, capture_output=True, timeout=300).returncode == 0
+                    p = subprocess.Popen(['bash', '-c', script], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                         stderr=subprocess.DEVNULL, start_new_session=True)
+                    try:
+                        ok = p.wait(timeout=300) == 0
+                    except subprocess.TimeoutExpired:
+                        os.killpg(p.pid, signal.SIGKILL)
+                        p.wait()
+                        ok = False
                     # Claude Code keeps a cd only from a command that succeeded and only inside the working
                     # directory; otherwise the next command starts where this one did, or back in the workspace.
                     if ok and cwd_file.exists():
