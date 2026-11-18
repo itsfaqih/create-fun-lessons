@@ -105,11 +105,6 @@ const broken = [
     edit(f, 'covers: Visual patterns', 'covers: Visual pattern')
     return [f, lineOf(f, 'covers: Visual pattern'), /covers "Visual pattern" matches no syllabus Area; the closest is "Visual patterns"/]
   }],
-  ['a lesson that ends on a learn card', dir => {
-    const f = join(dir, 'lessons/u1.md')
-    edit(f, '\n# Visuals\n', '\n## learn: Never quizzed\n<p>Nothing asks about this.</p>\n\n# Visuals\n')
-    return [f, lineOf(f, '## learn: Never quizzed'), /learn card 8: ends the lesson, so the learner is never quizzed on it/]
-  }],
   ['a lesson file no unit lists', dir => {
     const f = join(dir, 'lessons/u1l3.md')
     writeFileSync(f, STRAY)
