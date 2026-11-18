@@ -7,18 +7,18 @@ A course is a folder of plain files that `scripts/lessons.mjs` builds into one p
 ```text
 course.json        the course settings and the units, in order
 syllabus.md        every part of the subject (see SKILL.md, Syllabus)
-lessons/u1l1.md    one file per lesson, named by its id
+lessons/u1.md      one file per unit, holding its lessons in order
 index.html         the page; build writes it, so never edit it
 ```
 
 ```sh
 node <skill-dir>/scripts/lessons.mjs init <course-dir>                   # start from the sample course
 node <skill-dir>/scripts/lessons.mjs init <course-dir> --from <page.html> # import a page built from template.html
-node <skill-dir>/scripts/lessons.mjs check <course-dir> u2l1 u2l2         # check only these lessons (or unit ids)
-node <skill-dir>/scripts/lessons.mjs build <course-dir> [--repo <repo-dir>]
+node <skill-dir>/scripts/lessons.mjs check <course-dir> u2                # check only these units (or lesson ids)
+node <skill-dir>/scripts/lessons.mjs build <course-dir>
 ```
 
-`check` with lesson or unit ids checks those lessons and nothing course-wide, so writers working in parallel can each check their own. It writes nothing. `build` checks the whole course, then writes `index.html` and fills each syllabus row's Lessons cell from the lessons' `covers`. It prints `OK: 5 units, 18 lessons, 84 cards, 14 syllabus rows`. On any problem it writes nothing, lists each problem as `lessons/u2l1.md:14: mcq card 2: <what is wrong>`, and exits non-zero. Building twice gives the same bytes. With `--repo`, build also fails on any tracked top-level directory of that repo missing from the syllabus Sources.
+`check` with unit or lesson ids checks those lessons and nothing course-wide, so writers working in parallel can each check their own units. It writes nothing. `build` checks the whole course, then writes `index.html` and fills each syllabus row's Lessons cell from the lessons' `covers`. It prints `OK: 5 units, 18 lessons, 84 cards, 14 syllabus rows`. On any problem it writes nothing, lists each problem as `lessons/u2.md:14: mcq card 2: <what is wrong>`, and exits non-zero. Building twice gives the same bytes. `check` and `build` with no ids also fail on any tracked top-level directory of the `repo` in `course.json` missing from the syllabus Sources. `--repo <repo-dir>` on any command names a different repo for that run, and `init --repo` writes it into `course.json`.
 
 ## course.json
 
@@ -32,6 +32,7 @@ node <skill-dir>/scripts/lessons.mjs build <course-dir> [--repo <repo-dir>]
   "homeUrl": "",
   "lang": "typescript",
   "languages": ["haskell"],
+  "repo": "../orders-api",
   "units": [
     { "id": "u1", "title": "Getting started", "blurb": "Install, run, and find your way around.",
       "color": "#1f9d6b", "dark": "#157a52", "lessons": ["u1l1", "u1l2"] }
@@ -44,14 +45,18 @@ node <skill-dir>/scripts/lessons.mjs build <course-dir> [--repo <repo-dir>]
 - `homeUrl` is the served home (optional; see SKILL.md, Steps).
 - `lang` is the course's main code language, or `text` for a course without code.
 - `languages` (optional) adds highlight.js languages the page does not bundle. Build loads each from the highlight.js CDN.
-- Each unit has its own `color`, readable under white text (it fills the unit dot, finished-lesson checks and the Start badge), and a darker `dark` for their borders. `lessons` lists the unit's lesson ids in order; each id is a file in `lessons/`.
+- `repo` is the git repo a codebase course teaches, relative to the course folder, or `null` for a library or topic course. Build fails while it is missing. `init` writes it: the repo holding the course folder or the working directory, else the one repo directly inside the working directory, else `null`. When the working directory holds several repos, init leaves it out for you to set. A Sources path may start at the repo root (`src/routes/`) or at its parent, under the repo folder's name (`orders-api/src/routes/`). The page never contains it.
+- Each unit has its own `color`, readable under white text (it fills the unit dot, finished-lesson checks and the Start badge), and a darker `dark` for their borders. `lessons` lists the unit's lesson ids in order; each is the `id:` of a lesson in `lessons/`.
 
 Every unit needs a `write` card, ideally closing the unit.
 
 ## Lesson files
 
+A lesson file holds a unit's lessons, in course order, and is named by the unit id, such as `lessons/u1.md`:
+
 ````md
 # Routing a request
+id: u1l1
 recap: The router matches the path and hands the request to one handler.
 covers: HTTP routing, Request lifecycle
 terms:
@@ -71,11 +76,27 @@ o:
 - [x] `src/routes.ts`
 - [ ] `src/db.ts`
 why: `src/routes.ts` maps each path to its handler; the server only starts listening.
+
+# Handlers
+id: u1l2
+recap: A handler turns one request into one response.
+covers: Request lifecycle
+
+## learn: One handler per route
+<p>`getOrder` reads the order and sends it back as JSON.</p>
+
+## type
+q: Name the handler that serves `GET /orders/:id`.
+accept:
+- getOrder
+why: `src/routes.ts` maps that path to `getOrder`.
 ````
 
-- The file starts with `# <lesson title>`. The header that follows takes:
+- A lesson starts at a `# <lesson title>` line outside a fence and runs to the next one, so a `# ` line inside a learn body starts a new lesson; put a heading there as HTML.
+- `id:` under the title is the lesson's id, the one `course.json` lists. Saved progress is kept by id, so an id never changes and is never reused, and a new lesson takes a new id wherever it goes in the file. Two lessons with one id, a listed id that no lesson has, and a lesson no unit lists are errors. A file that holds one lesson may leave out `id:`; its file name is then the id, so `lessons/u1l1.md` is lesson `u1l1`.
+- The header under the title takes:
   - `recap:` one line shown when the lesson is done.
-  - `covers:` the syllabus Areas this lesson teaches, comma-separated, matched without regard to case. Build lists the lesson in those rows. Write `covers:` and one `- ` line per Area when a name contains a comma.
+  - `covers:` the syllabus Areas this lesson teaches, comma-separated, matched without regard to case. Build lists the lesson in those rows. An Area whose name holds a comma still matches on one line; the list form (`covers:` then one `- ` line per Area) also works.
   - `terms:` one `- Term: meaning` line per term the lesson introduces (split at the first `: `). The glossary is every lesson's terms, in course order; a term defined twice keeps its first meaning.
 - `## learn: <heading>` starts a learn card. Its body is everything up to the next `## ` line.
 - `## mcq`, `## fill`, `## blanks`, `## order`, `## type` and `## write` start quiz cards made of fields.
@@ -88,15 +109,15 @@ why: `src/routes.ts` maps each path to its handler; the server only starts liste
 
 `recap`, terms, learn headings and bodies, `q`, `why`, `expect`, `hint`, `mcq` options and `rubric` items are HTML. A value continues onto the following lines until the next field line, `- ` line, or `## ` line. Inside them:
 
-- `` `x` `` becomes `<code>x</code>`, escaped for you, so `` `a<b` `` is safe. Write ``` ``x`y`` ``` for code that holds a backtick. Backticks inside tags, `<pre>` and `<code>` stay as written.
-- A ``` fence becomes a code box, `<pre><code class="language-ts">` for ```` ```ts ````, escaped for you. Wrap the part that matters in `«…»` to highlight it. A fence with no language uses `lang` from course.json.
+- `` `x` `` becomes `<code>x</code>`, escaped for you, so `` `a<b` `` is safe. As in Markdown, a span ends at the next run of the same number of backticks on its line: `` `/` or `?` `` is two spans, and ``` ``x`y`` ``` is code that holds a backtick. An entity in a span stands for its character, so `` `a &lt; b` `` and `` `a < b` `` both show `a < b`. Backticks inside tags, `<pre>` and `<code>` stay as written. A backtick that no run closes is an error; write a literal one as `&#96;`.
+- A ``` fence becomes a code box, `<pre><code class="language-ts">` for ```` ```ts ````, escaped for you. It shows its text exactly, entities included, so write `<` itself; build rejects an entity in a fence named for a language that is not markup (such as ```` ```ts ````). Wrap the part that matters in `«…»` to highlight it. A highlight may run over line breaks, so a highlighted line stays highlighted when you break it to fit the code width. A `«` or `»` without its partner is an error. A fence with no language uses `lang` from course.json.
 - A ```` ```raw ```` fence goes into the page exactly as written, for HTML the rules above would change.
-- Everywhere else write HTML: a literal `<` is `&lt;` and `&` is `&amp;`.
+- Everywhere else write HTML: a literal `<` is `&lt;` and `&` is `&amp;`. An entity escaped twice, such as `&amp;lt;`, is an error, because the learner would see `&lt;`. To show that text on purpose, write `&#38;lt;`. For a guillemet in text, write `&laquo;` or `&raquo;`.
 - A continuation line that starts with a lowercase `word:` starts a new field. Begin it with a tag, or put the value in a ```` ```raw ```` fence.
 
 ### Plain fields
 
-`code`, `model`, `starter`, and the items of `accept`, `items`, `answers`, `extra` and `fill` options are plain text, shown exactly as written. Give a one-line value on the field line, or write `name:` and a fence on the next line:
+`code`, `model`, `starter`, and the items of `accept`, `items`, `answers`, `extra` and `fill` options are plain text, shown exactly as written, so `«…»` does not highlight there and is an error. Give a one-line value on the field line, or write `name:` and a fence on the next line:
 
 ````md
 code:
@@ -110,7 +131,28 @@ The fence's language sets the card's `lang`. Alternatively give `lang: shell` as
 
 ### Code width
 
-A phone fits 41 columns of code in a code box, and 36 in the `write` answer editor (`starter`). A longer line scrolls sideways, so build rejects it and names it; break it over lines. A line with no space after its indentation, such as a long URL, is allowed. A `____` blank counts as the width of its longest chip.
+A phone fits 41 columns of code in a code box, and 36 in the `write` answer editor (`starter`). A longer line scrolls sideways, so build rejects it. A line judged by eye is usually a few columns longer than it looks, so write each line well under the limit and shape the code as you write it:
+
+- Put one statement on a line, and an `if` body on the line below its `if`.
+- Put a comment on its own line above the code, never after it.
+- Break a call or object literal that holds more than a short item or two: one argument or key per line, indented two spaces.
+- Break a chain before each `.method()`.
+- Break a long string or template literal into a variable on the line above.
+- A line with no space, such as a long URL or call chain, counts too: break it after a `(` or before a `.`, or shorten it. A URL can go in the text instead, which wraps.
+- In `fill` and `blanks`, a `____` counts as wide as the longest chip, wrong options and spare chips included. Keep chips short, or give the blank a line of its own.
+
+`const data = await api.post(url, {json: body}).json()` is 53 columns, so write it as:
+
+````md
+code:
+```ts
+const data = await api
+  .post(url, {json: body})
+  .json()
+```
+````
+
+A `code:` value broken over lines goes in a fence, as above.
 
 ## Card types
 

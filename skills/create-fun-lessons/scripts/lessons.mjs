@@ -1,29 +1,40 @@
 // Build a create-fun-lessons page from a course folder (course.json,
-// syllabus.md, lessons/<id>.md), check the folder, or create one.
+// syllabus.md, lessons/*.md), check the folder, or create one.
 // The lesson file format is in references/lessons.md.
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'node:fs'
-import { basename, dirname, join, relative, resolve } from 'node:path'
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, realpathSync } from 'node:fs'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
+import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { CARD_TYPES, validateCourse, validateUnit, validateLesson, parseSyllabus, checkCovers, checkRepoCoverage } from './schema.mjs'
+import { CARD_TYPES, validateCourse, validateUnit, validateLesson, parseSyllabus, checkCovers, checkRepoCoverage, shownProblems, decode } from './schema.mjs'
 import { loadPage, checkPage, trackedDirs, summary } from './check.mjs'
+import { selfcheck, resumeMatches } from './selfcheck.mjs'
 
 const TEMPLATE = fileURLToPath(new URL('../template.html', import.meta.url))
 const USAGE = `usage:
-  node lessons.mjs init <dir> [--from <page.html>]
+  node lessons.mjs init <dir> [--from <page.html>] [--repo <repo-dir>]
   node lessons.mjs check <dir> [<lesson-or-unit-id> ...] [--repo <repo-dir>]
-  node lessons.mjs build <dir> [--repo <repo-dir>]`
+  node lessons.mjs build <dir> [--repo <repo-dir>]
+  node lessons.mjs selfcheck <dir>`
 
-const LESSON_FIELDS = { recap: { kind: 'html' }, covers: { kind: 'names' }, terms: { kind: 'terms' } }
+const LESSON_FIELDS = { id: { kind: 'plain' }, recap: { kind: 'html' }, covers: { kind: 'names' }, terms: { kind: 'terms' } }
+const LESSON_ID = /^\w[\w.-]*$/
+const REPO_RULE = 'the git repo the course teaches, relative to the course folder (such as "../ky"), or null for a library or topic course'
 
 
 const FENCE_OPEN = /^([ \t]*)(`{3,})([^`\s]*)[ \t]*$/
 const FENCE_CLOSE = /^[ \t]*(`{3,})[ \t]*$/
 const FIELD = /^([a-z][A-Za-z]*):(?:[ \t]+(.*?))?[ \t]*$/
 const CARD = /^## /
+const TITLE = /^# /
 const LIST = /^-( |$)/
 const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
 const unesc = s => s.replace(/&(amp|lt|gt);/g, (_, e) => ({ amp: '&', lt: '<', gt: '>' }[e]))
-const mark = s => s.replace(/«([^«»\n]*)»/g, '<span class="hl">$1</span>')
+// A «…» highlight that runs over line breaks becomes one span per line, with
+// the line breaks and indentation between them left outside.
+// A fence in one of these languages, or with no language, may show an entity on purpose.
+const MARKUP = /^(html|xml|svg|xhtml|markup|vue|svelte|jsx|tsx|md|markdown|text|plaintext)?$/i
+const mark = s => s.replace(/«([^«»]*)»/g, (_, h) => h.split(/(\s*\n\s*)/)
+  .map((p, i, all) => i % 2 || (!p && all.length > 1) ? p : `<span class="hl">${p}</span>`).join(''))
 
 // Lines grouped so that a ``` fence is one block: nothing inside a fence is
 // ever read as structure.
@@ -52,47 +63,96 @@ const listItem = b => !b.fence && LIST.test(b.text)
 const trim = bs => { let a = 0, z = bs.length; while (a < z && blank(bs[a])) a++; while (z > a && blank(bs[z - 1])) z--; return bs.slice(a, z) }
 
 // HTML source -> HTML: a ``` fence becomes <pre><code>, escaped, with «…»
-// highlighted; a ```raw fence goes in as written; `x` (or ``x`y``, as in
-// Markdown) outside tags, <pre> and <code> becomes <code>, escaped.
-function renderHtml(blocks) {
-  const out = [], state = { depth: 0 }
+// highlighted; a ```raw fence goes in as written; `x` outside tags, <pre> and
+// <code> becomes <code>. What the learner would see wrongly is reported at
+// its source line.
+function renderHtml(blocks, err) {
+  const out = [], from = [], state = { depth: 0 }
   let text = []
-  const flush = () => { if (text.length) out.push(inlineCode(text.join('\n'), state)); text = [] }
+  const put = (html, lines) => html.split('\n').forEach((l, k) => { out.push(l); from.push(lines(k)) })
+  const flush = () => {
+    if (!text.length) return
+    const t = text, src = t.map(b => b.text).join('\n'), lineAt = k => t[k]?.line ?? t.at(-1).line
+    put(inlineCode(src, state, at => err(lineAt(src.slice(0, at).split('\n').length - 1), STRAY)), lineAt)
+    text = []
+  }
   for (const b of blocks) {
-    if (!b.fence) { text.push(b.text); continue }
+    if (!b.fence) { text.push(b); continue }
     flush()
     const body = b.content.join('\n')
-    out.push(b.indent + (b.info === 'raw' ? body : `<pre><code${b.info ? ` class="language-${b.info}"` : ''}>${mark(esc(body))}</code></pre>`))
+    if (b.info !== 'raw' && !MARKUP.test(b.info)) b.content.forEach((l, k) => {
+      const e = /&(lt|gt|amp|quot|apos|#\d+|#x[\da-f]+);/i.exec(l)
+      if (e) err(b.line + 1 + k, `the learner sees "${e[0]}" as written: a \`\`\` fence shows code exactly as typed, so write the character itself`)
+    })
+    put(b.indent + (b.info === 'raw' ? body : `<pre><code${b.info ? ` class="language-${b.info}"` : ''}>${mark(esc(body))}</code></pre>`), k => b.line + 1 + k)
   }
   flush()
-  return out.join('\n')
+  const html = out.join('\n')
+  for (const p of shownProblems(html)) err(from[p.line], p.msg)
+  return html
 }
-const SPAN = /<[^>]*>|(?<!`)(`+)([^`\n](?:[^\n]*?[^`\n])?)\1(?!`)/g
 const codeTag = (m, state) => {
   const t = /^<(\/?)(?:pre|code)\b/i.exec(m)
   if (t) state.depth = Math.max(0, state.depth + (t[1] ? -1 : 1))
 }
-function inlineCode(text, state) {
-  return text.replace(SPAN, (m, ticks, code) => {
-    if (ticks === undefined) { codeTag(m, state); return m }
-    if (state.depth) return m
-    if (code.length > 2 && code[0] === ' ' && code.at(-1) === ' ' && code.trim()) code = code.slice(1, -1)
-    return `<code>${esc(code)}</code>`
-  })
+const STRAY = 'the learner sees a stray backtick: a `code` span ends at the next run of the same number of backticks on its line; for a literal backtick write &#96;'
+// As in Markdown, a run of backticks opens a span that the next run of the same
+// length closes (on its line), so ``x`y`` holds a backtick; a run nothing
+// closes stays as written, and `stray` gets its offset. The span is code,
+// escaped for you; an entity written in it, as in `a &lt; b`, stands for its
+// character.
+function inlineCode(text, state, stray) {
+  const tokens = /<[^>]*>|`+/g
+  let out = '', done = 0
+  for (let m; (m = tokens.exec(text));) {
+    if (m[0][0] === '<') { codeTag(m[0], state); continue }
+    if (state.depth) continue
+    const n = m[0].length, start = tokens.lastIndex, eol = text.indexOf('\n', start)
+    const close = [...text.slice(start, eol < 0 ? undefined : eol).matchAll(/`+/g)].find(r => r[0].length === n)
+    if (!close) { stray(m.index); continue }
+    let code = text.slice(start, start + close.index)
+    if (code[0] === ' ' && code.at(-1) === ' ' && code.trim()) code = code.slice(1, -1)
+    out += `${text.slice(done, m.index)}<code>${esc(decode(code))}</code>`
+    done = tokens.lastIndex = start + close.index + n
+  }
+  return out + text.slice(done)
 }
-const renderLine = text => renderHtml([{ text }])
+const renderLine = (text, line, err) => renderHtml([{ text, line }], err)
+// A plain field is shown as written; only the «…» markers can go wrong.
+const checkPlain = (v, line, err) => { for (const p of shownProblems(v, 'plain')) err(line + p.line, p.msg) }
 
-export function parseLesson(text) {
+// A file holds one or more lessons, each starting at a "# <title>" line. A
+// lesson's id is its "id:" line, or, in a file holding one lesson, the file
+// name; never its place in the file, so inserting a lesson moves no id.
+export function parseLessonFile(text, name) {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n'), fence = []
+  const blocks = toBlocks(lines, (line, msg) => fence.push({ line, msg }))
+  const starts = blocks.flatMap((b, i) => !b.fence && TITLE.test(b.text) ? [i] : [])
+  const cuts = [0, ...starts.slice(1), blocks.length]
+  const lessons = cuts.slice(0, -1).map((a, k) => {
+    const L = parseLesson(blocks.slice(a, cuts[k + 1]))
+    L.end = cuts[k + 1] < blocks.length ? blocks[cuts[k + 1]].line - 1 : lines.length
+    if (L.id === undefined && cuts.length === 2) L.id = name
+    else if (L.id === undefined) L.problems.push({ line: L.lines.title, msg: `this file holds ${cuts.length - 1} lessons, so each needs an "id: <lesson id>" line under its # title` })
+    else if (!LESSON_ID.test(L.id)) { L.problems.push({ line: L.lines.fields.id, msg: `id "${L.id}" is not a lesson id; use letters, digits, _, . and -, as in u2l1` }); L.id = undefined }
+    L.lesson = { id: L.id, ...L.lesson }
+    return L
+  })
+  // An unclosed fence runs to the end of the file, so it is in the last lesson.
+  lessons.at(-1).problems.unshift(...fence)
+  return lessons
+}
+
+function parseLesson(blocks) {
   const problems = []
   const err = (line, msg) => problems.push({ line, msg })
-  const blocks = toBlocks(text.replace(/\r\n?/g, '\n').split('\n'), err)
   const heads = blocks.flatMap((b, i) => !b.fence && CARD.test(b.text) ? [i] : [])
   const header = blocks.slice(0, heads[0] ?? blocks.length)
   const first = header.findIndex(b => !blank(b))
   const tm = first >= 0 && !header[first].fence && /^# +(.*?)[ \t]*$/.exec(header[first].text)
-  if (!tm) err(header[first]?.line ?? 1, 'a lesson file starts with "# <lesson title>"')
+  if (!tm) err(header[first]?.line ?? 1, 'a lesson starts with "# <lesson title>"')
   const head = parseFields(header.slice(tm ? first + 1 : 0), LESSON_FIELDS, 'the lesson header', err)
-  const lines = { title: tm ? header[first].line : 1, fields: head.lines, cards: [] }
+  const lines = { title: header[first]?.line ?? 1, fields: head.lines, cards: [] }
   const cards = []
   heads.forEach((h, k) => {
     const parsed = parseCard(blocks[h], blocks.slice(h + 1, heads[k + 1] ?? blocks.length), cards.length + 1, err)
@@ -101,7 +161,7 @@ export function parseLesson(text) {
     lines.cards.push(parsed.lines)
   })
   return {
-    lesson: { title: tm ? tm[1] : undefined, recap: head.values.recap, cards },
+    id: head.values.id, lesson: { title: tm ? tm[1] : undefined, recap: head.values.recap, cards },
     covers: head.values.covers ?? [], terms: head.values.terms ?? [], lines, problems,
   }
 }
@@ -117,9 +177,9 @@ function parseCard(head, body, n, fileErr) {
   const card = { t }
   if (type.heading) {
     if (!m[2]) err(head.line, `needs a heading: ## ${t}: <heading>`)
-    else card[type.heading] = renderLine(m[2])
+    else card[type.heading] = renderLine(m[2], head.line, err)
     const own = trim(body)
-    card[type.rest] = renderHtml(own)
+    card[type.rest] = renderHtml(own, err)
     return { card, lines: { line: head.line, fields: { [type.heading]: head.line, [type.rest]: own[0]?.line ?? head.line } } }
   }
   if (m[2] !== undefined) err(head.line, `only a learn card takes a heading; write ## ${t}`)
@@ -160,22 +220,23 @@ function parseFields(blocks, spec, what, fileErr) {
       while (end < own.length && (listItem(own[end]) || blank(own[end]))) end++
       const list = own.slice(0, end).filter(listItem)
       stray(own.slice(end))
-      values[key] = listValue(key, f, list.map(x => ({ text: x.text.slice(2), line: x.line })), values, err)
+      values[key] = listValue(key, f, list.map(x => ({ text: x.text.slice(2), line: x.line })), values, err, fileErr)
       continue
     }
     if (f.kind === 'names') { values[key] = rest.split(',').map(s => s.trim()).filter(Boolean); stray(own); continue }
     if (f.kind === 'plain') {
-      if (rest !== '') { values[key] = rest; stray(own); continue }
+      if (rest !== '') { values[key] = rest; checkPlain(rest, b.line, fileErr); stray(own); continue }
       const k = own.findIndex(x => !blank(x))
       if (k < 0 || !own[k].fence) { err(b.line, `${key} is empty; ${hint(key, f)}`); stray(own); continue }
       values[key] = own[k].content.join('\n')
+      checkPlain(values[key], own[k].line + 1, fileErr)
       if (own[k].info) langs.push({ lang: own[k].info, line: own[k].line, from: `the ${key} fence` })
       stray(own.slice(k + 1))
       continue
     }
     const cut = own.findIndex(listItem)
     const src = trim([...(rest !== '' ? [{ text: rest, line: b.line }] : []), ...(cut < 0 ? own : own.slice(0, cut))])
-    values[key] = renderHtml(src)
+    values[key] = renderHtml(src, fileErr)
     if (cut >= 0) stray(own.slice(cut))
   }
   return { values, lines, langs, failed }
@@ -187,21 +248,27 @@ function hint(key, f) {
   return `${key} continues until the next field line`
 }
 
-function listValue(key, f, items, values, err) {
+// `err` marks the field as reported; `shown` reports what the learner would
+// see wrongly without hiding the schema's other problems with the field.
+function listValue(key, f, items, values, err, shown) {
   if (f.kind === 'names') return items.map(x => x.text.trim()).filter(Boolean)
   if (f.kind === 'terms') return items.flatMap(x => {
     const at = x.text.indexOf(': ')
     if (at < 1) { err(x.line, 'a term is "- <term>: <meaning>"'); return [] }
-    return [[renderLine(x.text.slice(0, at)), renderLine(x.text.slice(at + 2))]]
+    return [[renderLine(x.text.slice(0, at), x.line, shown), renderLine(x.text.slice(at + 2), x.line, shown)]]
   })
-  const item = s => f.kind === 'html' ? renderLine(s) : s
-  if (f.list !== 'choices') return items.map(x => item(x.text))
+  const item = (s, line) => {
+    if (f.kind === 'html') return renderLine(s, line, shown)
+    checkPlain(s, line, shown)
+    return s
+  }
+  if (f.list !== 'choices') return items.map(x => item(x.text, x.line))
   const right = []
   const out = items.map((x, i) => {
     const m = /^\[([ xX])\] ?(.*)$/.exec(x.text)
-    if (!m) { err(x.line, `each ${key} item starts with [x] (the right one) or [ ]`); return item(x.text) }
+    if (!m) { err(x.line, `each ${key} item starts with [x] (the right one) or [ ]`); return item(x.text, x.line) }
     if (m[1] !== ' ') right.push(i)
-    return item(m[2])
+    return item(m[2], x.line)
   })
   if (right.length === 1) values.a = right[0]
   else err(items[0]?.line, `mark exactly one ${key} item [x]; ${right.length} are marked`)
@@ -217,7 +284,7 @@ function prettyHtml(v) {
   const s = v.replace(/<code>([^<\n]*)<\/code>|<[^>]*>/g, (m, inner) => {
     if (inner === undefined) { codeTag(m, state); return m }
     const code = unesc(inner)
-    if (state.depth || !code || esc(code) !== inner) return m
+    if (state.depth || !code || esc(code) !== inner || decode(code) !== code) return m
     const ticks = '`'.repeat(Math.max(0, ...(code.match(/`+/g) ?? []).map(r => r.length)) + 1)
     const pad = /^`|`$/.test(code) || (/^ .* $/.test(code) && code.trim()) ? ' ' : ''
     return ticks + pad + code + pad + ticks
@@ -252,6 +319,7 @@ function writeLesson(lesson, covers, terms, level) {
     return s
   }
   emit('title', `# ${lesson.title}`)
+  if (lesson.id !== undefined) emit('id', `id: ${lesson.id}`)
   if (lesson.recap !== undefined) html('recap', lesson.recap, 'recap')
   if (covers.length) emit('covers', covers.some(c => c.includes(',')) ? 'covers:' : `covers: ${covers.join(', ')}`, ...(covers.some(c => c.includes(',')) ? covers.map(c => `- ${c}`) : []))
   if (terms.length) emit('terms', 'terms:')
@@ -295,7 +363,7 @@ function writeLesson(lesson, covers, terms, level) {
 }
 
 function valuesOf(lesson, covers, terms) {
-  const out = [['title', lesson.title], ['recap', lesson.recap], ['covers', covers]]
+  const out = [['title', lesson.title], ['id', lesson.id], ['recap', lesson.recap], ['covers', covers]]
   terms.forEach((t, i) => out.push([`terms.${i}`, t]))
   lesson.cards.forEach((c, ci) => {
     out.push([`cards.${ci}`, c.t])
@@ -315,7 +383,7 @@ export function serializeLesson(lesson, covers, terms) {
   const want = valuesOf(lesson, covers, terms)
   for (;;) {
     const { text, at } = writeLesson(lesson, covers, terms, level)
-    const back = parseLesson(text)
+    const [back] = parseLessonFile(text)
     const got = new Map(valuesOf(back.lesson, back.covers, back.terms))
     const bad = want.find(([p, v]) => JSON.stringify(got.get(p)) !== JSON.stringify(v))?.[0]
       ?? at[(back.problems[0]?.line ?? 0) - 1]
@@ -337,27 +405,37 @@ function readCourse(dir) {
   let json
   try { json = JSON.parse(readFileSync(file, 'utf8')) } catch (e) { return fatal(`not valid JSON: ${e.message}`) }
   if (!json || typeof json !== 'object' || Array.isArray(json)) return fatal('must be a JSON object')
-  const { units, languages = [], ...COURSE } = json
+  const { units, languages = [], repo, ...COURSE } = json
   const problems = []
   const at = msg => problems.push(`${rel(file)}: ${msg}`)
   if (!Array.isArray(units) || !units.length) return fatal('needs "units": [{ "id", "title", "blurb", "color", "dark", "lessons": [lesson ids] }]')
   if (!Array.isArray(languages) || !languages.every(l => typeof l === 'string' && /^[a-z0-9][\w-]*$/i.test(l))) at('"languages" must be a list of highlight.js language names, such as ["haskell"]')
+  if (repo !== undefined && repo !== null && (typeof repo !== 'string' || !repo.trim())) at(`"repo" ${REPO_RULE}`)
   units.forEach((u, ui) => {
-    if (!Array.isArray(u?.lessons) || !u.lessons.every(id => typeof id === 'string' && /^\w[\w.-]*$/.test(id)))
-      at(`unit ${ui + 1} (${u?.id ?? '?'}): "lessons" must list lesson ids, each the name of a file in lessons/ without .md`)
+    if (!Array.isArray(u?.lessons) || !u.lessons.every(id => typeof id === 'string' && LESSON_ID.test(id)))
+      at(`unit ${ui + 1} (${u?.id ?? '?'}): "lessons" must list lesson ids, such as "u1l1"`)
   })
-  return { file, COURSE, units: units.map(u => ({ ...u, lessons: Array.isArray(u?.lessons) ? u.lessons.filter(id => typeof id === 'string') : [] })), languages: Array.isArray(languages) ? languages.filter(l => typeof l === 'string') : [], problems }
+  return { file, COURSE, repo, units: units.map(u => ({ ...u, lessons: Array.isArray(u?.lessons) ? u.lessons.filter(id => typeof id === 'string') : [] })), languages: Array.isArray(languages) ? languages.filter(l => typeof l === 'string') : [], problems }
 }
 
-function readLessons(dir, ids) {
-  const out = new Map()
-  for (const id of ids) {
-    const file = join(dir, 'lessons', `${id}.md`)
-    if (!existsSync(file)) continue
-    const parsed = parseLesson(readFileSync(file, 'utf8'))
-    out.set(id, { ...parsed, file, lesson: { id, ...parsed.lesson } })
+// Every lesson in lessons/*.md, in file order, and the first lesson with each
+// id. A lesson's `where` is its id line, or its file when the file names it.
+function readLessons(dir) {
+  const lessonDir = join(dir, 'lessons'), all = [], byId = new Map()
+  const names = existsSync(lessonDir) ? readdirSync(lessonDir).filter(f => f.endsWith('.md')).sort() : []
+  for (const name of names) {
+    const file = join(lessonDir, name)
+    for (const L of parseLessonFile(readFileSync(file, 'utf8'), name.slice(0, -3))) {
+      L.file = file
+      L.where = L.lines.fields.id ? `${rel(file)}:${L.lines.fields.id}` : rel(file)
+      all.push(L)
+      if (L.id === undefined) continue
+      const first = byId.get(L.id)
+      if (first) L.problems.push({ line: L.lines.fields.id ?? L.lines.title, msg: `id "${L.id}" is also the id of the lesson at ${first.where}; give each lesson its own id` })
+      else byId.set(L.id, L)
+    }
   }
-  return out
+  return { all, byId }
 }
 
 function locate(p, { course, lessons, unitsData, sylFile }) {
@@ -368,7 +446,7 @@ function locate(p, { course, lessons, unitsData, sylFile }) {
     const cl = L.lines.cards[p.card]
     let line = cl.fields[p.field] ?? cl.line
     if (p.find) {
-      const src = readFileSync(L.file, 'utf8').split('\n'), end = L.lines.cards[p.card + 1]?.line ?? src.length + 1
+      const src = readFileSync(L.file, 'utf8').split('\n'), end = L.lines.cards[p.card + 1]?.line ?? L.end + 1
       const k = src.slice(line - 1, end - 1).findIndex(s => s.replace(/[«»]/g, '').includes(p.find.trim()))
       if (k >= 0) line += k
     }
@@ -385,21 +463,25 @@ function checkFolder(dir, { only, repo } = {}) {
   if (course.fatal) return { problems: [course.fatal] }
   const problems = [...course.problems]
   const listed = course.units.flatMap(u => u.lessons)
-  const lessonDir = join(dir, 'lessons')
-  const files = existsSync(lessonDir) ? readdirSync(lessonDir).filter(f => f.endsWith('.md')).map(f => f.slice(0, -3)) : []
+  const disk = readLessons(dir)
   let unitIdx = course.units.map((_, i) => i), lessonIds = listed
   if (only) {
-    for (const id of only) if (!course.units.some(u => u.id === id) && !listed.includes(id) && !files.includes(id)) problems.push(`${rel(course.file)}: no unit or lesson "${id}" (lessons/${id}.md does not exist either)`)
+    for (const id of only) if (!course.units.some(u => u.id === id) && !listed.includes(id) && !disk.byId.has(id)) problems.push(`${rel(course.file)}: no unit or lesson "${id}", and no lesson in lessons/ has that id`)
     unitIdx = unitIdx.filter(i => only.includes(course.units[i].id))
-    lessonIds = [...new Set([...unitIdx.flatMap(i => course.units[i].lessons), ...only.filter(id => listed.includes(id) || files.includes(id))])]
-  } else {
-    for (const id of files) if (!listed.includes(id)) problems.push(`${rel(join(lessonDir, `${id}.md`))}: not listed in course.json; add "${id}" to a unit's lessons, or delete the file`)
+    lessonIds = [...new Set([...unitIdx.flatMap(i => course.units[i].lessons), ...only.filter(id => listed.includes(id) || disk.byId.has(id))])]
   }
-  const lessons = readLessons(dir, lessonIds)
+  const lessons = new Map(lessonIds.filter(id => disk.byId.has(id)).map(id => [id, disk.byId.get(id)]))
   course.units.forEach((u, ui) => {
-    for (const id of u.lessons) if ((!only || unitIdx.includes(ui) || only.includes(id)) && !lessons.has(id)) problems.push(`${rel(course.file)}: unit ${ui + 1} (${u.id}) lists "${id}", but ${rel(join(lessonDir, `${id}.md`))} does not exist`)
+    for (const id of u.lessons) if ((!only || unitIdx.includes(ui) || only.includes(id)) && !lessons.has(id)) problems.push(`${rel(course.file)}: unit ${ui + 1} (${u.id}) lists "${id}", but no lesson in lessons/ has that id; write it under "# <title>" with the line "id: ${id}"`)
   })
-  for (const L of lessons.values()) for (const p of L.problems) problems.push(`${rel(L.file)}:${p.line}: ${p.msg}`)
+  // A check of some lessons also reports a lesson with no id in their files,
+  // since it may be the one a writer meant to give that id.
+  const files = new Set(disk.all.filter(L => lessons.has(L.id)).map(L => L.file))
+  for (const L of disk.all) {
+    if (only && !(L.id === undefined ? files.has(L.file) : lessonIds.includes(L.id))) continue
+    if (!only && L.id !== undefined && !listed.includes(L.id)) problems.push(`${L.where}: not listed in course.json; add "${L.id}" to a unit's lessons, or delete ${L.lines.fields.id ? 'the lesson' : 'the file'}`)
+    for (const p of L.problems) problems.push(`${rel(L.file)}:${p.line}: ${p.msg}`)
+  }
 
   const unitsData = course.units.map(u => ({ ...u, lessons: u.lessons.filter(id => lessons.has(id)).map(id => lessons.get(id).lesson) }))
   const glossary = new Map()
@@ -412,6 +494,14 @@ function checkFolder(dir, { only, repo } = {}) {
       ...lessonIds.filter(id => !unitIdx.some(i => course.units[i].lessons.includes(id))).flatMap(id => validateLesson(lessons.get(id)?.lesson, opts))]
     : validateCourse(data, opts)
 
+  // The repo whose tracked top-level directories the syllabus must name:
+  // --repo, else course.json's "repo". A check of some lessons names none.
+  let repoDir = repo, repoSrc = `--repo ${repo}`
+  if (!repo && !only) {
+    if (course.repo === undefined) problems.push(`${rel(course.file)}: missing "repo"; set it to ${REPO_RULE}`)
+    else if (typeof course.repo === 'string' && course.repo.trim()) { repoDir = resolve(dir, course.repo); repoSrc = `${rel(course.file)}: "repo" ${course.repo}` }
+  }
+
   let syllabus = null, rows = [], ids = new Map()
   if (!existsSync(ctx.sylFile)) problems.push(`${rel(ctx.sylFile)}: missing; write the | Area | Sources | Lessons | table (see SKILL.md)`)
   else {
@@ -423,12 +513,12 @@ function checkFolder(dir, { only, repo } = {}) {
     const covers = checkCovers(rows, inOrder, { full: !only })
     ids = covers.ids
     found.push(...covers.problems)
-    if (repo) {
-      try { found.push(...checkRepoCoverage(rows, trackedDirs(repo))) }
-      catch (e) { problems.push(`--repo: cannot list tracked files in ${repo}: ${e.message.split('\n')[0]}`) }
+    if (repoDir) {
+      try { found.push(...checkRepoCoverage(rows, trackedDirs(repoDir), basename(resolve(repoDir)))) }
+      catch (e) { problems.push(`${repoSrc}: cannot list tracked files in ${rel(resolve(repoDir))}: ${e.message.split('\n')[0]}`) }
     }
   }
-  const reported = p => p.card !== undefined && lessons.get(p.lesson)?.lines.cards[p.card]?.failed?.has(p.field)
+  const reported = p => p.shown || (p.card !== undefined && lessons.get(p.lesson)?.lines.cards[p.card]?.failed?.has(p.field))
   problems.push(...found.filter(p => !reported(p)).map(p => locate(p, ctx)))
   const cards = [...lessons.values()].reduce((n, L) => n + L.lesson.cards.length, 0)
   return { problems, data, course, syllabus, rows, ids, counts: { units: unitsData.length, lessons: lessons.size, cards, rows: rows.length } }
@@ -461,7 +551,7 @@ function build(dir, { repo, write }) {
   const html = buildPage(r.data, r.course.languages)
   const syllabus = fillSyllabus(r.syllabus, r.rows, r.ids)
   let page
-  try { page = checkPage(html, syllabus, { repoDirs: repo ? trackedDirs(repo) : undefined }) }
+  try { page = checkPage(html, syllabus) }
   catch (e) { return { problems: [`${rel(join(dir, 'index.html'))} (built): ${e.message}`] } }
   if (page.problems.length) return { problems: page.problems.map(p => `${rel(join(dir, 'index.html'))} (built): ${p}`) }
   if (write) {
@@ -480,8 +570,23 @@ const SAMPLE_SYLLABUS = `| Area | Sources | Lessons |
 | Generated pages | \`index.html\` | skip: built by lessons.mjs from the lesson files |
 `
 
-function init(dir, from) {
+// The git repos a new course may teach: the one holding the course folder or
+// the working directory, else each repo directly inside the working directory.
+function findRepos(dir) {
+  const top = p => { try { return execFileSync('git', ['-C', p, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() } catch { return null } }
+  let at = resolve(dir)
+  while (!existsSync(at)) at = dirname(at)
+  const found = top(at) ?? top('.')
+  if (found) return [found]
+  return readdirSync('.', { withFileTypes: true })
+    .filter(e => e.isDirectory() && resolve(e.name) !== resolve(dir) && existsSync(join(e.name, '.git')))
+    .map(e => resolve(e.name))
+}
+
+function init(dir, from, repo) {
   if (existsSync(join(dir, 'course.json'))) throw new Error(`${rel(join(dir, 'course.json'))} already exists; edit the course there, or init a new folder`)
+  if (repo && !existsSync(repo)) throw new Error(`--repo ${repo}: no such folder`)
+  const repos = repo ? [resolve(repo)] : findRepos(dir)
   const page = from ?? TEMPLATE
   const sylPath = join(dirname(page), 'syllabus.md')
   const syllabus = from ? (existsSync(sylPath) ? readFileSync(sylPath, 'utf8') : '| Area | Sources | Lessons |\n|---|---|---|\n') : SAMPLE_SYLLABUS
@@ -498,7 +603,7 @@ function init(dir, from) {
     course.logoHtml = words.length > 1 ? `${words.slice(0, -1).join(' ')} <span>${words.at(-1)}</span>` : `<span>${course.title}</span>`
   }
   if (languages.length) course.languages = languages
-  course.units = UNITS.map(({ lessons, ...u }) => ({ ...u, lessons: lessons.map(l => l.id) }))
+  const units = UNITS.map(({ lessons, ...u }) => ({ ...u, lessons: lessons.map(l => l.id) }))
 
   // Each glossary term goes to the first lesson that mentions it, never
   // earlier than the term before it, so the built glossary keeps its order.
@@ -510,19 +615,27 @@ function init(dir, from) {
     floor = i < 0 ? floor : i
     terms.get(lessons[floor].id).push([k, m])
   }
-  const files = [], failed = []
-  for (const l of lessons) {
-    if (!/^\w[\w.-]*$/.test(l.id ?? '')) { failed.push(`lesson "${l.id}": its id cannot be a file name`); continue }
-    const covers = rows.filter(r => !r.skip && r.lessons.split(/[\s,]+/).includes(l.id)).map(r => r.area)
-    try { files.push([l.id, serializeLesson(l, covers, terms.get(l.id))]) }
-    catch (e) { failed.push(`lesson ${l.id}: ${e.message}`) }
+  // One file per unit, named by the unit id, as SKILL.md has writers work.
+  const files = new Map(), failed = []
+  for (const u of UNITS) {
+    if (!LESSON_ID.test(u.id ?? '') || files.has(u.id)) { failed.push(`unit "${u.id}": its id cannot name its own lesson file`); continue }
+    const texts = []
+    for (const l of u.lessons) {
+      if (!LESSON_ID.test(l.id ?? '')) { failed.push(`lesson "${l.id}": not a lesson id; use letters, digits, _, . and -`); continue }
+      const covers = rows.filter(r => !r.skip && r.lessons.split(/[\s,]+/).includes(l.id)).map(r => r.area)
+      try { texts.push(serializeLesson(l, covers, terms.get(l.id))) }
+      catch (e) { failed.push(`lesson ${l.id}: ${e.message}`) }
+    }
+    if (texts.length) files.set(u.id, texts.join('\n'))
   }
   if (failed.length) throw new Error(`${failed.length} lesson(s) cannot be imported:\n- ${failed.join('\n- ')}`)
   mkdirSync(join(dir, 'lessons'), { recursive: true })
-  writeFileSync(join(dir, 'course.json'), JSON.stringify(course, null, 2) + '\n')
+  // Several candidate repos leave "repo" out, so build asks for it.
+  if (repos.length < 2) course.repo = repos.length ? relative(realpathSync(dir), realpathSync(repos[0])).split(sep).join('/') || '.' : null
+  writeFileSync(join(dir, 'course.json'), JSON.stringify({ ...course, units }, null, 2) + '\n')
   writeFileSync(join(dir, 'syllabus.md'), syllabus)
   for (const [id, text] of files) writeFileSync(join(dir, 'lessons', `${id}.md`), text)
-  return { lessons: files.length, syllabus: !from || existsSync(sylPath) }
+  return { lessons: lessons.length, files: files.size, syllabus: !from || existsSync(sylPath), repo: course.repo, repos }
 }
 
 
@@ -533,14 +646,31 @@ function main(argv) {
   const cmd = args.shift()
   const repo = flag('--repo'), from = flag('--from')
   const [dir, ...ids] = args
-  if (!dir || !['init', 'check', 'build'].includes(cmd) || (cmd !== 'check' && ids.length) || (from && cmd !== 'init') || (repo && cmd === 'init')) usage()
+  if (!dir || !['init', 'check', 'build', 'selfcheck'].includes(cmd) || (cmd !== 'check' && ids.length) || (from && cmd !== 'init')) usage()
   const fail = problems => { console.error(`${problems.length} problem(s):\n${problems.join('\n')}`); process.exit(1) }
   if (cmd === 'init') {
     try {
-      const r = init(dir, from)
-      console.log(`OK: wrote ${rel(join(dir, 'course.json'))}, ${rel(join(dir, 'syllabus.md'))} and ${r.lessons} lesson file(s) in ${rel(join(dir, 'lessons'))}`)
+      const r = init(dir, from, repo)
+      console.log(`OK: wrote ${rel(join(dir, 'course.json'))}, ${rel(join(dir, 'syllabus.md'))} and ${r.lessons} lesson(s) in ${r.files} unit file(s) in ${rel(join(dir, 'lessons'))}`)
+      console.log(r.repo ? `course.json "repo": "${r.repo}". Build fails on each tracked top-level directory of that repo missing from the syllabus Sources. Set "repo" to null if the course does not teach that repo.`
+        : r.repo === null ? 'course.json "repo": null, as no git repo is here. For a codebase course, set "repo" to the repo\'s folder, relative to the course folder.'
+          : `course.json has no "repo" yet, as the working directory holds several git repos (${r.repos.map(rel).join(', ')}). Set "repo" to ${REPO_RULE}; build fails until it is set.`)
       if (!r.syllabus) console.log(`No syllabus.md beside ${from}: write its rows, add a covers: line to each lesson, then build.`)
     } catch (e) { console.error(e.message); process.exit(1) }
+    return
+  }
+  if (cmd === 'selfcheck') {
+    const page = join(dir, 'index.html')
+    if (!existsSync(page)) { console.error(`${rel(page)} does not exist; run build first`); process.exit(1) }
+    selfcheck(page).then(({ report, resume }) => {
+      const resumed = resumeMatches(report, resume)
+      console.log(`${report.trim()}\n\nAfter a reload, the map's resume card reads: ${resume}`)
+      console.log(resumed ? 'Resume OK.' : 'Resume FAIL: the resume card does not name the lesson and card the report names.')
+      process.exit(report.startsWith('Self-check PASS') && resumed ? 0 : 1)
+    }, e => {
+      console.error(`selfcheck could not run: ${e.message}. Open ${rel(page)}#selfcheck in a browser 400px wide instead (SKILL.md, Build).`)
+      process.exit(3)
+    })
     return
   }
   if (cmd === 'check' && ids.length) {

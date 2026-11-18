@@ -9,6 +9,8 @@
 //   { lesson, card?, field?, find?, msg } lesson id, card index 0-based, field name,
 //                                        find = the offending code line's text
 //   { syllabus: { line?, n?, area? }, msg }
+// A problem from shownProblems also has shown: true; lessons.mjs reports those
+// from the lesson source, where it knows the line.
 
 // highlight.js languages in its main build; any other needs its
 // languages/<name>.min.js script tag in the page.
@@ -89,7 +91,10 @@ export function validateCourse({ COURSE, UNITS, GLOSSARY }, { languages = [] } =
   else if (COURSE.lang !== 'text' && !loaded(COURSE.lang, languages)) scope('COURSE', `lang "${COURSE.lang}" is not a highlight.js language this page loads`)
   if (!Array.isArray(UNITS) || !UNITS.length) scope('UNITS', 'empty')
   if (!Array.isArray(GLOSSARY)) scope('GLOSSARY', 'must be an array of [term, meaning]')
-  else GLOSSARY.forEach((g, i) => { if (!Array.isArray(g) || g.length !== 2) scope(`GLOSSARY[${i}]`, 'must be [term, meaning]') })
+  else GLOSSARY.forEach((g, i) => {
+    if (!Array.isArray(g) || g.length !== 2) return scope(`GLOSSARY[${i}]`, 'must be [term, meaning]')
+    for (const s of g) if (typeof s === 'string') for (const p of shownProblems(s)) problems.push({ scope: `GLOSSARY[${i}]`, msg: p.msg, shown: true })
+  })
 
   const ids = new Set()
   for (const [ui, u] of (Array.isArray(UNITS) ? UNITS : []).entries()) {
@@ -119,9 +124,10 @@ export function validateLesson(l, { languages = [] } = {}) {
   const err = msg => problems.push({ lesson, msg })
   if (!str(l?.id)) err('missing id')
   for (const k of ['title', 'recap']) if (!str(l?.[k])) err(`missing ${k}`)
+  if (typeof l?.recap === 'string') for (const p of shownProblems(l.recap)) problems.push({ lesson, field: 'recap', msg: p.msg, shown: true })
   if (!Array.isArray(l?.cards) || !l.cards.length) { err('no cards'); return problems }
   if (!l.cards.some(c => c?.t !== 'learn')) err('needs at least one quiz card (any type but learn)')
-  l.cards.forEach((c, card) => validateCard(c ?? {}, (msg, field, find) => problems.push({ lesson, card, t: c?.t, field, find, msg }), languages))
+  l.cards.forEach((c, card) => validateCard(c ?? {}, (msg, field, find, shown) => problems.push({ lesson, card, t: c?.t, field, find, msg, ...(shown && { shown }) }), languages))
   return problems
 }
 
@@ -152,6 +158,7 @@ function validateCard(c, err, languages) {
     }
     for (const item of [].concat(v ?? [])) {
       if (typeof item !== 'string') continue
+      for (const p of shownProblems(item, f.kind)) err(p.msg, name, undefined, true)
       if (f.kind === 'html') {
         checkSvg(item, msg => err(msg, name))
         for (const m of item.matchAll(/<pre><code(?: class="language-([^"]+)")?/g)) checkLang(m[1], name)
@@ -193,16 +200,42 @@ function checkWidth(text, surface, blankCols, err) {
     if (blankCols) shown = shown.split('____').join('x'.repeat(blankCols))
     shown = shown.replace(/[^\t]*\t/g, s => s.slice(0, -1).padEnd(Math.ceil(s.length / 8) * 8))
     const width = [...shown].length
-    const plain = line.replaceAll(HL, '')
-    if (width <= cols || !/\s/.test(plain.trim())) continue
-    const start = plain.trim().length > 28 ? `${plain.trim().slice(0, 28)}…` : plain.trim()
-    err(`code line "${start}" is ${width} columns; ${cols} fit ${surface === 'editor' ? 'the answer editor' : 'a code box'} on a phone without sideways scrolling, so break it over lines`, plain)
+    if (width <= cols) continue
+    const plain = line.replaceAll(HL, ''), trimmed = plain.trim()
+    const start = trimmed.length > 28 ? `${trimmed.slice(0, 28)}…` : trimmed
+    const blank = blankCols && line.includes('____') ? `, counting each ____ as ${blankCols}, the width of its longest chip` : ''
+    const fix = blank ? 'so shorten the longest chip or break the line'
+      : /\s/.test(trimmed) ? 'so break it over lines'
+      : 'and it has no space, so break it after a "(" or before a ".", or shorten it; a long URL reads fine in the text, which wraps'
+    err(`code line "${start}" is ${width} columns${blank}; ${cols} fit ${surface === 'editor' ? 'the answer editor' : 'a code box'} on a phone without sideways scrolling, ${fix}`, plain)
   }
 }
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
-function decode(s) {
+export function decode(s) {
   return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) =>
     e[0] === '#' ? String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : +e.slice(1)) : ENTITIES[e.toLowerCase()] ?? m)
+}
+
+// What the learner would see that no author means, on the 0-based line of
+// the value it is on: a raw «…» marker, or an entity escaped twice outside a
+// code box (HTML code in a box shows entities on purpose). A plain field
+// (kind 'plain') is shown as written, so only the markers apply.
+export function shownProblems(value, kind = 'html') {
+  const out = []
+  const add = (line, msg) => { if (!out.some(p => p.line === line && p.msg === msg)) out.push({ line, msg }) }
+  const re = kind === 'html' ? /<pre\b|<\/pre>|[«»]|&amp;(lt|gt|amp|quot|apos|#\d+|#x[\da-f]+);/gi : /[«»]/g
+  let pre = 0, line = 0, last = 0
+  for (const m of value.matchAll(re)) {
+    for (let i = last; i < m.index; i++) if (value[i] === '\n') line++
+    last = m.index
+    const s = m[0]
+    if (s[0] === '<') pre = Math.max(0, pre + (s[1] === '/' ? -1 : 1))
+    else if (s === '«' || s === '»') add(line, kind === 'html'
+      ? 'the learner sees raw «…» markers: they highlight code only inside a ``` fence (in a page\'s HTML, <span class="hl">…</span>), and a highlight needs both « and », which may be lines apart; for a guillemet write &laquo; or &raquo;'
+      : 'the learner sees raw «…» markers: this field is shown exactly as written, so they highlight nothing here')
+    else if (!pre) add(line, `the learner sees the text "&${m[1]};", an entity escaped twice: inside backticks write the character or its entity, and in HTML the entity once; to show the entity's text on purpose write &#38;${m[1]};`)
+  }
+  return out
 }
 
 // syllabus.md: a markdown table | Area | Sources | Lessons |, one row per part
@@ -247,7 +280,7 @@ export function checkSyllabus(text, lessonIds) {
 // Returns the lesson ids for each row, in the order the lessons are given.
 export function checkCovers(rows, lessons, { full = true } = {}) {
   const problems = []
-  const key = s => s.trim().toLowerCase()
+  const key = s => s.trim().toLowerCase().replace(/\s*,\s*/g, ', ')
   const byArea = new Map()
   for (const r of rows) {
     if (byArea.has(key(r.area))) problems.push({ syllabus: r, msg: `Area "${r.area}" is also row ${byArea.get(key(r.area)).n}; give each row its own Area name` })
@@ -256,7 +289,14 @@ export function checkCovers(rows, lessons, { full = true } = {}) {
   const ids = new Map(rows.map(r => [r, []]))
   for (const l of lessons) {
     if (!l.covers?.length) problems.push({ lesson: l.id, field: 'covers', msg: 'covers names no syllabus Area; add covers: <Area>, <Area>' })
-    for (const name of l.covers ?? []) {
+    const names = l.covers ?? []
+    for (let i = 0; i < names.length; i++) {
+      let name = names[i]
+      // `covers: Build, lint and CI` splits at its comma; rejoin pieces that name one Area.
+      for (let j = i + 1; !byArea.has(key(name)) && j < names.length; j++) {
+        const joined = names.slice(i, j + 1).join(', ')
+        if (byArea.has(key(joined))) { name = joined; i = j }
+      }
       const r = byArea.get(key(name))
       if (!r) problems.push({ lesson: l.id, field: 'covers', msg: `covers "${name}" matches no syllabus Area; the closest is "${closest(name, rows.map(r => r.area))}"` })
       else if (r.skip) problems.push({ lesson: l.id, field: 'covers', msg: `covers "${name}", a skip row of syllabus.md (${r.lessons}); teach it, or drop it from covers` })
@@ -267,10 +307,13 @@ export function checkCovers(rows, lessons, { full = true } = {}) {
   return { problems, ids }
 }
 
-export function checkRepoCoverage(rows, dirs) {
+// A Sources path starts at the repo root (`source/core/Ky.ts`) or at its
+// parent, under the repo folder's name (`ky/source/core/Ky.ts`).
+export function checkRepoCoverage(rows, dirs, name) {
   const paths = rows.flatMap(r => r.sources.split(/[\s,`'"()]+/)).map(p => p.replace(/^\.\//, '')).filter(Boolean)
+    .flatMap(p => name && p.startsWith(`${name}/`) ? [p, p.slice(name.length + 1)] : [p])
   return dirs.filter(d => !paths.some(p => p === d || p.startsWith(`${d}/`)))
-    .map(d => ({ syllabus: {}, msg: `top-level directory "${d}/" appears in no Sources cell` }))
+    .map(d => ({ syllabus: {}, msg: `top-level directory "${d}/" of the repo "${name}" appears in no Sources cell; name it in a row's Sources (a skip row counts)` }))
 }
 
 function closest(word, options) {

@@ -4,7 +4,7 @@
 // must appear in a syllabus Sources cell.
 // Usage: node check.mjs <course.html> [--repo <dir>]   (exit 0 = green)
 import { readFileSync, existsSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { validateCourse, checkSyllabus, checkRepoCoverage } from './schema.mjs'
@@ -32,7 +32,7 @@ export function trackedDirs(repo) {
 
 // Every page-level problem, as the lines check.mjs prints, plus the summary
 // counts. `syllabus` is the text of syllabus.md, or null when it is missing.
-export function checkPage(html, syllabus, { repoDirs, syllabusPath = 'syllabus.md' } = {}) {
+export function checkPage(html, syllabus, { repoDirs, repoName, syllabusPath = 'syllabus.md' } = {}) {
   const { data, languages } = loadPage(html)
   const { UNITS } = data
   const problems = validateCourse(data, { languages })
@@ -43,7 +43,7 @@ export function checkPage(html, syllabus, { repoDirs, syllabusPath = 'syllabus.m
     const s = checkSyllabus(syllabus, lessonIds)
     rows = s.rows
     problems.push(...s.problems)
-    if (repoDirs) problems.push(...checkRepoCoverage(rows, repoDirs))
+    if (repoDirs) problems.push(...checkRepoCoverage(rows, repoDirs, repoName))
   }
   const lessons = (UNITS ?? []).flatMap(u => u?.lessons ?? [])
   const counts = { units: UNITS?.length ?? 0, lessons: lessons.length, cards: lessons.reduce((n, l) => n + (l?.cards?.length ?? 0), 0), rows: rows.length }
@@ -70,7 +70,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   let repoDirs, result
   const repoProblems = []
   if (repo) try { repoDirs = trackedDirs(repo) } catch (e) { repoProblems.push(`--repo: cannot list tracked files in ${repo}: ${e.message.split('\n')[0]}`) }
-  try { result = checkPage(readFileSync(file, 'utf8'), existsSync(sylPath) ? readFileSync(sylPath, 'utf8') : null, { repoDirs, syllabusPath: sylPath }) }
+  try { result = checkPage(readFileSync(file, 'utf8'), existsSync(sylPath) ? readFileSync(sylPath, 'utf8') : null, { repoDirs, repoName: repo && basename(resolve(repo)), syllabusPath: sylPath }) }
   catch (e) { console.error(e.message); process.exit(1) }
   const { counts } = result, problems = [...result.problems, ...repoProblems]
   if (problems.length) { console.error(`${problems.length} problem(s):\n- ${problems.join('\n- ')}`); process.exit(1) }

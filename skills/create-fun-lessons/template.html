@@ -281,7 +281,10 @@ pre .blank.fix{color:#86efac;border-bottom:2px solid #4ade80;padding:0 2px}
 .chk:has(input:checked){border-color:var(--ok);background:var(--ok-soft)}
 
 .footer{position:sticky;bottom:0;padding:14px 0 calc(14px + env(safe-area-inset-bottom));--footer-bg:var(--background);--footer-line:var(--border)}
-.footer::before{content:"";position:absolute;z-index:-1;inset:0 -100vmax;background:var(--footer-bg);border-top:1px solid var(--footer-line);transition:background-color .2s,border-color .2s}
+/* The band and its top line reach the screen edges by a shadow, which paints past the footer without widening the page. */
+.footer::before,.footer::after{content:"";position:absolute;z-index:-1;inset:0;clip-path:inset(0 -100vmax);transition:background-color .2s,box-shadow .2s}
+.footer::before{background:var(--footer-bg);box-shadow:0 0 0 100vmax var(--footer-bg)}
+.footer::after{bottom:auto;height:1px;background:var(--footer-line);box-shadow:0 0 0 100vmax var(--footer-line)}
 .footer.ok{--footer-bg:color-mix(in oklab,var(--ok) 10%,var(--background));--footer-line:color-mix(in oklab,var(--ok) 35%,transparent)}
 .footer.no{--footer-bg:color-mix(in oklab,var(--bad) 9%,var(--background));--footer-line:color-mix(in oklab,var(--bad) 35%,transparent)}
 .fb{display:none;padding-bottom:12px;overflow:hidden}
@@ -700,7 +703,7 @@ function wireOrder(c,cta){
   };
   L.redraw=redraw; redraw();
   panel.addEventListener('click',e=>{
-    const b=e.target.closest('.chip'); if(!b||L.phase!=='answer'||performance.now()-(L.dragEnd||0)<350) return;
+    const b=e.target.closest('.chip'); if(!b||L.phase!=='answer'||L.dragEnd&&performance.now()-L.dragEnd<350) return;
     const i=+b.dataset.i;
     if(b.parentElement===slots){ L.order=L.order.filter(x=>x!==i); redraw(); }
     else if(!L.order.includes(i)){ L.order.push(i); redraw(); }
@@ -928,6 +931,107 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter' && document.activeElement?.id!=='cta' && !document.activeElement?.closest('.chip,.slot')){ const c=document.getElementById('cta'); if(c&&!c.disabled){ e.preventDefault(); c.click(); } }
 });
 renderHome();
+
+/* ---------- Self-check ---------- */
+/* Opened as index.html#selfcheck, the page plays every lesson through its own
+   buttons: each quiz card is answered wrong, then on its retry takes a hint and
+   is answered right. After every step it checks that nothing is wider than the
+   window and that code is coloured, then prints the result as text and leaves
+   the first lesson one card in, so a reload shows the resume card. It replaces
+   this browser's progress for the course, so run it in a test browser. */
+async function selfCheck(){
+  history.replaceState(null,'',location.href.split('#')[0]);
+  await document.fonts.ready;
+  const orig=JSON.parse(JSON.stringify(S)), bad=new Map(), seen=new Set(), tally={cards:0,wrong:0,hints:0,code:0};
+  const fail=(at,what)=>{ const k=at.replace(/, after .*|, retry/g,''), list=bad.get(what)||[]; if(!list.includes(k)) list.push(k); bad.set(what,list); };
+  const $=q=>app.querySelector(q), click=el=>el&&el.click(), cta=()=>document.getElementById('cta');
+  const name=el=>`${el.tagName.toLowerCase()}${[...el.classList].map(k=>'.'+k).join('')} "${el.textContent.trim().replace(/\s+/g,' ').slice(0,40)}"`;
+  const look=at=>{
+    const w=document.documentElement.clientWidth, page=document.documentElement.scrollWidth, out=[];
+    if(page>w+1) fail(at,`the page is wider than the window (${page}px in ${w}px)`);
+    app.querySelectorAll('*').forEach(el=>{
+      if(el.closest('[aria-hidden="true"]')||out.some(o=>o.contains(el))) return;
+      /* An answer field is judged on its starter; once answered, a long typed line may scroll. */
+      if(el.matches('pre,textarea')){ if(!el.readOnly&&el.scrollWidth>el.clientWidth+1){ out.push(el); const long=(el.value??el.textContent).split('\n').reduce((a,b)=>b.length>a.length?b:a); fail(at,`the code line "${long.trim().slice(0,40)}" scrolls sideways (${el.scrollWidth}px of content in ${el.clientWidth}px)`); } return; }
+      if(el.closest('pre,textarea')) return;
+      const r=el.getBoundingClientRect();
+      if(r.width&&(r.right>w+1||r.left<-1)){ out.push(el); fail(at,`${name(el)} sticks out past the window (${Math.round(r.left)} to ${Math.round(r.right)}px of ${w}px)`); }
+    });
+    app.querySelectorAll('pre code').forEach(code=>{
+      const lang=(code.className.match(/language-([\w+#.-]+)/)||[])[1]||'code', text=code.textContent.trim();
+      if(code.closest('[aria-hidden="true"]')||!text||lang==='text'||(lang==='code'&&!COURSE.lang)||seen.has(lang+text)) return;
+      seen.add(lang+text); tally.code++;
+      if(!langOf(lang)) return fail(at,`code in "${lang}" shows without colour, because ${window.hljs?'the page loads no highlight.js language of that name':'highlight.js did not load'}`);
+      const base=getComputedStyle(code).color;
+      if(![...code.querySelectorAll('[class^="hljs-"],[class*=" hljs-"]')].some(t=>getComputedStyle(t).color!==base)) fail(at,`code shows without colour: "${text.slice(0,40)}"`);
+    });
+  };
+  const type=v=>{ const en=document.getElementById('entry'); en.value=v; en.dispatchEvent(new Event('input')); };
+  const answer=(c,right)=>{
+    if(c.t==='mcq'||c.t==='fill') click($(right?`.opt[data-i="${c.a}"]`:`.opt:not([data-i="${c.a}"]):not(:disabled)`));
+    if(c.t==='order'){
+      if(!right) while(L.order.length) click($('#slots .chip'));
+      const want=c.items.map((_,i)=>i).filter(i=>!L.order.includes(i));
+      (right?want:want.reverse()).forEach(i=>click($(`#bank .chip[data-i="${i}"]`)));
+    }
+    if(c.t==='blanks'){
+      const pool=blankPool(c);
+      c.answers.forEach((a,k)=>{ if(L.fills[k]!==null) return;
+        const free=pool.map((_,j)=>j).filter(j=>!L.fills.includes(j));
+        click($(`#bank .chip[data-i="${right?free.find(j=>pool[j]===a):free.find(j=>pool[j]!==a)??free[0]}"]`)); });
+    }
+    if(c.t==='type') type(right?c.accept[0]:'self-check wrong answer');
+    if(c.t==='write'){ type(right?c.model:'self-check wrong answer'); click(cta()); if(right) app.querySelectorAll('.rubric input').forEach(click); }
+    click(cta());
+  };
+  look('map');
+  S=fresh(); save(); startLesson(ALL[0].id);
+  for(let last;L;){
+    const c=L.queue[L.pos], step=`${L.lesson.id} ${L.pos} ${!c}`;
+    if(step===last){ fail(`${L.lesson.id} card ${L.pos+1}`,'the play-through could not get past it'); break; }
+    last=step;
+    if(!c){
+      look(`${L.lesson.id} lesson complete`);
+      if(!/Lesson complete/.test($('.done h2')?.textContent)) fail(L.lesson.id,'the lesson did not finish');
+      if(!nextLesson()) break;
+      click(cta()); continue;
+    }
+    const at=`${L.lesson.id} card ${c._i+1} (${c.t}${c._retry?', retry':''})`;
+    if(!c._retry) tally.cards++;
+    look(at);
+    if(c.t==='learn'){ click(cta()); continue; }
+    const hb=document.getElementById('hintbtn');
+    if(!hb) fail(at,'no Hint button');
+    else if(c._retry){
+      const shown=()=>app.querySelectorAll('.hint-item,.opt.gone,.slot.given,#slots .chip').length, before=shown();
+      click(hb);
+      if(shown()>before) tally.hints++; else fail(at,'the Hint button showed nothing');
+    }
+    answer(c,!!c._retry);
+    const f=document.getElementById('footer');
+    if(c._retry&&!f.classList.contains('ok')) fail(at,'the right answer was marked wrong');
+    if(!c._retry&&f.classList.contains('no')){ tally.wrong++; if(!/Not quite/.test(document.getElementById('fb').textContent)) fail(at,'a wrong answer showed no feedback'); }
+    look(`${at}, after ${c._retry?'a hint and the right':'a wrong'} answer`);
+    click(cta());
+  }
+  const stuck=ALL.filter(l=>!S.done[l.id]);
+  if(stuck.length) fail('',`the play-through stopped before finishing ${stuck.map(l=>l.id).join(', ')}`);
+  S=Object.assign(fresh(),orig,{cur:null}); save(); startLesson(ALL[0].id);
+  const first=L.queue[0], total=L.queue.length;
+  if(first.t==='learn') click(cta()); else { answer(first,true); click(cta()); }
+  L=null;
+  const w=document.documentElement.clientWidth;
+  if(w>400) fail('',`the window is ${w}px wide; make it 400px wide and open the page again`);
+  const verdict=bad.size?`FAIL: ${bad.size} problem(s)`:'PASS';
+  const report=[`Self-check ${verdict}`,
+    `Played ${tally.cards} cards in ${ALL.length} lessons in a ${w}px window: ${tally.wrong} quiz cards answered wrong, then retried with ${tally.hints} hints and answered right; ${tally.code} code blocks checked for colour.`,
+    ...[...bad].map(([what,at])=>at[0]?`${what}: ${at.slice(0,6).join('; ')}${at.length>6?`; and ${at.length-6} more`:''}`:what),
+    `Now reload the page: the map should show "Continue where you left off" for "${ALL[0].title}", card 2 of ${total}.`].join('\n');
+  document.title=`Self-check ${verdict}`;
+  app.innerHTML=`<main class="wrap"><pre id="selfcheck" style="white-space:pre-wrap;margin-top:24px">${esc(report)}</pre></main>`;
+}
+const runCheck=()=>{ if(location.hash==='#selfcheck') selfCheck().catch(e=>{ document.title='Self-check FAIL'; app.textContent=`Self-check FAIL: it stopped with ${e.message}`; }); };
+addEventListener('load',runCheck); addEventListener('hashchange',runCheck);
 </script>
 </body>
 </html>
