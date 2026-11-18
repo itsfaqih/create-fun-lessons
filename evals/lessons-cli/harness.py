@@ -4,7 +4,7 @@
   python3 harness.py run <slug> [<slug> ...]          runs them in parallel, waits
   python3 harness.py metrics                          writes metrics.json for every finished run
   python3 harness.py grade                            writes grades.json for every finished run
-  python3 harness.py arm <name> <commit>              registers a hill-climb arm (see HILLCLIMB.md)
+  python3 harness.py arm <name> <commit> [<model>]    registers a hill-climb arm (see HILLCLIMB.md)
 """
 import json, os, random, re, shutil, subprocess, sys, time
 from pathlib import Path
@@ -19,10 +19,16 @@ SKILL_COMMIT = {'old': 'c4f17c3', 'new': '566c86e'}
 ARMS = STATE / 'arms.json'
 
 
-def commit_of(arm):
-    """old and new are the eval's arms; a hill-climb arm maps to its candidate commit in arms.json."""
+def arm_spec(arm):
+    """old and new are the eval's arms; a hill-climb arm maps to its candidate commit in arms.json, as
+    "commit" or "commit model" when the arm also changes the builder's model."""
     extra = json.loads(ARMS.read_text()) if ARMS.exists() else {}
-    return {**SKILL_COMMIT, **extra}[arm]
+    commit, *model = {**SKILL_COMMIT, **extra}[arm].split()
+    return commit, (model[0] if model else MODEL)
+
+
+def commit_of(arm):
+    return arm_spec(arm)[0]
 
 
 def flow(arm):
@@ -77,7 +83,7 @@ def run(slugs):
         task = reg[slug]['task']
         out = STATE / 'runs' / slug
         prompt = (HERE / 'prompts' / f'{task}.md').read_text()
-        cmd = ['timeout', str(LIMIT_S[task]), 'claude', '-p', prompt, '--model', MODEL, '--effort', EFFORT,
+        cmd = ['timeout', str(LIMIT_S[task]), 'claude', '-p', prompt, '--model', arm_spec(reg[slug]['arm'])[1], '--effort', EFFORT,
                '--permission-mode', 'auto', '--disallowedTools', 'Skill', '--strict-mcp-config',
                '--max-budget-usd', '60', '--output-format', 'stream-json', '--verbose']
         (out / 'started').write_text(str(time.time()))
@@ -231,9 +237,9 @@ def grade():
 
 if __name__ == '__main__':
     cmd, *rest = sys.argv[1:]
-    def add_arm(name, commit):
+    def add_arm(name, commit, *model):
         extra = json.loads(ARMS.read_text()) if ARMS.exists() else {}
-        extra[name] = sh('git', '-C', str(REPO), 'rev-parse', '--short', commit).strip()
+        extra[name] = ' '.join([sh('git', '-C', str(REPO), 'rev-parse', '--short', commit).strip(), *model])
         ARMS.write_text(json.dumps(extra, indent=1))
         print(name, extra[name])
     {'arm': lambda: add_arm(*rest), 'setup': lambda: setup(*rest), 'run': lambda: run(rest), 'metrics': metrics, 'grade': grade}[cmd]()

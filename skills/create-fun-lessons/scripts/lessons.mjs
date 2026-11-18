@@ -7,12 +7,14 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { CARD_TYPES, validateCourse, validateUnit, validateLesson, parseSyllabus, checkCovers, checkRepoCoverage, shownProblems, decode } from './schema.mjs'
 import { loadPage, checkPage, trackedDirs, summary } from './check.mjs'
+import { selfcheck, resumeMatches } from './selfcheck.mjs'
 
 const TEMPLATE = fileURLToPath(new URL('../template.html', import.meta.url))
 const USAGE = `usage:
   node lessons.mjs init <dir> [--from <page.html>] [--repo <repo-dir>]
   node lessons.mjs check <dir> [<lesson-or-unit-id> ...] [--repo <repo-dir>]
-  node lessons.mjs build <dir> [--repo <repo-dir>]`
+  node lessons.mjs build <dir> [--repo <repo-dir>]
+  node lessons.mjs selfcheck <dir>`
 
 const LESSON_FIELDS = { id: { kind: 'plain' }, recap: { kind: 'html' }, covers: { kind: 'names' }, terms: { kind: 'terms' } }
 const LESSON_ID = /^\w[\w.-]*$/
@@ -644,7 +646,7 @@ function main(argv) {
   const cmd = args.shift()
   const repo = flag('--repo'), from = flag('--from')
   const [dir, ...ids] = args
-  if (!dir || !['init', 'check', 'build'].includes(cmd) || (cmd !== 'check' && ids.length) || (from && cmd !== 'init')) usage()
+  if (!dir || !['init', 'check', 'build', 'selfcheck'].includes(cmd) || (cmd !== 'check' && ids.length) || (from && cmd !== 'init')) usage()
   const fail = problems => { console.error(`${problems.length} problem(s):\n${problems.join('\n')}`); process.exit(1) }
   if (cmd === 'init') {
     try {
@@ -655,6 +657,20 @@ function main(argv) {
           : `course.json has no "repo" yet, as the working directory holds several git repos (${r.repos.map(rel).join(', ')}). Set "repo" to ${REPO_RULE}; build fails until it is set.`)
       if (!r.syllabus) console.log(`No syllabus.md beside ${from}: write its rows, add a covers: line to each lesson, then build.`)
     } catch (e) { console.error(e.message); process.exit(1) }
+    return
+  }
+  if (cmd === 'selfcheck') {
+    const page = join(dir, 'index.html')
+    if (!existsSync(page)) { console.error(`${rel(page)} does not exist; run build first`); process.exit(1) }
+    selfcheck(page).then(({ report, resume }) => {
+      const resumed = resumeMatches(report, resume)
+      console.log(`${report.trim()}\n\nAfter a reload, the map's resume card reads: ${resume}`)
+      console.log(resumed ? 'Resume OK.' : 'Resume FAIL: the resume card does not name the lesson and card the report names.')
+      process.exit(report.startsWith('Self-check PASS') && resumed ? 0 : 1)
+    }, e => {
+      console.error(`selfcheck could not run: ${e.message}. Open ${rel(page)}#selfcheck in a browser 400px wide instead (SKILL.md, Build).`)
+      process.exit(3)
+    })
     return
   }
   if (cmd === 'check' && ids.length) {
