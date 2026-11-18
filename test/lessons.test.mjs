@@ -541,9 +541,56 @@ test('index.html#selfcheck plays every card at 400px, names a card that sticks o
   const r = lessons(root, 'selfcheck', 'course')
   assert.equal(r.code, 0, r.out)
   assert.match(r.out, /^Self-check PASS\n[\s\S]*\nAfter a reload, the map's resume card reads: Continue where you left off Card types Card 2 of 6\nResume OK\.\n$/)
-  const bad = await selfcheck(join(wide, 'index.html'))
-  assert.match(bad.report, /^Self-check FAIL: 2 problem\(s\)\n/, bad.report)
-  assert.match(bad.report, /\nthe page is wider than the window \(616px in 400px\): u1l1 card 1 \(learn\)\n/, bad.report)
-  assert.match(bad.report, /\ndiv "Too wide\." sticks out past the window \(16 to 616px of 400px\): u1l1 card 1 \(learn\)\n/, bad.report)
-  assert.equal(lessons(root, 'selfcheck', 'wide').code, 1)
+  const bad = lessons(root, 'selfcheck', 'wide')
+  assert.equal(bad.code, 1, bad.out)
+  assert.match(bad.out, /^Self-check FAIL: 2 problem\(s\)\n/, bad.out)
+  assert.match(bad.out, /\nthe page is wider than the window \(616px in 400px\): u1l1 card 1 \(learn\)\n/, bad.out)
+  assert.match(bad.out, /\ndiv "Too wide\." sticks out past the window \(16 to 616px of 400px\): u1l1 card 1 \(learn\)\n/, bad.out)
+})
+
+test('selfcheck names a learn card taller than a phone screen, and exits 1 naming an error the page threw', { skip: !CHROME && 'no Chrome found; set CHROME_PATH' }, () => {
+  const { root, dir } = freshCourse()
+  edit(join(dir, 'lessons/u1.md'), '<div class="tip">A highlighted tip.</div>', '<div class="tip">A highlighted tip.</div><div style="height:900px">Tall.</div><img alt="" src="data:," onerror="throw new Error(\'selfcheck boom\')">')
+  assert.equal(lessons(root, 'build', 'course').code, 0)
+  const r = lessons(root, 'selfcheck', 'course')
+  if (r.out.includes('highlight.js did not load')) return
+  assert.equal(r.code, 1, r.out)
+  assert.match(r.out, /^Self-check PASS\n/, r.out)
+  assert.match(r.out, /\nWARN: learn card taller than a 400x860px phone screen; split it in two: u1l1 card 1 \(\d+px\)\n/, r.out)
+  assert.match(r.out, /\nFAIL: the page threw while it played:\nError: selfcheck boom \(line \d+\)\n$/, r.out)
+})
+
+// A browser whose DevTools endpoint accepts the connection, then closes it on the
+// first command, or (FAKE_CDP=silent) never answers.
+async function fakeBrowser() {
+  const { createServer } = await import('node:http')
+  const { createHash } = await import('node:crypto')
+  const { writeFileSync } = await import('node:fs')
+  const profile = process.argv.find(a => a.startsWith('--user-data-dir=')).split('=')[1]
+  const server = createServer((req, res) => res.end(JSON.stringify([{ type: 'page', webSocketDebuggerUrl: `ws://127.0.0.1:${server.address().port}/page` }])))
+  server.on('upgrade', (req, socket) => {
+    const accept = createHash('sha1').update(req.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64')
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`)
+    if (process.env.FAKE_CDP !== 'silent') socket.once('data', () => socket.destroy())
+  })
+  server.listen(0, '127.0.0.1', () => writeFileSync(`${profile}/DevToolsActivePort`, `${server.address().port}\n/devtools/browser/fake\n`))
+}
+const fakeChrome = (root, mode = '') => {
+  const js = join(root, 'fake-browser.mjs'), sh = join(root, `fake-browser${mode}`)
+  writeFileSync(js, `(${fakeBrowser})()\n`)
+  writeFileSync(sh, `#!/bin/sh\nFAKE_CDP=${mode} exec "${process.execPath}" "${js}" "$@"\n`, { mode: 0o755 })
+  return sh
+}
+
+test('selfcheck exits 1 with the cause, not 3, when the browser drops its DevTools connection', { skip: process.platform === 'win32' }, () => {
+  const { root, dir } = freshCourse()
+  assert.equal(lessons(root, 'build', 'course').code, 0)
+  const r = spawnSync(process.execPath, [LESSONS, 'selfcheck', 'course'], { cwd: root, encoding: 'utf8', env: { ...process.env, CHROME_PATH: fakeChrome(root) }, timeout: 30_000 })
+  assert.equal(r.status, 1, r.stdout + r.stderr)
+  assert.equal(r.stderr, 'Self-check FAIL: the browser closed its DevTools connection while waiting for the page to open\n')
+})
+
+test('selfcheck gives up on a browser that stops answering, naming what it waited for', { skip: process.platform === 'win32' }, async () => {
+  const { root, dir } = freshCourse()
+  await assert.rejects(selfcheck(join(dir, 'index.html'), { chrome: fakeChrome(root, 'silent'), timeoutMs: 1000 }), { message: 'timed out after 1s waiting for the page to open' })
 })

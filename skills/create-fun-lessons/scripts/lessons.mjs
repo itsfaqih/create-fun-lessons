@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { CARD_TYPES, validateCourse, validateUnit, validateLesson, parseSyllabus, checkCovers, checkRepoCoverage, shownProblems, decode } from './schema.mjs'
 import { loadPage, checkPage, trackedDirs, summary } from './check.mjs'
-import { selfcheck, resumeMatches } from './selfcheck.mjs'
+import { selfcheck, resumeMatches, SCREEN, NoBrowser } from './selfcheck.mjs'
 
 const TEMPLATE = fileURLToPath(new URL('../template.html', import.meta.url))
 const USAGE = `usage:
@@ -662,14 +662,17 @@ function main(argv) {
   if (cmd === 'selfcheck') {
     const page = join(dir, 'index.html')
     if (!existsSync(page)) { console.error(`${rel(page)} does not exist; run build first`); process.exit(1) }
-    selfcheck(page).then(({ report, resume }) => {
+    selfcheck(page).then(({ report, resume, tall, thrown }) => {
       const resumed = resumeMatches(report, resume)
       console.log(`${report.trim()}\n\nAfter a reload, the map's resume card reads: ${resume}`)
       console.log(resumed ? 'Resume OK.' : 'Resume FAIL: the resume card does not name the lesson and card the report names.')
-      process.exit(report.startsWith('Self-check PASS') && resumed ? 0 : 1)
+      if (tall.length) console.log(`WARN: learn card taller than a ${SCREEN.width}x${SCREEN.height}px phone screen; split it in two: ${tall.map(c => `${c.lesson} card ${c.card} (${c.px}px)`).join('; ')}`)
+      if (thrown.length) console.log(`FAIL: the page threw while it played:\n${thrown.join('\n')}`)
+      process.exit(report.startsWith('Self-check PASS') && resumed && !thrown.length ? 0 : 1)
     }, e => {
-      console.error(`selfcheck could not run: ${e.message}. Open ${rel(page)}#selfcheck in a browser 400px wide instead (SKILL.md, Build).`)
-      process.exit(3)
+      if (e instanceof NoBrowser) console.error(`selfcheck could not run: ${e.message}. Open ${rel(page)}#selfcheck in a browser 400px wide instead (SKILL.md, Build).`)
+      else console.error(`Self-check FAIL: ${e.message}`)
+      process.exit(e instanceof NoBrowser ? 3 : 1)
     })
     return
   }

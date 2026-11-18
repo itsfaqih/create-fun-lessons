@@ -318,7 +318,7 @@ Give every shell fence the language `shell`, and every fence in another language
 
 ## Writing the cards
 
-- **Bite.** One idea per card. A learn card fits on a phone screen without scrolling past the code sample.
+- **Bite.** One idea per card. A learn card fits on a phone screen without scrolling past the code sample; `lessons.mjs selfcheck` warns about any learn card taller than a 400x860px screen.
 - **Picture** every concept that is spatial, a flow, or numeric: a diagram, chart, or illustration in a `learn` card, or in a quiz `q` that asks the learner to read it. Draw it from the patterns in [`visuals.md`](visuals.md).
 - Quiz each new concept within one or two cards of teaching it.
 - **Recall over recognition.** After an `mcq` introduces a command, ask for it again as a `type` card. Close each unit on a `write` card that produces something real: a function, a script, a config block, or a few sentences explaining a design choice.
