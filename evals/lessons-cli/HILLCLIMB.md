@@ -124,5 +124,5 @@ Second subject, commander 15.1.0 (5 old and 5 h16 builds, interleaved, then one 
 | h16 | 4.62, p 0.024 | $2.94, 0.76× | 41 | 532 s | 5/5 pass, 0 wide lines |
 
 - Both judges found accuracy level across all ten and named the wide-line marks as the main separator. The marks show a real phone defect, but this gap is mostly that one defect. Depth and coverage were close.
-- The ky result carries over: h16 is cheaper than old and scores higher on a library it was never tuned on.
+- The cost result carries over: h16 is 0.76× old's cost on a library it was never tuned on. The quality gap, here and on ky, rests mostly on wide lines, a defect only old courses carry, so the marks also reveal the arm to the judges. On everything else, h16 matches old rather than beating it.
 - Decision: the final arm is **h16** (41bea1a).
