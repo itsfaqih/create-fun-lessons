@@ -126,7 +126,7 @@ export function validateLesson(l, { languages = [] } = {}) {
   for (const k of ['title', 'recap']) if (!str(l?.[k])) err(`missing ${k}`)
   if (typeof l?.recap === 'string') for (const p of shownProblems(l.recap)) problems.push({ lesson, field: 'recap', msg: p.msg, shown: true })
   if (!Array.isArray(l?.cards) || !l.cards.length) { err('no cards'); return problems }
-  if (l.cards.at(-1)?.t === 'learn') problems.push({ lesson, card: l.cards.length - 1, t: 'learn', msg: 'ends the lesson, so the learner is never quizzed on it; follow it with a quiz card on its idea' })
+  if (!l.cards.some(c => c?.t !== 'learn')) err('needs at least one quiz card (any type but learn)')
   l.cards.forEach((c, card) => validateCard(c ?? {}, (msg, field, find, shown) => problems.push({ lesson, card, t: c?.t, field, find, msg, ...(shown && { shown }) }), languages))
   return problems
 }

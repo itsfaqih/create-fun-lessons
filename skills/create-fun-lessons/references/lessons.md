@@ -303,7 +303,7 @@ Give every shell fence the language `shell`, and every fence in another language
 
 - **Bite.** One idea per card. A learn card fits on a phone screen without scrolling past the code sample.
 - **Picture** every concept that is spatial, a flow, or numeric: a diagram, chart, or illustration in a `learn` card, or in a quiz `q` that asks the learner to read it. Draw it from the patterns in [`visuals.md`](visuals.md).
-- Quiz each new concept within one or two cards of teaching it. Build rejects a lesson that ends on a learn card, since nothing would ask about it.
+- Quiz each new concept within one or two cards of teaching it.
 - **Recall over recognition.** After an `mcq` introduces a command, ask for it again as a `type` card. Close each unit on a `write` card that produces something real: a function, a script, a config block, or a few sentences explaining a design choice.
 - Make wrong options plausible: a real neighbouring file, a real but wrong function. `why` says why the right answer is right, in one or two sentences.
 - **Depth.** Teach each area at the level of real names: the actual file, the function, its arguments and return value, who calls it, and what breaks when it changes. A lesson that only names an area has not taught it yet. Point to real paths, so the learner can open the code next.
