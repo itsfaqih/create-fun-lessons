@@ -24,8 +24,6 @@ STATE = Path(os.environ.get('LESSONS_EVAL_STATE', Path.home() / '.local/state/cr
 
 @dataclass(frozen=True)
 class Subject:
-    """A codebase the courses teach. Each run's workspace is <work>/<slug>/ holding <folder>/ (a clone of
-    <src> at <commit>) and, once built, <course>/. A judge packet is <work>/<packet>-review/."""
     name: str
     repo_url: str
     src: Path
@@ -46,7 +44,6 @@ SUBJECTS = {s.name: s for s in (
     Subject('ky', 'https://github.com/sindresorhus/ky', Path.home() / 'work-ky/ky-src',
             '3541888878c4d303a8bc2ad61815f4e048f55a5d', 'ky', 'ky-course',
             {'build': 'build.md', 'revise': 'revise.md'}, 'rubric.md', 'the ky HTTP client', '`source/`, `readme.md`'),
-    # v15.1.0: lib/ and index.js 4.2k lines, typings 1.1k, 133 test files, GitHub Actions CI.
     Subject('commander', 'https://github.com/tj/commander.js', Path.home() / 'work-commander/commander-src',
             'a5a7dc084d4d2b7932e85ca049c5204e50a2c721', 'commander', 'commander-course',
             {'build': 'build-commander.md'}, 'rubric-commander.md', 'the commander.js command-line parser',
@@ -87,10 +84,10 @@ def sh(*args, **kw):
 
 
 def registry():
-    """slug -> arm, task and Subject. runs.tsv rows from before the second subject have no fourth column: ky."""
     if not RUNS.exists():
         return {}
     rows = [l.split('\t') for l in RUNS.read_text().splitlines() if l.strip()]
+    # Rows written before the second subject have no subject column.
     return {r[0]: {'arm': r[1], 'task': r[2], 'subject': SUBJECTS[r[3] if len(r) > 3 else DEFAULT_SUBJECT]} for r in rows}
 
 
@@ -99,7 +96,6 @@ def workspace(slug, reg=None):
 
 
 def ensure_src(subject):
-    """Clone the subject once into its local source folder; every workspace clones from there."""
     if not subject.src.exists():
         subject.src.parent.mkdir(parents=True, exist_ok=True)
         sh('git', 'clone', '-q', subject.repo_url, str(subject.src))
@@ -123,7 +119,6 @@ def skill_copy(arm, dest):
 
 
 def populate(ws, arm, task, subj):
-    """A run's starting workspace: the subject at its commit, the arm's skill, and for a revise run the seed course."""
     ws.mkdir(parents=True)
     checkout(subj, ws / subj.folder)
     skill_copy(arm, ws)
@@ -144,14 +139,11 @@ def setup(arm, task, subject=DEFAULT_SUBJECT):
     populate(subj.work / slug, arm, task, subj)
     (STATE / 'runs' / slug).mkdir(parents=True, exist_ok=True)
     with RUNS.open('a') as f:
-        f.write(f'{slug}\t{arm}\t{task}' + ('' if subject == DEFAULT_SUBJECT else f'\t{subject}') + '\n')
+        f.write(f'{slug}\t{arm}\t{task}\t{subject}\n')
     print(slug)
 
 
 def restore(slugs):
-    """Rebuild deleted workspaces at their old paths: clone the subject, copy the arm's skill, then replay the run's
-    Write, Edit and Bash calls in log order, carrying the shell's working directory between Bash calls.
-    Check a restored run by regrading it: its grade should match runs/<slug>/grade.json."""
     reg = registry()
     for slug in slugs:
         r, ws = reg[slug], workspace(slug, reg)
@@ -336,7 +328,6 @@ def grade():
             continue
         subj, ws = r['subject'], workspace(slug, reg)
         if not ws.exists():
-            # A deleted workspace keeps its last grade rather than becoming "no course page".
             kept.append(slug)
             if (STATE / 'runs' / slug / 'grade.json').exists():
                 gs.append(json.loads((STATE / 'runs' / slug / 'grade.json').read_text()))
@@ -358,7 +349,6 @@ def grade():
 
 
 def find_page(course_dir):
-    """The course page grade.mjs grades: index.html, else any page with a content block."""
     pages = [p for p in sorted(course_dir.glob('*.html')) if '===== COURSE CONTENT' in p.read_text()] if course_dir.exists() else []
     return next((p for p in pages if p.name == 'index.html'), pages[0] if pages else None)
 
@@ -368,13 +358,11 @@ def labels_file(packet):
 
 
 def read_labels(packet):
-    """Blind letter -> slug. The revise packet stores {slug, arm} per letter."""
     raw = json.loads(labels_file(packet).read_text())
     return {k: v['slug'] if isinstance(v, dict) else v for k, v in raw.items()}
 
 
 def unscored(path, letters):
-    """The letters a judge file lacks a full integer score for; empty when it is complete."""
     try:
         scores = json.loads(path.read_text())['courses']
         return [l for l in letters if l not in scores or any(not isinstance(scores[l].get(c), int) for c in CRITERIA)]
@@ -383,7 +371,6 @@ def unscored(path, letters):
 
 
 def judge_files(packet, subject, letters):
-    """Judge name -> its complete score file: the copy in the state folder, else the packet's own."""
     out = {}
     for j in JUDGES:
         for f in (STATE / 'hillclimb' / f'judge-{packet}-{j}.json', subject.work / f'{packet}-review' / f'judge-{j}.json'):
@@ -394,7 +381,6 @@ def judge_files(packet, subject, letters):
 
 
 def panel(arm, subject, reg):
-    """The arm's first 5 finished build runs on the subject, in launch order."""
     slugs = [s for s, r in reg.items() if r['arm'] == arm and r['task'] == 'build' and r['subject'] == subject
              and (STATE / 'runs' / s / 'exit').exists()][:5]
     if len(slugs) < 5:
@@ -403,7 +389,6 @@ def panel(arm, subject, reg):
 
 
 def pinned(subject):
-    """A clean checkout at the pinned commit, for judges to check facts against."""
     dest = subject.work / f'{subject.folder}-pinned'
     if not dest.exists():
         checkout(subject, dest)

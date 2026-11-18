@@ -21,13 +21,10 @@ const CANDIDATES = [
 
 export const findChrome = () => CANDIDATES.find(p => p && existsSync(p))
 
-// No browser to drive: the author falls back to opening the page by hand.
 export class NoBrowser extends Error {}
 
 export const SCREEN = { width: 400, height: 860 }
 
-// Shows each learn card in turn and reads the height of its content, from the
-// kicker to the end of the body (the panel itself stretches to the screen).
 const LEARN_HEIGHTS = `(async () => {
   await document.fonts.ready
   const out = [], range = document.createRange()
@@ -112,7 +109,7 @@ export async function selfcheck(file, { chrome = findChrome(), timeoutMs = 180_0
       proc.kill(signal)
       await Promise.race([gone, sleep(5000)])
     }
-    // Chrome's helper processes can still be writing the profile for a moment.
+    // Under load rmSync hit ENOTEMPTY after Chrome exited, so it retries and never fails the run.
     try { rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }) } catch {}
   }
 }

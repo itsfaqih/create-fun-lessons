@@ -560,8 +560,6 @@ test('selfcheck names a learn card taller than a phone screen, and exits 1 namin
   assert.match(r.out, /\nFAIL: the page threw while it played:\nError: selfcheck boom \(line \d+\)\n$/, r.out)
 })
 
-// A browser whose DevTools endpoint accepts the connection, then closes it on the
-// first command, or (FAKE_CDP=silent) never answers.
 async function fakeBrowser() {
   const { createServer } = await import('node:http')
   const { createHash } = await import('node:crypto')

@@ -1,9 +1,7 @@
 // Render a course page's content as plain markdown, the same for every
 // authoring flow, so a judge cannot tell how the course was written.
 // Usage: node dump.mjs <page.html> [<lesson-id>]   (one lesson only, with its neighbours named)
-// A code line too wide for a phone gets a suffix saying so, since a fence
-// shows the judge no screen width. GRADER_SKILL picks the page loader
-// (harness.py passes the frozen grader's).
+// GRADER_SKILL picks the page loader.
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -13,9 +11,6 @@ const { loadPage } = await import(join(SKILL, 'scripts/check.mjs'))
 const [page, only] = process.argv.slice(2)
 const { COURSE, UNITS, GLOSSARY } = loadPage(readFileSync(page, 'utf8')).data
 
-// Copied from skills/create-fun-lessons/scripts/schema.mjs (CODE_COLUMNS,
-// checkWidth, blankColumns) rather than imported, so a skill edit mid-run
-// cannot change a dump.
 const COLUMNS = { pre: 41, editor: 36 }
 const HL = '\u0001'
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
@@ -26,7 +21,6 @@ const width = (line, blankCols) => {
   shown = shown.replace(/[^\t]*\t/g, s => s.slice(0, -1).padEnd(Math.ceil(s.length / 8) * 8))
   return [...shown].length
 }
-// `measure` turns a line into the text the checker measures (HL marks a highlighted span).
 const markWide = (code, surface, { blankCols = 0, measure = l => l } = {}) => surface && code ? code.split('\n').map(line => {
   const w = width(measure(line), blankCols)
   const out = line.replaceAll(HL, '')
