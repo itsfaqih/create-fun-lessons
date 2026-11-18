@@ -51,7 +51,7 @@ Each later hypothesis is chosen from the previous iteration's tool-call breakdow
 
 ## Results (2026-11-18)
 
-Final arm: **h6** (c5914ce). The branch head after the two reverts has the same skill tree.
+Final arm of the first climb: **h6** (c5914ce). The later h10 arm replaces it (see the last section).
 
 | Measure, median of 5 builds | old | h6 | h6 / old | p |
 |---|---|---|---|---|
@@ -81,3 +81,21 @@ Question: does packing the repo with Repomix in one call, instead of reading fil
 - Where Repomix ran, the pack was about 54k to 68k tokens, read in 3 to 10 parts. Tool calls stayed at 37 to 41 against h6's 38: the agents already batch many files per `cat`, so a pack saves no turns. Cache writes rose 1.17× (p 0.008).
 - Quality, blind (Opus and Sonnet judges, h9c vs old): 4.5 vs 4.7, p 0.34. The four courses built from a pack scored 4.2 to 4.5, level with h6's 4.4; the one h9c run that was denied Repomix scored 5.0.
 - Decision: revert all three. Repomix earns no place in the skill; the final arm stays h6.
+
+## Self-check, model, research and review (2026-11-18)
+
+Question: where do h6's tokens go, and which of four changes cuts them or closes the quality gap? Each arm ran 5 builds; quality is a blind Opus and Sonnet pass against 5 old courses in the same packet.
+
+| Arm | Change | Input tokens | List cost | Quality, arm vs old | Decision |
+|---|---|---|---|---|---|
+| h10 | `lessons.mjs selfcheck`: headless Chrome over DevTools at 400px, report and resume check in one command | 3.27M, 0.75× h6, p 0.095 | 0.88× | 4.6 vs 4.9, p 0.048 | keep |
+| h11 | h6 skill built on Sonnet 5.5 | 1.09× h6, p 0.69 | 0.55×, p 0.008 | 4.4 vs 4.8, p 0.016; two courses at 3.6 and 3.8 | revert (a model choice, not a skill change) |
+| h12 | Research in subagents that return notes | 1.39× h6, p 0.032 | 1.54× | 4.6 vs 4.6, p 0.34 | revert |
+| h13 | Fresh-reader card review after selfcheck | 1.46× h6, p 0.032 | 1.41× | 4.5 vs 4.6, p 0.33 | revert |
+| h14 | h10 + h12 | 1.52× h10, p 0.008 | 1.59× h10 | 4.5 vs 4.8, p 0.19 | revert |
+
+- h10: all 5 runs used the command and made 0 browser calls; tool calls fell to 0.89× (p 0.048). The quality gap (−0.3) is h6's gap within judge noise.
+- h12's parity did not hold when h14 ran it again on top of h10. Old-course medians move 4.6 to 4.9 between packets, so a 0.0 gap from one packet is noise-level.
+- h13 cost 1.68× h6's wall time for a gap inside noise.
+- One h14 course (oak-65) fails the frozen checker only because its Sources start with `ky/`, a form SKILL.md allows and `build` accepts. That is a grader artifact.
+- Decision: the final arm is **h10**. Building on Sonnet halves list cost with a weaker low tail; that is the user's model choice, not a skill default.
