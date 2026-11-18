@@ -126,3 +126,14 @@ Second subject, commander 15.1.0 (5 old and 5 h16 builds, interleaved, then one 
 - Both judges found accuracy level across all ten and named the wide-line marks as the main separator. The marks show a real phone defect, but this gap is mostly that one defect. Depth and coverage were close.
 - The cost result carries over: h16 is 0.76× old's cost on a library it was never tuned on. The quality gap, here and on ky, rests mostly on wide lines, a defect only old courses carry, so the marks also reveal the arm to the judges. On everything else, h16 matches old rather than beating it.
 - Decision: the final arm is **h16** (41bea1a).
+
+Unmarked check (`judge --unmarked --labels-from`): the same 10 courses per subject, dumped without the wide-line marks and judged with a rubric that does not mention them.
+
+| Subject | Marked | Unmarked |
+|---|---|---|
+| ky | h16 4.76 vs old 4.00, p 0.008 | h16 4.58 vs old 4.72, p 0.14 |
+| commander | h16 4.62 vs old 4.26, p 0.024 | h16 4.40 vs old 4.72, p 0.040 |
+
+- Without the marks, the h16 lead disappears on ky and reverses on commander. Every point of h16's lead came from the wide lines.
+- Where h16 loses: coverage (Opus 4.4 vs 5.0 on both subjects), depth, and Sonnet's coherence on commander (3.8 vs 4.6). The judges name the misses. Courses skip contributing and typings or give them one line. They end on a test-writing card, not a planned change to the library. Type cards carry a single hint where the rubric wants hints that go from gentle to specific.
+- Corrected conclusion: h16 is the final arm for cost (0.76× old) and phone fit (0 wide lines against 34 to 87). It does not beat the hand-written flow on content. The next hypothesis should target coverage of contributing and typings, the capstone, and two-step hints.
