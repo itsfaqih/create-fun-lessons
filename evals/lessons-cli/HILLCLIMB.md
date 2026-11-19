@@ -151,3 +151,20 @@ Question: do the gaps the unmarked judges named close when build enforces them? 
 - The same 5 old courses scored 4.72 in c1u and 4.28 in c2u. Compare scores only inside one packet.
 - All 5 h17 courses pass the frozen checker with 0 leaks and 0 wide lines. Median list cost $2.77, against h16 $2.94 and old $3.87.
 - Decision: keep h17 (2fdfd04). It beats h16 at p ≤ 0.1 at no higher cost, and it reaches parity with the hand-written flow on content while keeping the cost and phone-fit gains.
+
+## The contributing guide (2026-11-19)
+
+Question: does the remaining coverage gap come from courses that skip the repo's contributing guide? h18 = h17 + build fails a codebase course whose syllabus names the repo's CONTRIBUTING file (root, `docs/` or `.github/`) in no row a lesson covers (f8937eb).
+
+Before building, the coverage reasons in the c2u and c3u judge files were read for every commander course. 4 of 5 h17 courses already teach contributing and all 5 cover the typings. What judges still dock is breadth on this one subject (one card on executables, no user-side extra-typings), plus courses that skip contributing and end on a test-writing card.
+
+Replay of the rule on the 15 built commander courses, without new builds:
+
+| Arm | Fails the rule |
+|---|---|
+| old | 0 of 5 |
+| h16 | 2 of 5 (hazel-52, larch-55) |
+| h17 | 1 of 5 (willow-12) |
+
+- The three failures are exactly the three courses the judges docked for skipping contributing. No other course fails.
+- Decision: keep the rule without a 5-build judge round. It changes 1 h17 course in 5, which two unmarked judges cannot separate at n = 5, and the replay already shows it fires only where the judges found the gap. The breadth gaps that remain are subject-specific, not a rule the checker can state.
