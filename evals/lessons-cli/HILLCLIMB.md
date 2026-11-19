@@ -168,3 +168,17 @@ Replay of the rule on the 15 built commander courses, without new builds:
 
 - The three failures are exactly the three courses the judges docked for skipping contributing. No other course fails.
 - Decision: keep the rule without a 5-build judge round. It changes 1 h17 course in 5, which two unmarked judges cannot separate at n = 5, and the replay already shows it fires only where the judges found the gap. The breadth gaps that remain are subject-specific, not a rule the checker can state.
+
+## h17 on ky (2026-11-19)
+
+Question: does h17's gain over h16 hold on the first subject? 5 new ky builds (cedar-95, teak-37, juniper-93, ivy-80, sage-97), judged unmarked against the ky builds of old and h16.
+
+| Packet | Score | p |
+|---|---|---|
+| k1u: h17 vs old | 4.64 vs 4.64 | 0.89 |
+| k2u: h17 vs h16 | 4.70 vs 4.44 | 0.024 |
+
+- The result repeats commander's: h17 beats h16 and ties the hand-written flow. In k2u, coverage (Opus 4.6 to 5.0, Sonnet 4.4 to 4.8) and craft (Opus 3.8 to 4.8) moved most.
+- All 5 pass the frozen checker with 0 leaks and 0 wide lines.
+- Cost on ky: h17 median $2.89 against h16 $2.59 (p 0.032) and old $3.36 (p 0.032). h17 used one more checker run per build and about 30% more cached input. On commander h17 was cheaper than h16, and pooled over both subjects the two cost the same (median $2.84 vs $2.79, p 0.38).
+- Decision: h17 stays the final arm on both subjects.
