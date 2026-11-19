@@ -7,11 +7,12 @@ import { readFileSync, existsSync, readdirSync, mkdtempSync, cpSync, rmSync } fr
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
 import { execFileSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
 
-// The grading checker is frozen at 2a69b9d (harness.py grade unpacks it), so a
-// hill-climb change to the checker never moves the grade of a finished run.
-const SKILL = process.env.GRADER_SKILL ?? fileURLToPath(new URL('../../skills/create-fun-lessons/', import.meta.url))
+// The grading checker is frozen at 2a69b9d (harness.py grade unpacks it and sets
+// GRADER_SKILL), so a hill-climb change to the checker never moves the grade of a
+// finished run.
+const SKILL = process.env.GRADER_SKILL
+if (!SKILL) { console.error('set GRADER_SKILL to the frozen grader skill (harness.py grade does)'); process.exit(2) }
 const { loadPage, checkPage, trackedDirs } = await import(join(SKILL, 'scripts/check.mjs'))
 const [ws, arm, task, seedPage] = process.argv.slice(2)
 const repoName = process.env.SUBJECT_FOLDER ?? 'ky'
