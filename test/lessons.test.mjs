@@ -467,6 +467,22 @@ test('init beside one git repo names it in course.json, and build then needs its
   assert.match(flagged.out, /"lib\/" of the repo "other"/)
 })
 
+test('build needs the repo\'s contributing guide in the Sources of a row a lesson covers', () => {
+  const root = tmp()
+  gitRepo(join(root, 'cli'), ['lib/a.js', '.github/CONTRIBUTING.md'])
+  assert.equal(lessons(root, 'init', 'course').code, 0)
+  const dir = join(root, 'course')
+  const unnamed = /course\/syllabus\.md: the contributing guide "\.github\/CONTRIBUTING\.md" of the repo "cli" appears in no Sources cell of a row a lesson covers/
+  edit(join(dir, 'syllabus.md'), '`template.html` | u1l1', '`lib/`, `.github/` | u1l1')
+  assert.match(lessons(root, 'build', 'course').out, unnamed)
+  // The sample syllabus's index.html row is a skip row.
+  edit(join(dir, 'syllabus.md'), '`index.html` |', '`index.html`, `cli/.github/CONTRIBUTING.md` |')
+  assert.match(lessons(root, 'build', 'course').out, unnamed)
+  edit(join(dir, 'syllabus.md'), '`lib/`, `.github/` | u1l1', '`lib/`, `cli/.github/CONTRIBUTING.md` | u1l1')
+  const built = lessons(root, 'build', 'course')
+  assert.equal(built.code, 0, built.out)
+})
+
 test('a repo with non-ASCII paths builds once Sources name its directories', () => {
   const root = tmp()
   gitRepo(join(root, 'cli'), ['lib/a.js', 'docs/zh-CN/选项.md'])

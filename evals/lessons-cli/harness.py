@@ -107,7 +107,7 @@ def checkout(subject, dest):
     ensure_src(subject)
     sh('git', 'clone', '-q', str(subject.src), str(dest))
     sh('git', '-C', str(dest), 'checkout', '-q', subject.commit)
-    # Without this, git ls-files quotes non-ASCII paths ("docs/zh-CN/...), and the checkers' trackedDirs
+    # Without this, git ls-files quotes non-ASCII paths ("docs/zh-CN/...), and the checkers' top-level directory list
     # reads a top-level directory named "docs that no Sources cell can name. A no-op for ky.
     sh('git', '-C', str(dest), 'config', 'core.quotePath', 'false')
 

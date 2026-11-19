@@ -1,7 +1,8 @@
 // Validate a create-fun-lessons page and its syllabus: the script parses, the
 // content block matches the schema, and syllabus.md beside the page maps every
 // row to lessons. With --repo, every tracked top-level directory of that repo
-// must appear in a syllabus Sources cell.
+// must appear in a syllabus Sources cell, and its contributing guide in a
+// covered row's.
 // Usage: node check.mjs <course.html> [--repo <dir>]   (exit 0 = green)
 import { readFileSync, existsSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
@@ -26,13 +27,13 @@ export function loadPage(html) {
   return { data, languages }
 }
 
-export function trackedDirs(repo) {
-  return [...new Set(execFileSync('git', ['-C', repo, 'ls-files', '-z'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).split('\0').filter(f => f.includes('/')).map(f => f.split('/')[0]))]
+export function trackedFiles(repo) {
+  return execFileSync('git', ['-C', repo, 'ls-files', '-z'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).split('\0').filter(Boolean)
 }
 
 // Every page-level problem, as the lines check.mjs prints, plus the summary
 // counts. `syllabus` is the text of syllabus.md, or null when it is missing.
-export function checkPage(html, syllabus, { repoDirs, repoName, syllabusPath = 'syllabus.md' } = {}) {
+export function checkPage(html, syllabus, { repoFiles, repoName, syllabusPath = 'syllabus.md' } = {}) {
   const { data, languages } = loadPage(html)
   const { UNITS } = data
   const problems = validateCourse(data, { languages })
@@ -43,7 +44,7 @@ export function checkPage(html, syllabus, { repoDirs, repoName, syllabusPath = '
     const s = checkSyllabus(syllabus, lessonIds)
     rows = s.rows
     problems.push(...s.problems)
-    if (repoDirs) problems.push(...checkRepoCoverage(rows, repoDirs, repoName))
+    if (repoFiles) problems.push(...checkRepoCoverage(rows, repoFiles, repoName))
   }
   const lessons = (UNITS ?? []).flatMap(u => u?.lessons ?? [])
   const counts = { units: UNITS?.length ?? 0, lessons: lessons.length, cards: lessons.reduce((n, l) => n + (l?.cards?.length ?? 0), 0), rows: rows.length }
@@ -67,10 +68,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const file = args[0]
   if (!file || (repoAt >= 0 && !repo)) { console.error('usage: node check.mjs <course.html> [--repo <dir>]'); process.exit(2) }
   const sylPath = join(dirname(file), 'syllabus.md')
-  let repoDirs, result
+  let repoFiles, result
   const repoProblems = []
-  if (repo) try { repoDirs = trackedDirs(repo) } catch (e) { repoProblems.push(`--repo: cannot list tracked files in ${repo}: ${e.message.split('\n')[0]}`) }
-  try { result = checkPage(readFileSync(file, 'utf8'), existsSync(sylPath) ? readFileSync(sylPath, 'utf8') : null, { repoDirs, repoName: repo && basename(resolve(repo)), syllabusPath: sylPath }) }
+  if (repo) try { repoFiles = trackedFiles(repo) } catch (e) { repoProblems.push(`--repo: cannot list tracked files in ${repo}: ${e.message.split('\n')[0]}`) }
+  try { result = checkPage(readFileSync(file, 'utf8'), existsSync(sylPath) ? readFileSync(sylPath, 'utf8') : null, { repoFiles, repoName: repo && basename(resolve(repo)), syllabusPath: sylPath }) }
   catch (e) { console.error(e.message); process.exit(1) }
   const { counts } = result, problems = [...result.problems, ...repoProblems]
   if (problems.length) { console.error(`${problems.length} problem(s):\n- ${problems.join('\n- ')}`); process.exit(1) }

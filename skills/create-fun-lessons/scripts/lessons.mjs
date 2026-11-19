@@ -6,7 +6,7 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { CARD_TYPES, validateCourse, validateUnit, validateLesson, parseSyllabus, checkCovers, checkRepoCoverage, shownProblems, decode } from './schema.mjs'
-import { loadPage, checkPage, trackedDirs, summary } from './check.mjs'
+import { loadPage, checkPage, trackedFiles, summary } from './check.mjs'
 import { selfcheck, resumeMatches, SCREEN, NoBrowser } from './selfcheck.mjs'
 
 const TEMPLATE = fileURLToPath(new URL('../template.html', import.meta.url))
@@ -494,7 +494,7 @@ function checkFolder(dir, { only, repo } = {}) {
       ...lessonIds.filter(id => !unitIdx.some(i => course.units[i].lessons.includes(id))).flatMap(id => validateLesson(lessons.get(id)?.lesson, opts))]
     : validateCourse(data, opts)
 
-  // The repo whose tracked top-level directories the syllabus must name:
+  // The repo whose top-level directories and contributing guide the syllabus must name:
   // --repo, else course.json's "repo". A check of some lessons names none.
   let repoDir = !only && repo, repoSrc = `--repo ${repo}`
   if (!repo && !only) {
@@ -514,7 +514,7 @@ function checkFolder(dir, { only, repo } = {}) {
     ids = covers.ids
     found.push(...covers.problems)
     if (repoDir) {
-      try { found.push(...checkRepoCoverage(rows, trackedDirs(repoDir), basename(resolve(repoDir)))) }
+      try { found.push(...checkRepoCoverage(rows, trackedFiles(repoDir), basename(resolve(repoDir)))) }
       catch (e) { problems.push(`${repoSrc}: cannot list tracked files in ${rel(resolve(repoDir))}: ${e.message.split('\n')[0]}`) }
     }
   }

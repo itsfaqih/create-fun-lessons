@@ -317,13 +317,24 @@ export function checkCovers(rows, lessons, { full = true } = {}) {
   return { problems, ids }
 }
 
-// A Sources path starts at the repo root (`source/core/Ky.ts`) or at its
-// parent, under the repo folder's name (`ky/source/core/Ky.ts`).
-export function checkRepoCoverage(rows, dirs, name) {
-  const paths = rows.flatMap(r => r.sources.split(/[\s,`'"()]+/)).map(p => p.replace(/^\.\//, '')).filter(Boolean)
+// GitHub shows a CONTRIBUTING file at the root, in docs/ or in .github/ as the
+// repo's contributing guide.
+const GUIDE = /^(?:(?:docs|\.github)\/)?contributing(?:\.\w+)?$/i
+
+// Every tracked top-level directory must appear in some Sources cell, and the
+// contributing guide, if any, in the Sources of a row that is not skip:.
+export function checkRepoCoverage(rows, files, name) {
+  // A Sources path starts at the repo root (`source/core/Ky.ts`) or at its
+  // parent, under the repo folder's name (`ky/source/core/Ky.ts`).
+  const named = rs => rs.flatMap(r => r.sources.split(/[\s,`'"()]+/)).map(p => p.replace(/^\.\//, '')).filter(Boolean)
     .flatMap(p => name && p.startsWith(`${name}/`) ? [p, p.slice(name.length + 1)] : [p])
-  return dirs.filter(d => !paths.some(p => p === d || p.startsWith(`${d}/`)))
+  const paths = named(rows), taught = named(rows.filter(r => !r.skip))
+  const dirs = [...new Set(files.filter(f => f.includes('/')).map(f => f.split('/')[0]))]
+  const problems = dirs.filter(d => !paths.some(p => p === d || p.startsWith(`${d}/`)))
     .map(d => ({ syllabus: {}, msg: `top-level directory "${d}/" of the repo "${name}" appears in no Sources cell; name it in a row's Sources (a skip row counts)` }))
+  const guides = files.filter(f => GUIDE.test(f))
+  if (guides.length && !guides.some(g => taught.includes(g))) problems.push({ syllabus: {}, msg: `the contributing guide "${guides.join('" or "')}" of the repo "${name}" appears in no Sources cell of a row a lesson covers; a learner who will contribute must read it, so name it in such a row` })
+  return problems
 }
 
 function closest(word, options) {
