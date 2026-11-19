@@ -556,7 +556,7 @@ test('index.html#selfcheck plays every card at 400px, names a card that sticks o
   assert.equal(lessons(root, 'build', 'wide').code, 0)
   const good = await selfcheck(join(dir, 'index.html'))
   if (good.report.includes('highlight.js did not load')) return t.skip('highlight.js could not load from its CDN')
-  assert.match(good.report, /^Self-check PASS\nPlayed 12 cards in 2 lessons in a 400px window: 8 quiz cards answered wrong, then retried with 8 hints and answered right; 6 code blocks checked for colour\./, good.report)
+  assert.match(good.report, /^Self-check PASS\nPlayed 12 cards in 2 lessons in a 400px window: 2 quiz cards skipped twice and 6 answered wrong, then retried with 6 hints and answered right; 6 code blocks checked for colour\./, good.report)
   assert.match(good.resume, /Continue where you left off\s+Card types\s+Card 2 of 6/)
   assert.ok(resumeMatches(good.report, good.resume))
   const r = lessons(root, 'selfcheck', 'course')

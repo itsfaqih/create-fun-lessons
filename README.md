@@ -12,7 +12,8 @@ Ask your agent for a course and it writes a single self-contained HTML file. Ope
 - **Quick cards.** Six card types, described in the table below.
 - **Instant feedback.** Every quiz card states what counts as a right answer before you answer. As soon as you check, it shows an explanation, whether you were right or wrong.
 - **Hints.** Every quiz card has a Hint button. The first press gives a nudge. Later presses rule out a wrong option, place a step, or show how the answer starts.
-- **Retries.** A card you miss comes back at the end of the lesson, so each lesson ends with every card answered right.
+- **Skip.** Every quiz card has a Skip button for a card you cannot answer yet. A skip counts as a miss: it shows the answer and brings the card back once at the end of the lesson.
+- **Retries.** A card you miss comes back at the end of the lesson until you answer it right or skip it.
 - **Course progress.** The lesson map shows how many lessons are done, and the lesson-complete screen shows the bar moving forward.
 - **Saved progress.** The page saves progress on the device after every card, even mid-lesson. A progress code moves it to another browser or device. The map can reset one lesson, one unit, or the whole course.
 - **Going back.** The Back button in a lesson returns to the previous card, and answering it again leaves the score as it was. The browser's back button returns from a lesson to the map.

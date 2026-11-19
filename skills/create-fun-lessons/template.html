@@ -256,7 +256,9 @@ pre .blank.fix{color:#86efac;border-bottom:2px solid #4ade80;padding:0 2px}
 .entry.wrong,.wbox.wrong{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
 .entry.right:not(.code),.wbox.right:not(.code){background:var(--ok-soft)}
 .entry.wrong:not(.code),.wbox.wrong:not(.code){background:var(--bad-soft)}
-.hintbtn{margin-top:14px;gap:6px}
+.assist{display:flex;gap:8px;margin-top:14px}
+#skipbtn{margin-left:auto}
+.hintbtn{gap:6px}
 .hintbtn svg{width:16px;height:16px;color:var(--warn)}
 .hintbtn small{background:var(--muted);color:var(--muted-foreground);border-radius:99px;min-width:20px;height:20px;display:grid;place-items:center;font-size:11px;font-weight:600;padding:0 6px}
 .hintbtn[disabled] svg{color:var(--muted-foreground)}
@@ -635,7 +637,9 @@ function renderCard(){
   } else if(c.t==='write'){
     body=`<div class="kicker">${c._retry?'Try again':'Your turn'}</div><h3>${c.q}</h3><div class="criteria" id="criteria"><div class="kicker">Your answer should</div><ul>${c.rubric.map(r=>`<li>${r}</li>`).join('')}</ul></div>${field(c)}<div id="review"></div>`;
   }
-  if(L.steps.length) body+=`<div class="hints" id="hints" aria-live="polite"></div><button class="btn hintbtn" data-variant="outline" data-size="sm" id="hintbtn">${I.bulb}<span>Hint</span><small id="hintleft">${L.steps.length}</small></button>`;
+  const hint = L.steps.length ? `<button class="btn hintbtn" data-variant="outline" data-size="sm" id="hintbtn">${I.bulb}<span>Hint</span><small id="hintleft">${L.steps.length}</small></button>` : '';
+  if(L.steps.length) body+=`<div class="hints" id="hints" aria-live="polite"></div>`;
+  if(c.t!=='learn') body+=`<div class="assist" id="assist">${hint}<button class="btn" data-variant="ghost" data-size="sm" id="skipbtn">Skip</button></div>`;
   const btn = c.t==='learn' ? `<button class="btn cta" data-size="lg" id="cta">Continue</button>` : `<button class="btn cta" data-size="lg" id="cta" disabled>Check</button>`;
   app.innerHTML=`<div class="lesson wrap" style="--uc:${u.color}">
     <div class="lesson-top"><button class="btn" data-variant="ghost" data-size="icon" id="quit" aria-label="Quit lesson">${I.x}</button><button class="btn" data-variant="ghost" data-size="icon" id="prev" aria-label="Previous card" title="Previous card" ${L.pos?'':'disabled'}>${I.back}</button><div class="progress" role="progressbar" aria-label="Lesson progress" aria-valuenow="${Math.round(progressPct())}" aria-valuemin="0" aria-valuemax="100"><span style="width:${L.shown??progressPct()}%"></span></div></div>
@@ -656,6 +660,7 @@ function renderCard(){
   }
   if(c.t==='order') wireOrder(c,cta);
   if(c.t==='blanks') wireBlanks(c,cta);
+  document.getElementById('skipbtn').onclick=()=>grade(c,false,true);
   const hb=document.getElementById('hintbtn');
   if(hb) hb.onclick=()=>{ if(L.phase!=='answer'||L.hinted>=L.steps.length) return; useHint(c,L.steps[L.hinted++]);
     const left=L.steps.length-L.hinted, n=document.getElementById('hintleft');
@@ -863,21 +868,25 @@ function check(c){
 /* A write card is self-graded: show the sample answer and the rubric, and the
    learner ticks each point their answer covers. All ticked counts as right. */
 function review(c){
-  L.phase='review'; document.getElementById('hintbtn')?.remove(); document.getElementById('criteria').remove();
+  L.phase='review'; document.getElementById('assist').remove(); document.getElementById('criteria').remove();
   document.getElementById('entry').readOnly=true;
-  const box=document.getElementById('review'), text=(c.lang||'text')==='text';
-  box.innerHTML=`<div class="model"><div class="kicker">Sample answer</div>${text?`<p>${esc(c.model).replace(/\n/g,'<br>')}</p>`:`<pre><code class="language-${c.lang}">${esc(c.model)}</code></pre>`}</div>
+  const box=document.getElementById('review');
+  box.innerHTML=`<div class="model"><div class="kicker">Sample answer</div>${modelMarkup(c)}</div>
     <div class="kicker">Tick each point your answer meets</div><div class="rubric">${c.rubric.map(r=>`<label class="chk"><input type="checkbox"><span>${r}</span></label>`).join('')}</div>`;
   highlight(box);
   const cta=document.getElementById('cta'); relabel(cta,'Done');
   box.scrollIntoView({behavior:'smooth',block:'start'});
 }
-function grade(c,ok){
-  L.phase='feedback'; document.getElementById('hintbtn')?.remove();
+const modelMarkup=c=>(c.lang||'text')==='text' ? `<p>${esc(c.model).replace(/\n/g,'<br>')}</p>` : `<pre><code class="language-${c.lang}">${esc(c.model)}</code></pre>`;
+/* A skip counts as a miss and shows the answer. A skipped retry does not come
+   back again, so Skip always moves the lesson forward. */
+function grade(c,ok,skipped=false){
+  L.phase='feedback'; document.getElementById('assist')?.remove();
   const key=c._i;
+  let again=false;
   if(L.revisit){}
   else if(ok){ if(!L.missed.has(key)&&!L.hinted) L.firstTry.add(key); }
-  else { L.missed.add(key); L.queue.push({...c,_retry:true,_shuffled:null,_bank:null}); }
+  else { L.missed.add(key); again=!(skipped&&c._retry); if(again) L.queue.push({...c,_retry:true,_shuffled:null,_bank:null}); }
   if(c.t==='order'){ document.getElementById('slots').classList.add(ok?'right':'wrong'); }
   else if(c.t==='blanks'){ const pool=blankPool(c); app.querySelectorAll('#cloze .slot').forEach((s,k)=>{ s.disabled=true; s.classList.remove('next'); s.classList.add(pool[L.fills[k]]===c.answers[k]?'right':'wrong'); }); }
   else if(c.t==='type'||c.t==='write'){
@@ -889,10 +898,10 @@ function grade(c,ok){
     app.querySelectorAll('.opt').forEach(b=>{ b.disabled=true; const i=+b.dataset.i; if(i===c.a && ok) b.classList.add('right'); if(i===L.sel && !ok) b.classList.add('wrong'); });
   }
   const footer=document.getElementById('footer'); footer.classList.add(ok?'ok':'no');
-  const answer = ok ? '' : c.t==='write' ? '<p>Compare your answer with the sample above.</p>' : c.t==='type' ? `<p><b>Answer:</b> <code>${esc(c.accept[0])}</code></p>` : c.t==='blanks' ? `<p><b>Correct fill:</b></p>${blanksMarkup(c,true)}` : (c.t==='order' ? `<p><b>Correct order:</b> ${c.items.map((x,i)=>`${i+1}. ${esc(x)}`).join(' → ')}</p>` : `<p><b>Answer:</b> ${c.t==='fill'?`<code>${esc(c.o[c.a])}</code>`:c.o[c.a]}</p>`);
-  document.getElementById('fb').innerHTML=`<strong>${ok?I.ok+(L.hinted?' Right, with a hint':' Nice!'):I.no+' Not quite'}</strong>${answer}<p>${c.why}</p>${L.revisit?'<p><i>A card you went back to: this answer does not change your score.</i></p>':ok?'':'<p><i>You will see this one again at the end.</i></p>'}`;
+  const answer = ok ? '' : c.t==='write' ? (skipped ? `<p><b>Sample answer:</b></p>${modelMarkup(c)}` : '<p>Compare your answer with the sample above.</p>') : c.t==='type' ? `<p><b>Answer:</b> <code>${esc(c.accept[0])}</code></p>` : c.t==='blanks' ? `<p><b>Correct fill:</b></p>${blanksMarkup(c,true)}` : (c.t==='order' ? `<p><b>Correct order:</b> ${c.items.map((x,i)=>`${i+1}. ${esc(x)}`).join(' → ')}</p>` : `<p><b>Answer:</b> ${c.t==='fill'?`<code>${esc(c.o[c.a])}</code>`:c.o[c.a]}</p>`);
+  document.getElementById('fb').innerHTML=`<strong>${ok?I.ok+(L.hinted?' Right, with a hint':' Nice!'):I.no+(skipped?' Skipped':' Not quite')}</strong>${answer}<p>${c.why}</p>${L.revisit?'<p><i>A card you went back to: this answer does not change your score.</i></p>':again?'<p><i>You will see this one again at the end.</i></p>':''}`;
   highlight(document.getElementById('fb'));
-  const cta=document.getElementById('cta'); relabel(cta,ok?'Continue':'Got it'); cta.focus({preventScroll:true});
+  const cta=document.getElementById('cta'); cta.disabled=false; relabel(cta,ok?'Continue':'Got it'); cta.focus({preventScroll:true});
   saveLesson(L.pos+1);
 }
 function next(){ L.pos++; renderCard(); }
@@ -932,15 +941,17 @@ renderHome();
 
 /* ---------- Self-check ---------- */
 /* Opened as index.html#selfcheck, the page plays every lesson through its own
-   buttons: each quiz card is answered wrong, then on its retry takes a hint and
-   is answered right. After every step it checks that nothing is wider than the
-   window and that code is coloured, then prints the result as text and leaves
-   the first lesson one card in, so a reload shows the resume card. It replaces
-   this browser's progress for the course, so run it in a test browser. */
+   buttons: the first quiz card of each lesson is skipped, and skipped again on
+   its retry; every other one is answered wrong, then on its retry takes a hint
+   and is answered right.
+   After every step it checks that nothing is wider than the window and that
+   code is coloured, then prints the result as text and leaves the first lesson
+   one card in, so a reload shows the resume card. It replaces this browser's
+   progress for the course, so run it in a test browser. */
 async function selfCheck(){
   history.replaceState(null,'',location.href.split('#')[0]);
   await document.fonts.ready;
-  const orig=JSON.parse(JSON.stringify(S)), bad=new Map(), seen=new Set(), tally={cards:0,wrong:0,hints:0,code:0};
+  const orig=JSON.parse(JSON.stringify(S)), bad=new Map(), seen=new Set(), skippedIn=new Map(), tally={cards:0,wrong:0,skipped:0,hints:0,code:0};
   const fail=(at,what)=>{ const k=at.replace(/, after .*|, retry/g,''), list=bad.get(what)||[]; if(!list.includes(k)) list.push(k); bad.set(what,list); };
   const $=q=>app.querySelector(q), click=el=>el&&el.click(), cta=()=>document.getElementById('cta');
   const name=el=>`${el.tagName.toLowerCase()}${[...el.classList].map(k=>'.'+k).join('')} "${el.textContent.trim().replace(/\s+/g,' ').slice(0,40)}"`;
@@ -998,7 +1009,14 @@ async function selfCheck(){
     if(!c._retry) tally.cards++;
     look(at);
     if(c.t==='learn'){ click(cta()); continue; }
-    const hb=document.getElementById('hintbtn');
+    const hb=document.getElementById('hintbtn'), sk=document.getElementById('skipbtn');
+    if(!sk) fail(at,'no Skip button');
+    else if(c._retry ? skippedIn.get(L.lesson.id)===c._i : !skippedIn.has(L.lesson.id)){
+      skippedIn.set(L.lesson.id,c._i); const queued=L.queue.length; click(sk); if(!c._retry) tally.skipped++;
+      if(!/Skipped/.test(document.getElementById('fb').textContent)) fail(at,'Skip showed no feedback');
+      if(L.queue.length!==queued+(c._retry?0:1)) fail(at,c._retry?'a skipped retry came back again':'a skipped card did not come back at the end');
+      look(`${at}, after Skip`); click(cta()); continue;
+    }
     if(!hb) fail(at,'no Hint button');
     else if(c._retry){
       const shown=()=>app.querySelectorAll('.hint-item,.opt.gone,.slot.given,#slots .chip').length, before=shown();
@@ -1022,7 +1040,7 @@ async function selfCheck(){
   if(w>400) fail('',`the window is ${w}px wide; make it 400px wide and open the page again`);
   const verdict=bad.size?`FAIL: ${bad.size} problem(s)`:'PASS';
   const report=[`Self-check ${verdict}`,
-    `Played ${tally.cards} cards in ${ALL.length} lessons in a ${w}px window: ${tally.wrong} quiz cards answered wrong, then retried with ${tally.hints} hints and answered right; ${tally.code} code blocks checked for colour.`,
+    `Played ${tally.cards} cards in ${ALL.length} lessons in a ${w}px window: ${tally.skipped} quiz cards skipped twice and ${tally.wrong} answered wrong, then retried with ${tally.hints} hints and answered right; ${tally.code} code blocks checked for colour.`,
     ...[...bad].map(([what,at])=>at[0]?`${what}: ${at.slice(0,6).join('; ')}${at.length>6?`; and ${at.length-6} more`:''}`:what),
     `Now reload the page: the map should show "Continue where you left off" for "${ALL[0].title}", card 2 of ${total}.`].join('\n');
   document.title=`Self-check ${verdict}`;

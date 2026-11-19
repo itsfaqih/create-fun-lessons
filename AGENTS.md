@@ -5,6 +5,7 @@ This repo ships the `create-fun-lessons` skill in `skills/create-fun-lessons/` f
 - Keep the skill's wording portable: name generic tools and steps (`node`, "a browser", "the user's or project's output folder", "a URL the phone can reach"), not one person's setup, wrapper commands, or apps.
 - Describe the learning experience itself (lesson map, quick cards, instant feedback, retries, overall progress) instead of naming other learning products.
 - Every code sample, command, and code answer field is syntax highlighted (highlight.js, loaded in `template.html`). A new card type or field that shows code renders it through `highlight()` or the `field()` editor and takes a `lang`; the checker (`scripts/schema.mjs`) rejects languages the page does not load.
+- Every quiz card offers a Skip button beside Hint. A skip is a miss that shows the answer; the card comes back once, and a skipped retry does not, so Skip always moves the lesson forward (`grade()` in `template.html`).
 - Every quiz card offers a Hint button. A new quiz card type defines its automatic hints in `hintSteps()`, or its `needsHint` in `scripts/schema.mjs` requires an authored `hint`.
 - Every quiz card shows its acceptance criteria before the learner answers: the question or options make it plain, a `type` card states its expected form and matching rule, a `blanks` card states its blank count and spare chips, a `write` card lists its rubric.
 - On a miss, feedback marks each wrong part and shows the right answer: the option, the order, every blank, the accepted command, or the sample answer.
