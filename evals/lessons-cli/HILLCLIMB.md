@@ -182,3 +182,7 @@ Question: does h17's gain over h16 hold on the first subject? 5 new ky builds (c
 - All 5 pass the frozen checker with 0 leaks and 0 wide lines.
 - Cost on ky: h17 median $2.89 against h16 $2.59 (p 0.032) and old $3.36 (p 0.032). h17 used one more checker run per build and about 30% more cached input. On commander h17 was cheaper than h16, and pooled over both subjects the two cost the same (median $2.84 vs $2.79, p 0.38).
 - Decision: h17 stays the final arm on both subjects.
+
+## Workspaces archived (2026-11-19)
+
+The run workspaces under `~/work-ky` and `~/work-commander` are deleted. Each run's course folder and every review packet, without the repo clones, are in `workspaces-20261119.tar.gz` in the eval state directory. `grade` keeps each run's saved grade when its workspace is missing, and `restore` replays a run from its log when a new judge packet needs it.
